@@ -1,0 +1,22 @@
+name: test
+channels:
+  - conda-forge
+  - openeye
+dependencies:
+    # Base depends
+  - python
+  - pip
+
+    # Testing
+  - pytest
+  - pytest-cov
+  - codecov
+
+    # Standard dependencies.
+  - numpy
+  - pydantic
+  - openeye-toolkits
+
+    # Optional dependencies.
+  - distributed
+  - dask-jobqueue

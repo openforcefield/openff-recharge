@@ -33,11 +33,14 @@ jobs:
       - name: Run isort
         run: |
           isort --recursive --check-only openff
+          isort --recursive --check-only scripts
 
       - name: Run black
         run: |
           black openff --check
+          black scripts --check
 
       - name: Run flake8
         run: |
           flake8 openff
+          flake8 scripts

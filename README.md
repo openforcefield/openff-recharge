@@ -8,6 +8,9 @@ openff-recharge
 
 An automated framework for generating optimized partial charges for molecules.
 
+**Warning** Nothing in this repository should be considered as being scientifically correct and should in no way be
+used in any production work.
+
 ### Copyright
 
 Copyright (c) 2020, Simon Boothroyd

@@ -64,11 +64,10 @@ jobs:
       - name: Run Tests
         shell: bash -l {0}
         run: |
-          pytest -v --cov=openff --cov-report=xml --color=yes openff/recharge/tests/
+          pytest -v --cov=openff openff/recharge/tests/ --cov-report=xml
 
       - name: CodeCov
         uses: codecov/codecov-action@v1
         with:
           file: ./coverage.xml
-          flags: unittests
-          name: codecov-${{ matrix.os }}-py${{ matrix.python-version }}
+          fail_ci_if_error: true

@@ -1,6 +1,6 @@
 import numpy
 import pytest
-from openeye import oechem, oedepict, oeomega, oequacpac
+from openeye import oechem, oequacpac
 
 from openff.recharge.conformers.conformers import OmegaELF10
 from openff.recharge.generators.bcc import AM1BCC

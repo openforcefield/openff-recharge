@@ -126,5 +126,5 @@ def main():
         json.dump(bond_charge_corrections, file)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

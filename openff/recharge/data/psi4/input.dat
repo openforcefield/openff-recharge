@@ -1,0 +1,11 @@
+molecule mol {
+  noreorient
+  nocom
+  {{ charge }} {{ spin }}
+  {% for atom in atoms -%}
+  {{ atom.element }} {{ '% 0.9f' | format(atom.x|float) }} {{ '% 0.9f' | format(atom.y|float) }} {{ '% 0.9f' | format(atom.z|float) }}
+  {% endfor %}
+}
+
+set basis {{ basis }}
+E,wfn = prop('{%- if spin == 2 %}u{% endif %}{{ method }}', properties = ['GRID_ESP', 'GRID_FIELD'], return_wfn=True)

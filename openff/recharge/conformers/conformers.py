@@ -5,8 +5,8 @@ import logging
 
 from openeye import oechem, oeomega, oequacpac
 
+from openff.recharge.charges.exceptions import OEQuacpacError
 from openff.recharge.conformers.exceptions import OEOmegaError
-from openff.recharge.generators.exceptions import OEQuacpacError
 from openff.recharge.utilities.openeye import call_openeye
 
 logger = logging.getLogger()

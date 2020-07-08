@@ -5,10 +5,10 @@ from openeye import oechem, oequacpac
 from openff.recharge.conformers.conformers import OmegaELF10
 from openff.recharge.generators.bcc import AM1BCC
 from openff.recharge.generators.exceptions import (
-    MissingConformersError,
     OEQuacpacError,
     UnableToAssignChargeError,
 )
+from openff.recharge.utilities.exceptions import MissingConformersError
 from openff.recharge.utilities.openeye import call_openeye, smiles_to_molecule
 
 

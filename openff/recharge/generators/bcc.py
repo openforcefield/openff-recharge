@@ -11,12 +11,12 @@ from openeye import oechem, oequacpac
 
 from openff.recharge.conformers.conformers import ConformerGenerator
 from openff.recharge.generators.exceptions import (
-    MissingConformersError,
     OEQuacpacError,
     UnableToAssignChargeError,
 )
 from openff.recharge.models import BondChargeCorrection
 from openff.recharge.utilities import get_data_file_path
+from openff.recharge.utilities.exceptions import MissingConformersError
 from openff.recharge.utilities.openeye import call_openeye, match_smirks
 
 

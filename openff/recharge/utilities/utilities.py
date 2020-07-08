@@ -1,5 +1,8 @@
 import errno
 import os
+from contextlib import contextmanager
+from tempfile import TemporaryDirectory
+from typing import Optional
 
 
 def get_data_file_path(relative_path: str) -> str:
@@ -29,3 +32,42 @@ def get_data_file_path(relative_path: str) -> str:
         raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), file_path)
 
     return file_path
+
+
+@contextmanager
+def temporary_cd(directory_path: Optional[str] = None):
+    """Temporarily move the current working directory to the path
+    specified. If no path is given, a temporary directory will be
+    created, moved into, and then destroyed when the context manager
+    is closed.
+
+    Parameters
+    ----------
+    directory_path: str, optional
+
+    Returns
+    -------
+
+    """
+
+    if directory_path is not None and len(directory_path) == 0:
+        yield
+        return
+
+    old_directory = os.getcwd()
+
+    try:
+
+        if directory_path is None:
+
+            with TemporaryDirectory() as new_directory:
+                os.chdir(new_directory)
+                yield
+
+        else:
+
+            os.chdir(directory_path)
+            yield
+
+    finally:
+        os.chdir(old_directory)

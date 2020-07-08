@@ -4,20 +4,34 @@ of a cheaper QM method and a set of bond charge corrections.
 import abc
 import json
 import os
-from typing import List, Optional, Tuple, Type
+from typing import Any, Dict, List, Optional, Tuple, Type
 
 import numpy
 from openeye import oechem, oequacpac
+from pydantic import BaseModel, Field, constr
 
+from openff.recharge.charges.exceptions import OEQuacpacError, UnableToAssignChargeError
 from openff.recharge.conformers.conformers import ConformerGenerator
-from openff.recharge.generators.exceptions import (
-    OEQuacpacError,
-    UnableToAssignChargeError,
-)
-from openff.recharge.models import BondChargeCorrection
 from openff.recharge.utilities import get_data_file_path
 from openff.recharge.utilities.exceptions import MissingConformersError
 from openff.recharge.utilities.openeye import call_openeye, match_smirks
+
+
+class BondChargeCorrection(BaseModel):
+    """An object which encodes the value of a bond-charge correction, the chemical
+    environment to which it should be applied, and provenance about its source.
+    """
+
+    smirks: constr(min_length=1) = Field(
+        ...,
+        description="A SMIRKS pattern which encodes the chemical environment that "
+        "this correction should be applied to.",
+    )
+    value: float = Field(..., description="The value of this correction.")
+
+    provenance: Dict[str, Any] = Field(
+        ..., description="Provenance information about this bond charge correction."
+    )
 
 
 class _BaseBCC(abc.ABC):

@@ -13,7 +13,7 @@ from typing import Dict, List
 
 import pandas
 
-from openff.recharge.models import BondChargeCorrection
+from openff.recharge.charges.bcc import BondChargeCorrection
 
 logging.basicConfig()
 logger = logging.getLogger(__name__)

@@ -3,6 +3,7 @@ import logging
 import re
 from typing import Any, Callable, Dict, List, Type, TypeVar
 
+import numpy
 from openeye import oechem
 
 from openff.recharge.utilities.exceptions import (
@@ -150,3 +151,32 @@ def match_smirks(
         matches.append(matched_indices)
 
     return matches
+
+
+def molecule_to_conformers(oe_molecule: oechem.OEMol) -> List[numpy.ndarray]:
+    """Extracts the conformers of a molecule and stores them
+    inside of a numpy array.
+
+    Parameters
+    ----------
+    oe_molecule
+        The molecule to extract the conformers from.
+
+    Returns
+    -------
+        A list of the extracted conformers, where each
+        conformer is a numpy array with shape=(n_atoms, 3).
+    """
+
+    conformers = []
+
+    for oe_conformer in oe_molecule.GetConfs():
+
+        conformer = numpy.zeros((oe_molecule.NumAtoms(), 3))
+
+        for atom_index, coordinates in oe_conformer.GetCoords().items():
+            conformer[atom_index, :] = coordinates
+
+        conformers.append(conformer)
+
+    return conformers

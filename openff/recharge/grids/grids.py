@@ -79,14 +79,19 @@ class GridGenerator:
         minimum_bounds = numpy.min(conformer - radii * settings.outer_vdw_scale, axis=0)
         maximum_bounds = numpy.max(conformer + radii * settings.outer_vdw_scale, axis=0)
 
-        n_cells = int(
-            numpy.ceil(numpy.max(maximum_bounds - minimum_bounds) / settings.spacing)
+        lattice_constant = 2.0 * settings.spacing / numpy.sqrt(2.0)
+
+        n_cells = tuple(
+            int(n)
+            for n in numpy.ceil((maximum_bounds - minimum_bounds) / lattice_constant)
         )
 
-        # Compute the coordinates of the
+        # Compute the coordinates of the grid.
         coordinates = []
 
-        for x, y, z in itertools.product(range(0, n_cells * 2 + 1), repeat=3):
+        for x, y, z in itertools.product(
+            *(range(0, n * 2 + 1) for n in n_cells), repeat=1
+        ):
 
             a = x % 2
             b = y % 2
@@ -103,9 +108,9 @@ class GridGenerator:
                 continue
 
             coordinate = (
-                numpy.array([[x - n_cells, y - n_cells, z - n_cells]])
+                numpy.array([[x - n_cells[0], y - n_cells[1], z - n_cells[2]]])
                 * 0.5
-                * settings.spacing
+                * lattice_constant
                 + conformer_center
             )
 

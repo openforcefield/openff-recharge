@@ -1,17 +1,21 @@
 import numpy
 import pytest
-from openeye import oechem, oequacpac
 
-from openff.recharge.charges.bcc import AM1BCC
-from openff.recharge.charges.exceptions import OEQuacpacError, UnableToAssignChargeError
+from openff.recharge.charges.bcc import (
+    BCCGenerator,
+    BCCSettings,
+    BondChargeCorrection,
+    original_am1bcc_corrections,
+)
+from openff.recharge.charges.charges import ChargeGenerator, ChargeSettings
+from openff.recharge.charges.exceptions import UnableToAssignChargeError
 from openff.recharge.conformers.conformers import OmegaELF10
-from openff.recharge.utilities.exceptions import MissingConformersError
-from openff.recharge.utilities.openeye import call_openeye, smiles_to_molecule
+from openff.recharge.utilities.openeye import smiles_to_molecule
 
 
 @pytest.fixture(scope="module")
 def bond_charge_corrections():
-    return AM1BCC.original_corrections()
+    return original_am1bcc_corrections()
 
 
 def coverage_smiles():
@@ -53,75 +57,99 @@ def coverage_smiles():
 def test_load_original_am1_bcc():
     """Tests that the original BCC values can be parsed from the
     data directory."""
-    assert len(AM1BCC.original_corrections()) > 0
+    assert len(original_am1bcc_corrections()) > 0
+
+
+def test_build_assignment_matrix():
+
+    oe_molecule = smiles_to_molecule("C")
+
+    bond_charge_corrections = [
+        BondChargeCorrection(smirks="[#6:1]-[#6:2]", value=1.0, provenance={}),
+        BondChargeCorrection(smirks="[#6:1]-[#1:2]", value=1.0, provenance={}),
+    ]
+
+    assignment_matrix = BCCGenerator.build_assignment_matrix(
+        oe_molecule, BCCSettings(bond_charge_corrections=bond_charge_corrections)
+    )
+
+    assert assignment_matrix.shape == (5, 2)
+    assert numpy.allclose(assignment_matrix[:, 0], 0)
+
+    assert assignment_matrix[0, 1] == 4
+    assert numpy.allclose(assignment_matrix[1:, 1], -1)
+
+
+def test_applied_corrections():
+
+    oe_molecule = smiles_to_molecule("C")
+    bond_charge_corrections = [
+        BondChargeCorrection(smirks="[#6:1]-[#6:2]", value=1.0, provenance={}),
+        BondChargeCorrection(smirks="[#6:1]-[#1:2]", value=1.0, provenance={}),
+    ]
+    settings = BCCSettings(bond_charge_corrections=bond_charge_corrections)
+
+    assignment_matrix = BCCGenerator.build_assignment_matrix(oe_molecule, settings)
+    applied_corrections = BCCGenerator.applied_corrections(assignment_matrix, settings)
+
+    assert len(applied_corrections) == 1
+    assert applied_corrections[0] == bond_charge_corrections[1]
+
+
+def test_apply_assignment():
+
+    settings = BCCSettings(
+        bond_charge_corrections=[
+            BondChargeCorrection(smirks="[#1:1]-[#1:2]", value=0.0, provenance={})
+        ]
+    )
+    assignment_matrix = numpy.array([[1], [1]])
+
+    # Test with a valid set of BCCs
+    charge_corrections = BCCGenerator.apply_assignment_matrix(
+        assignment_matrix, settings
+    )
+
+    assert charge_corrections.shape == (2, 1)
+    assert numpy.allclose(charge_corrections, 0.0)
+
+    # Test with invalid BCCs
+    settings.bond_charge_corrections[0].value = 1.0
+
+    with pytest.raises(UnableToAssignChargeError) as error_info:
+        BCCGenerator.apply_assignment_matrix(assignment_matrix, settings)
+
+    assert "the total charge of the molecule will be altered." in str(error_info.value)
 
 
 @pytest.mark.parametrize("smiles", coverage_smiles())
-def test_am1_bcc_single_existing_conformer(bond_charge_corrections, smiles):
+def test_am1_bcc_oe_parity(bond_charge_corrections, smiles):
     """Test that this frameworks AM1BCC implementation matches the OpenEye
     implementation."""
 
     # Build the molecule
     oe_molecule = smiles_to_molecule(smiles)
-    # Generate a conformer
-    oe_molecule = OmegaELF10.generate(oe_molecule, max_conformers=1)
+    # Generate a conformer for the molecule.
+    conformers = OmegaELF10.generate(oe_molecule, max_conformers=1)
 
     # Generate a set of reference charges using the OpenEye implementation
-    oe_reference_molecule = oechem.OEMol(oe_molecule)
-
-    call_openeye(
-        oequacpac.OEAssignCharges,
-        oe_molecule,
-        oequacpac.OEAM1BCCCharges(optimize=True, symmetrize=True),
-        exception_type=OEQuacpacError,
+    reference_charges = ChargeGenerator.generate(
+        oe_molecule, conformers, ChargeSettings(theory="am1bcc")
     )
 
-    reference_charges = {
-        atom.GetIdx(): atom.GetPartialCharge()
-        for atom in oe_reference_molecule.GetAtoms()
-    }
-
     # Generate a set of charges using this frameworks functions
-    oe_molecule, _ = AM1BCC.generate(oe_molecule, bond_charge_corrections)
+    am1_charges = ChargeGenerator.generate(
+        oe_molecule, conformers, ChargeSettings(theory="am1")
+    )
+    charge_corrections = BCCGenerator.generate(
+        oe_molecule, BCCSettings(bond_charge_corrections=bond_charge_corrections)
+    )
 
-    implementation_charges = {
-        atom.GetIdx(): atom.GetPartialCharge() for atom in oe_molecule.GetAtoms()
-    }
+    implementation_charges = am1_charges + charge_corrections
 
     # Check that their is no difference between the implemented and
     # reference charges.
-    assert {*implementation_charges} == {*reference_charges}
-
-    differences = {
-        i: (
-            implementation_charges[i],
-            reference_charges[i],
-            implementation_charges[i] - reference_charges[i],
-        )
-        for i in implementation_charges
-        if not numpy.isclose(implementation_charges[i], reference_charges[i])
-    }
-
-    assert len(differences) == 0
-
-
-def test_am1_bcc_missing_conformer():
-    """Tests that the correct exception is raised when generating partial charges
-    for a molecule without conformers and no conformer generator.
-    """
-    oe_molecule = smiles_to_molecule("C")
-    oe_molecule.DeleteConfs()
-
-    with pytest.raises(MissingConformersError):
-        AM1BCC.generate(oe_molecule, [])
-
-
-def test_am1_bcc_conformer_generator(bond_charge_corrections):
-    """Tests that the a conformer generator can be passed to and used
-    by the AM1BCC partial charge generator.
-    """
-    oe_molecule = smiles_to_molecule("C")
-    AM1BCC.generate(oe_molecule, bond_charge_corrections, OmegaELF10)
+    assert numpy.allclose(reference_charges, implementation_charges)
 
 
 def test_am1_bcc_missing_parameters(bond_charge_corrections):
@@ -131,7 +159,7 @@ def test_am1_bcc_missing_parameters(bond_charge_corrections):
     oe_molecule = smiles_to_molecule("C")
 
     with pytest.raises(UnableToAssignChargeError) as error_info:
-        AM1BCC.generate(oe_molecule, [], OmegaELF10)
+        BCCGenerator.generate(oe_molecule, BCCSettings(bond_charge_corrections=[]))
 
     assert "could not be assigned a bond charge correction atom type" in str(
         error_info.value

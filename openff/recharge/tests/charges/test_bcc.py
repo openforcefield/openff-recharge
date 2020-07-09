@@ -4,7 +4,8 @@ import pytest
 from openff.recharge.charges.bcc import (
     BCCGenerator,
     BCCSettings,
-    original_am1bcc_corrections, BondChargeCorrection,
+    BondChargeCorrection,
+    original_am1bcc_corrections,
 )
 from openff.recharge.charges.charges import ChargeGenerator, ChargeSettings
 from openff.recharge.charges.exceptions import UnableToAssignChargeError
@@ -65,7 +66,7 @@ def test_build_assignment_matrix():
 
     bond_charge_corrections = [
         BondChargeCorrection(smirks="[#6:1]-[#6:2]", value=1.0, provenance={}),
-        BondChargeCorrection(smirks="[#6:1]-[#1:2]", value=1.0, provenance={})
+        BondChargeCorrection(smirks="[#6:1]-[#1:2]", value=1.0, provenance={}),
     ]
 
     assignment_matrix = BCCGenerator.build_assignment_matrix(
@@ -84,7 +85,7 @@ def test_applied_corrections():
     oe_molecule = smiles_to_molecule("C")
     bond_charge_corrections = [
         BondChargeCorrection(smirks="[#6:1]-[#6:2]", value=1.0, provenance={}),
-        BondChargeCorrection(smirks="[#6:1]-[#1:2]", value=1.0, provenance={})
+        BondChargeCorrection(smirks="[#6:1]-[#1:2]", value=1.0, provenance={}),
     ]
     settings = BCCSettings(bond_charge_corrections=bond_charge_corrections)
 
@@ -97,13 +98,17 @@ def test_applied_corrections():
 
 def test_apply_assignment():
 
-    settings = BCCSettings(bond_charge_corrections=[
-        BondChargeCorrection(smirks="[#1:1]-[#1:2]", value=0.0, provenance={})
-    ])
+    settings = BCCSettings(
+        bond_charge_corrections=[
+            BondChargeCorrection(smirks="[#1:1]-[#1:2]", value=0.0, provenance={})
+        ]
+    )
     assignment_matrix = numpy.array([[1], [1]])
 
     # Test with a valid set of BCCs
-    charge_corrections = BCCGenerator.apply_assignment_matrix(assignment_matrix, settings)
+    charge_corrections = BCCGenerator.apply_assignment_matrix(
+        assignment_matrix, settings
+    )
 
     assert charge_corrections.shape == (2, 1)
     assert numpy.allclose(charge_corrections, 0.0)

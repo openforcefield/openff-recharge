@@ -26,18 +26,21 @@ def build_bond_charge_corrections(
     atom_codes: Dict[str, str],
     bond_codes: Dict[str, str],
     bcc_overrides: Dict[str, float],
+    custom_bcc_smirks: Dict[str, str]
 ) -> List[BondChargeCorrection]:
 
     # Convert the atom and bond codes into the six number codes used
     # in the AM1BCC paper.
-    all_codes = []
+    all_codes = [*custom_bcc_smirks]
 
     for first_atom_code in atom_codes:
         for bond_code in bond_codes:
             for last_atom_code in atom_codes:
 
                 code = f"{first_atom_code}{bond_code}{last_atom_code}"
-                all_codes.append(code)
+
+                if code not in all_codes:
+                    all_codes.append(code)
 
     # Remove any BCCs defined for bond or atom codes which haven't yet been
     # specified.
@@ -70,6 +73,9 @@ def build_bond_charge_corrections(
             f"{atom_codes[last_atom_code].replace(':1', ':2')}"
         )
 
+        if code in custom_bcc_smirks:
+            smirks = custom_bcc_smirks.pop(code)
+
         # Validate the smirks
         query = oechem.OEQMol()
         call_openeye(
@@ -85,6 +91,8 @@ def build_bond_charge_corrections(
         bond_charge_corrections[code] = BondChargeCorrection(
             smirks=smirks, value=value, provenance={"code": code}
         )
+
+    assert len(custom_bcc_smirks) == 0
 
     return [
         bond_charge_corrections[code]
@@ -114,13 +122,13 @@ def main():
         # N3hdeloc Trivalent nitrogen with a highly delocalized lone pair
         "23": "[#7X3ar5,#7X3$(*~[#8])$(*~[#8]):1]",
         # N3deloc Trivalent nitrogen with a delocalized lone pair
-        "22": "[#7X2-1$(*-[#6X3]),#7X3$(*-[#6X3]):1]",
+        "22": "[#7X2-1$(*-[#6X3$(*=[#8])]),#7X3$(*-[#6X3$(*=[#8])]):1]",
         # N2,3,4 Amine nitrogen
         "21": "[#7X4,#7X3,#7X2-1:1]",
         # N1,2 Univalent or cationic divalent nitrogen
         "25": "[#7X1,#7X2+1:1]",
         # N2 Neutral divalent nitrogen
-        "24": "[#7X2$(*=[*]):1]",
+        "24": "[#7X2+0:1]",
 
         # O1lact Double-bonded oxygen in a lactone or lactam
         "33": "[#8X1$(*=[#6r]@[#7H1r,#8r]):1]",
@@ -129,17 +137,17 @@ def main():
         # O1,2 Univalent or divalent oxygen
         "31": "[#8X1,#8X2:1]",
 
-        # P3,4 Trivalent or tetravalent double-bonded phosphorus 42
-        "42": "[#15X3$(*=[*]),#15X4$(*=[*]):1]",
-        # P2,3 Divalent or trivalent phosphorus
-        "41": "[#15X2,#15X3:1]",
+        # # P3,4 Trivalent or tetravalent double-bonded phosphorus 42
+        # "42": "[#15X3$(*=[*]),#15X4$(*=[*]):1]",
+        # # P2,3 Divalent or trivalent phosphorus
+        # "41": "[#15X2,#15X3:1]",
 
-        # S4 Tetravalent sulfur
-        "53": "[#16X4:1]",
-        # S3 Trivalent sulfur
-        "52": "[#16X3:1]",
-        # S1,2 Univalent or divalent sulfur
-        "51": "[#16X1,#16X2:1]",
+        # # S4 Tetravalent sulfur
+        # "53": "[#16X4:1]",
+        # # S3 Trivalent sulfur
+        # "52": "[#16X3:1]",
+        # # S1,2 Univalent or divalent sulfur
+        # "51": "[#16X1,#16X2:1]",
 
         # Si4 Tetravalent silicon
         "61": "[#14X4:1]",
@@ -150,8 +158,8 @@ def main():
         "72": "[#17:1]",
         # Br1 Bromine
         "73": "[#35:1]",
-        # # I1 Iodine
-        "74": "[#53:1]",
+        # # # I1 Iodine
+        # "74": "[#53:1]",
 
         # H1 Hydrogen
         "91": "[#1:1]",
@@ -166,10 +174,21 @@ def main():
         "09": "~",  # Single bond with charge or delocalized bond
     }
 
+    custom_bcc_smirks = {
+        "110931": "[#6X4:1]-[#8X1-1:2]",
+        "150931": "[#6X1,#6X2:1]-[#8X1-1:2]",
+        "120931": "[#6X3$(*=[#6]):1]-[#8X1-1:2]",
+        "130931": "[#6X3$(*=[#7,#15]):1]-[#8X1-1:2]",
+        "140931": "[#6X3:1](~[#8X1,#16X1])(~[#8X1:2])",
+        "170931": "[#6a$(*~[#7aX2,#8aX2]):1]-[#8X1-1:2]",
+        "160931": "[#6a:1]-[#8X1-1:2]",
+        "230931": "[#7X3$(*~[#8])$(*~[#8]):1]~[#8X1:2]",
+    }
+    # [#7X3ar5,#7X3$(*~[#8])$(*~[#8]):1]
     bcc_overrides = {"110112": 0.0024, "120114": -0.0172}
 
     bond_charge_corrections = build_bond_charge_corrections(
-        atom_codes, bond_codes, bcc_overrides
+        atom_codes, bond_codes, bcc_overrides, custom_bcc_smirks
     )
     bond_charge_corrections = [
         bond_charge_correction.dict()

@@ -1,7 +1,7 @@
 import numpy
 import pytest
+from openeye import oechem
 
-from openff.recharge.conformers.conformers import OmegaELF10
 from openff.recharge.utilities.exceptions import (
     InvalidSmirksError,
     MoleculeFromSmilesError,
@@ -60,10 +60,14 @@ def test_molecule_to_conformer():
     """Test that the `molecule_to_conformers` function returns
     a non-zero numpy array of the correct shape."""
 
-    oe_molecule = OmegaELF10.generate(smiles_to_molecule("CO"), 1)
+    oe_molecule = smiles_to_molecule("[H][H]")
+    oe_molecule.DeleteConfs()
+
+    conformer = numpy.array([[-1.0, 0.0, 0.0], [1.0, 0.0, 0.0]])
+    oe_molecule.NewConf(oechem.OEFloatArray(conformer.flatten()))
+
     conformers = molecule_to_conformers(oe_molecule)
-
     assert len(conformers) == 1
-    assert conformers[0].shape == (6, 3)
 
-    assert not numpy.allclose(conformers[0], 0.0)
+    assert conformers[0].shape == conformer.shape
+    assert numpy.allclose(conformers[0], conformer)

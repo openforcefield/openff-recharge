@@ -89,18 +89,57 @@ def main():
         "15": "[#6X1,#6X2:1]",
         # C3=C Trivalent carbon, double bonded to carbon
         "12": "[#6X3$(*=[#6]):1]",
-        # C3=N,P Trivalent carbon, double bonded to nitrogen or phosphorus
-        "13": "[#6X3$(*=[#7,#15]):1]",
+        # # C3=N,P Trivalent carbon, double bonded to nitrogen or phosphorus
+        # "13": "[#6X3$(*=[#7,#15]):1]",
         # C3=O,S Trivalent carbon, double bonded to oxygen or sulfur
         "14": "[#6X3$(*=[#8,#16]):1]",
         # Carlp Aromatic carbon bonded to an aromatic oxygen or nitrogen with a lone pair
         "17": "[#6a$(*~[#7aX2,#8aX2]):1]",
         # Car Aromatic carbon
         "16": "[#6a:1]",
+
+        # # N2,3,4 Amine nitrogen
+        # "21": "",
+        # # N3deloc Trivalent nitrogen with a delocalized lone pair
+        # "22": "",
+        # # N3hdeloc Trivalent nitrogen with a highly delocalized lone pair
+        # "23": "",
+        # # N2 Neutral divalent nitrogen
+        # "24": "",
+        # # N1,2 Univalent or cationic divalent nitrogen
+        # "25": "",
+
+        # O1lact Double-bonded oxygen in a lactone or lactam
+        "33": "[#8X1$(*=[#6r]@[#7H1r,#8r]):1]",
         # O1ester,acid Double-bonded oxygen in an ester or acid
         "32": "[#8X1$(*=[#6X3]-[#8X2]):1]",
         # O1,2 Univalent or divalent oxygen
         "31": "[#8X1,#8X2:1]",
+
+        # # P2,3 Divalent or trivalent phosphorus
+        # "41": "",
+        # # P3,4 Trivalent or tetravalent double-bonded phosphorus 42
+        # "42": "",
+
+        # S4 Tetravalent sulfur
+        "53": "[#16X4:1]",
+        # S3 Trivalent sulfur
+        "52": "[#16X3:1]",
+        # S1,2 Univalent or divalent sulfur
+        "51": "[#16X1,#16X2:1]",
+
+        # Si4 Tetravalent silicon
+        "61": "[#14X4:1]",
+
+        # F1 Fluorine
+        "71": "[#9:1]",
+        # Cl1 Chlorine
+        "72": "[#17:1]",
+        # Br1 Bromine
+        "73": "[#35:1]",
+        # # I1 Iodine
+        # "74": "",
+
         # H1 Hydrogen
         "91": "[#1:1]",
     }
@@ -108,8 +147,10 @@ def main():
         "01": "-",  # Single bond
         "02": "=",  # Double bond
         "03": "#",  # Triple bond
+        # "06": "",  # 'Single' Dative bond
         "07": ":",  # 'Single' aromatic Bond
         "08": ":",  # 'Double' aromatic Bond
+        # "09": "",  # Single bond with charge or delocalized bond
     }
 
     bcc_overrides = {"110112": 0.0024, "120114": -0.0172}

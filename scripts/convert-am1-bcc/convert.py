@@ -12,8 +12,11 @@ import logging
 from typing import Dict, List
 
 import pandas
+from openeye import oechem
 
 from openff.recharge.charges.bcc import BondChargeCorrection
+from openff.recharge.utilities.exceptions import InvalidSmirksError
+from openff.recharge.utilities.openeye import call_openeye
 
 logging.basicConfig()
 logger = logging.getLogger(__name__)
@@ -67,6 +70,16 @@ def build_bond_charge_corrections(
             f"{atom_codes[last_atom_code].replace(':1', ':2')}"
         )
 
+        # Validate the smirks
+        query = oechem.OEQMol()
+        call_openeye(
+            oechem.OEParseSmarts,
+            query,
+            smirks,
+            exception_type=InvalidSmirksError,
+            exception_kwargs={"smirks": smirks},
+        )
+
         value = bcc_overrides.get(code, bcc_row["BCC"])
 
         bond_charge_corrections[code] = BondChargeCorrection(
@@ -89,8 +102,8 @@ def main():
         "15": "[#6X1,#6X2:1]",
         # C3=C Trivalent carbon, double bonded to carbon
         "12": "[#6X3$(*=[#6]):1]",
-        # # C3=N,P Trivalent carbon, double bonded to nitrogen or phosphorus
-        # "13": "[#6X3$(*=[#7,#15]):1]",
+        # C3=N,P Trivalent carbon, double bonded to nitrogen or phosphorus
+        "13": "[#6X3$(*=[#7,#15]):1]",
         # C3=O,S Trivalent carbon, double bonded to oxygen or sulfur
         "14": "[#6X3$(*=[#8,#16]):1]",
         # Carlp Aromatic carbon bonded to an aromatic oxygen or nitrogen with a lone pair
@@ -98,16 +111,16 @@ def main():
         # Car Aromatic carbon
         "16": "[#6a:1]",
 
-        # # N2,3,4 Amine nitrogen
-        # "21": "",
-        # # N3deloc Trivalent nitrogen with a delocalized lone pair
-        # "22": "",
-        # # N3hdeloc Trivalent nitrogen with a highly delocalized lone pair
-        # "23": "",
-        # # N2 Neutral divalent nitrogen
-        # "24": "",
-        # # N1,2 Univalent or cationic divalent nitrogen
-        # "25": "",
+        # N3hdeloc Trivalent nitrogen with a highly delocalized lone pair
+        "23": "[#7X3ar5,#7X3$(*~[#8])$(*~[#8]):1]",
+        # N3deloc Trivalent nitrogen with a delocalized lone pair
+        "22": "[#7X2-1$(*-[#6X3]),#7X3$(*-[#6X3]):1]",
+        # N2,3,4 Amine nitrogen
+        "21": "[#7X4,#7X3,#7X2-1:1]",
+        # N2 Neutral divalent nitrogen
+        "24": "[#7X2$(*=[*]):1]",
+        # N1,2 Univalent or cationic divalent nitrogen
+        "25": "[#7X1,#7X2+1:1]",
 
         # O1lact Double-bonded oxygen in a lactone or lactam
         "33": "[#8X1$(*=[#6r]@[#7H1r,#8r]):1]",
@@ -116,10 +129,10 @@ def main():
         # O1,2 Univalent or divalent oxygen
         "31": "[#8X1,#8X2:1]",
 
-        # # P2,3 Divalent or trivalent phosphorus
-        # "41": "",
-        # # P3,4 Trivalent or tetravalent double-bonded phosphorus 42
-        # "42": "",
+        # P3,4 Trivalent or tetravalent double-bonded phosphorus 42
+        "42": "[#15X3$(*=[*]),#15X4$(*=[*]):1]",
+        # P2,3 Divalent or trivalent phosphorus
+        "41": "[#15X2,#15X3:1]",
 
         # S4 Tetravalent sulfur
         "53": "[#16X4:1]",
@@ -138,7 +151,7 @@ def main():
         # Br1 Bromine
         "73": "[#35:1]",
         # # I1 Iodine
-        # "74": "",
+        "74": "[#53:1]",
 
         # H1 Hydrogen
         "91": "[#1:1]",
@@ -150,7 +163,7 @@ def main():
         # "06": "",  # 'Single' Dative bond
         "07": ":",  # 'Single' aromatic Bond
         "08": ":",  # 'Double' aromatic Bond
-        # "09": "",  # Single bond with charge or delocalized bond
+        "09": "~",  # Single bond with charge or delocalized bond
     }
 
     bcc_overrides = {"110112": 0.0024, "120114": -0.0172}

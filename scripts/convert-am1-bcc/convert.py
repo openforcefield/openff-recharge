@@ -117,10 +117,10 @@ def main():
         "22": "[#7X2-1$(*-[#6X3]),#7X3$(*-[#6X3]):1]",
         # N2,3,4 Amine nitrogen
         "21": "[#7X4,#7X3,#7X2-1:1]",
-        # N2 Neutral divalent nitrogen
-        "24": "[#7X2$(*=[*]):1]",
         # N1,2 Univalent or cationic divalent nitrogen
         "25": "[#7X1,#7X2+1:1]",
+        # N2 Neutral divalent nitrogen
+        "24": "[#7X2$(*=[*]):1]",
 
         # O1lact Double-bonded oxygen in a lactone or lactam
         "33": "[#8X1$(*=[#6r]@[#7H1r,#8r]):1]",

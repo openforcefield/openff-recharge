@@ -26,6 +26,21 @@ def test_smiles_to_molecule():
     assert error_info.value.smiles == "X"
 
 
+def test_guess_stereoisomer():
+    """Tests that the stereochemistry of a molecule can be
+    randomly guessed when not provided in the SMILES pattern."""
+
+    oe_molecule = smiles_to_molecule("C(F)(Cl)Br")
+    assert oechem.OECreateIsoSmiString(oe_molecule) == "C(F)(Cl)Br"
+
+    oe_molecule = smiles_to_molecule("C(F)(Cl)Br", guess_stereochemistry=True)
+
+    assert oechem.OECreateIsoSmiString(oe_molecule) in [
+        "[C@H](F)(Cl)Br",
+        "[C@@H](F)(Cl)Br",
+    ]
+
+
 def test_match_smirks():
     """Test that the correct exception is raised when an invalid smirks
     pattern is provided to `match_smirks`."""

@@ -26,7 +26,7 @@ def build_bond_charge_corrections(
     atom_codes: Dict[str, str],
     bond_codes: Dict[str, str],
     bcc_overrides: Dict[str, float],
-    custom_bcc_smirks: Dict[str, str]
+    custom_bcc_smirks: Dict[str, str],
 ) -> List[BondChargeCorrection]:
 
     # Convert the atom and bond codes into the six number codes used
@@ -118,9 +118,8 @@ def main():
         "17": "[#6a$(*~[#7aX2,#8aX2]):1]",
         # Car Aromatic carbon
         "16": "[#6a:1]",
-
         # N3hdeloc Trivalent nitrogen with a highly delocalized lone pair
-        "23": "[#7X3ar5,#7X3$(*~[#8])$(*~[#8]):1]",
+        "23": "[#7X3ar5,#7X3+1,#7X3+0$(*-[#6X3$(*=[#7X3+1])]),$([#7X3](-[#8X1-1])=[#8X1]),$([#7X3](=[#8X1])=[#8X1]):1]",
         # N3deloc Trivalent nitrogen with a delocalized lone pair
         "22": "[#7X2-1$(*-[#6X3$(*=[#8])]),#7X3$(*-[#6X3$(*=[#8])]):1]",
         # N2,3,4 Amine nitrogen
@@ -128,30 +127,25 @@ def main():
         # N1,2 Univalent or cationic divalent nitrogen
         "25": "[#7X1,#7X2+1:1]",
         # N2 Neutral divalent nitrogen
-        "24": "[#7X2+0:1]",
-
+        "24": "[#7X2+0,#7X2-1ar5:1]",
         # O1lact Double-bonded oxygen in a lactone or lactam
-        "33": "[#8X1$(*=[#6r]@[#7H1r,#8r]):1]",
+        "33": "[#8X1$(*=[#6r]@[#7r,#8r]):1]",
         # O1ester,acid Double-bonded oxygen in an ester or acid
         "32": "[#8X1$(*=[#6X3]-[#8X2]):1]",
         # O1,2 Univalent or divalent oxygen
         "31": "[#8X1,#8X2:1]",
-
         # # P3,4 Trivalent or tetravalent double-bonded phosphorus 42
         # "42": "[#15X3$(*=[*]),#15X4$(*=[*]):1]",
         # # P2,3 Divalent or trivalent phosphorus
         # "41": "[#15X2,#15X3:1]",
-
         # # S4 Tetravalent sulfur
         # "53": "[#16X4:1]",
         # # S3 Trivalent sulfur
         # "52": "[#16X3:1]",
         # # S1,2 Univalent or divalent sulfur
         # "51": "[#16X1,#16X2:1]",
-
         # Si4 Tetravalent silicon
         "61": "[#14X4:1]",
-
         # F1 Fluorine
         "71": "[#9:1]",
         # Cl1 Chlorine
@@ -160,7 +154,6 @@ def main():
         "73": "[#35:1]",
         # # # I1 Iodine
         # "74": "[#53:1]",
-
         # H1 Hydrogen
         "91": "[#1:1]",
     }
@@ -168,13 +161,22 @@ def main():
         "01": "-",  # Single bond
         "02": "=",  # Double bond
         "03": "#",  # Triple bond
-        # "06": "",  # 'Single' Dative bond
+        "06": "-",  # 'Single' Dative bond
         "07": ":",  # 'Single' aromatic Bond
         "08": ":",  # 'Double' aromatic Bond
         "09": "~",  # Single bond with charge or delocalized bond
     }
 
     custom_bcc_smirks = {
+        # 'Delocalised' N-O
+        "230931": "[$([#7X3](-[#8X1])=[#8X1]),$([#7X3](=[#8X1])=[#8X1]):1]~[#8X1:2]",
+        # Dative N-O.
+        "230631": "[#7X3+1:1]-[#8X1-1:2]",
+        "220631": "[#7X3$(*-[#6X3$(*=[#8])]):1]-[#8X1-1:2]",
+        "210631": "[#7X4+1:1]-[#8X1-1:2]",
+        "250631": "[#7X1,#7X2+1:1]-[#8X1-1:2]",
+        # "240631": "",
+        # 'Delocalised' C-O.
         "110931": "[#6X4:1]-[#8X1-1:2]",
         "150931": "[#6X1,#6X2:1]-[#8X1-1:2]",
         "120931": "[#6X3$(*=[#6]):1]-[#8X1-1:2]",
@@ -182,7 +184,6 @@ def main():
         "140931": "[#6X3:1](~[#8X1,#16X1])(~[#8X1:2])",
         "170931": "[#6a$(*~[#7aX2,#8aX2]):1]-[#8X1-1:2]",
         "160931": "[#6a:1]-[#8X1-1:2]",
-        "230931": "[#7X3$(*~[#8])$(*~[#8]):1]~[#8X1:2]",
     }
     # [#7X3ar5,#7X3$(*~[#8])$(*~[#8]):1]
     bcc_overrides = {"110112": 0.0024, "120114": -0.0172}

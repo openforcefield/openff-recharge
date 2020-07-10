@@ -75,7 +75,7 @@ def process_molecule(smiles: str) -> Dict[str, List[str]]:
 def find_smiles_per_smirks() -> Dict[str, List[str]]:
 
     input_molecule_stream = oechem.oemolistream()
-    assert input_molecule_stream.open("NCI-Open_2012-05-01.sdf")
+    input_molecule_stream.open("NCI-Open_2012-05-01.sdf")
 
     smiles = [
         oechem.OECreateCanSmiString(oe_molecule)

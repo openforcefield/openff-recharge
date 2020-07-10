@@ -89,7 +89,7 @@ def test_am1_bcc_missing_parameters():
     """Tests that the correct exception is raised when generating partial charges
     for a molecule without conformers and no conformer generator.
     """
-    oe_molecule = smiles_to_molecule("C")
+    oe_molecule = smiles_to_molecule("o1cccc1")
 
     with pytest.raises(UnableToAssignChargeError) as error_info:
         BCCGenerator.generate(oe_molecule, BCCSettings(bond_charge_corrections=[]))

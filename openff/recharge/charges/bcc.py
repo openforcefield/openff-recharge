@@ -10,7 +10,9 @@ import numpy
 from openeye import oechem
 from pydantic import BaseModel, Field, constr
 
+from openff.recharge.charges.charges import ChargeGenerator, ChargeSettings
 from openff.recharge.charges.exceptions import UnableToAssignChargeError
+from openff.recharge.conformers.conformers import OmegaELF10
 from openff.recharge.utilities import get_data_file_path
 from openff.recharge.utilities.openeye import match_smirks
 
@@ -522,3 +524,61 @@ def original_am1bcc_corrections() -> List[BondChargeCorrection]:
     ]
 
     return bond_charge_corrections
+
+
+def compare_openeye_parity(oe_molecule: oechem.OEMol) -> bool:
+    """A utility function to compute the bond charge corrections
+    on a molecule using both the internal AM1BCC implementation,
+    and the OpenEye AM1BCC implementation.
+
+    This method is mainly only to be used for testing and validation
+    purposes.
+
+    Parameters
+    ----------
+    oe_molecule
+        The molecule to compute the charges of.
+
+    Returns
+    -------
+        Whether the internal and OpenEye implementations are in
+        agreement for this molecule.
+    """
+
+    bond_charge_corrections = original_am1bcc_corrections()
+
+    # Generate a conformer for the molecule.
+    conformers = OmegaELF10.generate(oe_molecule, max_conformers=1)
+
+    # Generate a set of reference charges using the OpenEye implementation
+    reference_charges = ChargeGenerator.generate(
+        oe_molecule,
+        conformers,
+        ChargeSettings(theory="am1bcc", symmetrize=False, optimize=False),
+    )
+
+    # Generate a set of charges using this frameworks functions
+    am1_charges = ChargeGenerator.generate(
+        oe_molecule,
+        conformers,
+        ChargeSettings(theory="am1", symmetrize=False, optimize=False),
+    )
+
+    # Determine the values of the OE BCCs
+    reference_charge_corrections = reference_charges - am1_charges
+
+    # Compute the internal BCCs
+    assignment_matrix = BCCGenerator.build_assignment_matrix(
+        oe_molecule, BCCSettings(bond_charge_corrections=bond_charge_corrections)
+    )
+    charge_corrections = BCCGenerator.apply_assignment_matrix(
+        assignment_matrix, BCCSettings(bond_charge_corrections=bond_charge_corrections)
+    )
+
+    implementation_charges = am1_charges + charge_corrections
+
+    # Check that their is no difference between the implemented and
+    # reference charges.
+    return numpy.allclose(reference_charges, implementation_charges) and numpy.allclose(
+        charge_corrections, reference_charge_corrections
+    )

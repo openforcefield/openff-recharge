@@ -10,7 +10,7 @@ from openff.recharge.charges.bcc import (
 from openff.recharge.charges.charges import ChargeGenerator, ChargeSettings
 from openff.recharge.charges.exceptions import UnableToAssignChargeError
 from openff.recharge.conformers.conformers import OmegaELF10
-from openff.recharge.utilities.openeye import smiles_to_molecule, match_smirks
+from openff.recharge.utilities.openeye import smiles_to_molecule
 
 
 @pytest.fixture(scope="module")
@@ -164,77 +164,3 @@ def test_am1_bcc_missing_parameters(bond_charge_corrections):
     assert "could not be assigned a bond charge correction atom type" in str(
         error_info.value
     )
-
-
-@pytest.mark.parametrize(
-    "smiles",
-    [
-        # # 110931
-        # "C[O-]",
-        # # 120931
-        # "C/C=C(/C)[O-]",
-        # # 130931
-        # "CC(N)=O",
-        # "[H]/N=C(\\C)/[O-]",
-        # # # 140931
-        # "CC([O-])=O",
-        # # # 150931
-        # "[O-]C#C",
-        # # 170931
-        # "[nH]1cccc1",
-        # "c1ccncc1",
-        # "[O-]c1occc1",
-        # "[O-]c1ccccn1",
-        # "[O-]c1[nH]ccc1",
-        # # 160931
-        # "O=C1C=CCC=C1",
-        # "[O-]c1ccccc1",
-        # "[O-]c1cocc1",
-        # "[O-]c1coc2ccccc12",
-        # "[nH]1cccc1",
-        # "o1cccc1",
-        "[nH]1ccc2ccccc12",
-        # # 230931
-        # "NC=O",
-        # "C[N+]([O-])=O",
-        # "[nH]1cccc1",
-        # "Cn1cccc1"
-    ]
-)
-def test_delocalised_parity(bond_charge_corrections, smiles):
-
-    # Build the molecule
-    oe_molecule = smiles_to_molecule(smiles)
-
-    # Generate a conformer for the molecule.
-    conformers = OmegaELF10.generate(oe_molecule, max_conformers=1)
-
-    # Generate a set of reference charges using the OpenEye implementation
-    reference_charges = ChargeGenerator.generate(
-        oe_molecule, conformers, ChargeSettings(theory="am1bcc")
-    )
-
-    # Generate a set of charges using this frameworks functions
-    am1_charges = ChargeGenerator.generate(
-        oe_molecule, conformers, ChargeSettings(theory="am1")
-    )
-
-    assignment_matrix = BCCGenerator.build_assignment_matrix(
-        oe_molecule, BCCSettings(bond_charge_corrections=bond_charge_corrections)
-    )
-    applied_corrections = BCCGenerator.applied_corrections(
-        assignment_matrix, BCCSettings(bond_charge_corrections=bond_charge_corrections)
-    )
-    charge_corrections = BCCGenerator.apply_assignment_matrix(
-        assignment_matrix, BCCSettings(bond_charge_corrections=bond_charge_corrections)
-    )
-
-    implementation_charges = am1_charges + charge_corrections
-    reference_charge_corrections = reference_charges - am1_charges
-
-    x = match_smirks("[#7X3ar5,#7X3$(*~[#8])$(*~[#8]):1]-[#1:2]", oe_molecule)
-
-    # Check that their is no difference between the implemented and
-    # reference charges.
-    assert numpy.allclose(reference_charges, implementation_charges)
-    assert numpy.allclose(charge_corrections, reference_charge_corrections)

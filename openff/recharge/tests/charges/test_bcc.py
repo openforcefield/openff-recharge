@@ -2,6 +2,8 @@ import numpy
 import pytest
 
 from openff.recharge.charges.bcc import (
+    AromaticityModel,
+    AromaticityModels,
     BCCGenerator,
     BCCSettings,
     BondChargeCorrection,
@@ -96,6 +98,75 @@ def test_am1_bcc_missing_parameters():
 
     assert "could not be assigned a bond charge correction atom type" in str(
         error_info.value
+    )
+
+
+def test_am1_bcc_aromaticity():
+    """Checks that the custom AM1BCC aromaticity model behaves as
+    expected.
+    """
+
+    # Test case 1.
+    oe_molecule = smiles_to_molecule("c1ccccc1")
+    AromaticityModel.assign(oe_molecule, AromaticityModels.AM1BCC)
+
+    assert all(
+        atom.IsAromatic() for atom in oe_molecule.GetAtoms() if atom.GetAtomicNum() == 6
+    )
+    assert all(
+        bond.IsAromatic()
+        for bond in oe_molecule.GetBonds()
+        if bond.GetBgn().GetAtomicNum() == 6 and bond.GetEnd().GetAtomicNum() == 6
+    )
+
+    # Test case 2.
+
+    # Test the easy case of napthelene.
+    oe_molecule = smiles_to_molecule("c1ccc2ccccc2c1")
+    AromaticityModel.assign(oe_molecule, AromaticityModels.AM1BCC)
+
+    assert all(
+        atom.IsAromatic() for atom in oe_molecule.GetAtoms() if atom.GetAtomicNum() == 6
+    )
+    assert all(
+        bond.IsAromatic()
+        for bond in oe_molecule.GetBonds()
+        if bond.GetBgn().GetAtomicNum() == 6 and bond.GetEnd().GetAtomicNum() == 6
+    )
+
+    # Test the tricker case of acenaphthene.
+    oe_molecule = smiles_to_molecule("C1CC2=CC=CC3=C2C1=CC=C3")
+    AromaticityModel.assign(oe_molecule, AromaticityModels.AM1BCC)
+
+    atoms = {atom.GetIdx(): atom for atom in oe_molecule.GetAtoms()}
+
+    assert [not atoms[index].IsAromatic() for index in range(2)]
+    assert [atoms[index].IsAromatic() for index in range(2, 12)]
+
+    # Test case 4.
+    oe_molecule = smiles_to_molecule("[C+]1C=CC=CC=C1")
+    AromaticityModel.assign(oe_molecule, AromaticityModels.AM1BCC)
+
+    assert all(
+        atom.IsAromatic() for atom in oe_molecule.GetAtoms() if atom.GetAtomicNum() == 6
+    )
+    assert all(
+        bond.IsAromatic()
+        for bond in oe_molecule.GetBonds()
+        if bond.GetBgn().GetAtomicNum() == 6 and bond.GetEnd().GetAtomicNum() == 6
+    )
+
+    # Test case 5.
+    oe_molecule = smiles_to_molecule("o1cccc1")
+    AromaticityModel.assign(oe_molecule, AromaticityModels.AM1BCC)
+
+    assert all(
+        atom.IsAromatic() for atom in oe_molecule.GetAtoms() if atom.GetAtomicNum() == 6
+    )
+    assert all(
+        bond.IsAromatic()
+        for bond in oe_molecule.GetBonds()
+        if bond.GetBgn().GetAtomicNum() == 6 and bond.GetEnd().GetAtomicNum() == 6
     )
 
 

@@ -1,6 +1,6 @@
+import json
 import os
 import pickle
-import json
 from collections import defaultdict
 from multiprocessing import Pool
 from typing import Dict, List

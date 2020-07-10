@@ -14,47 +14,6 @@ from openff.recharge.charges.exceptions import UnableToAssignChargeError
 from openff.recharge.utilities.openeye import smiles_to_molecule
 
 
-@pytest.fixture(scope="module")
-def bond_charge_corrections():
-    return original_am1bcc_corrections()
-
-
-def coverage_smiles():
-
-    return [
-        "C",
-        "CC",
-        "C=C",
-        "CC=O",
-        "Cc1occc1",
-        "C=Cc1occc1",
-        "O=Cc1occc1",
-        "OCc1occc1",
-        "o1cccc1c2occc2",
-        "o1cccc1c2ccccc2",
-        "o1ccc2ccccc12",
-        "o1ccc2ccoc12",
-        "Cc1ccccc1",
-        "C=Cc1ccccc1",
-        "COC",
-        "CC=O",
-        "CO",
-        "C=CC=C",
-        "C=CC=O",
-        "C=CO",
-        "O=Cc1ccccc1",
-        "C(=O)O",
-        "c1ccc(cc1)c2ccccc2",
-        "Oc1ccccc1",
-        "c1ccc2ccccc2c1",
-        "COOC",
-        "o1c2ccccc2c3ccccc13",
-        "Oc1occc1",
-        "C(=O)C=O",
-        "o1ccc2occc12",
-    ]
-
-
 def test_load_original_am1_bcc():
     """Tests that the original BCC values can be parsed from the
     data directory."""
@@ -123,19 +82,16 @@ def test_apply_assignment():
     assert "the total charge of the molecule will be altered." in str(error_info.value)
 
 
-@pytest.mark.parametrize("smiles", coverage_smiles())
-def test_am1_bcc_oe_parity(bond_charge_corrections, smiles):
-    """Test that this frameworks AM1BCC implementation matches the OpenEye
-    implementation."""
-
-    assert compare_openeye_parity(smiles_to_molecule(smiles))
+def test_compare_openeye_parity():
+    """Test that the OE parity functions as expected."""
+    assert compare_openeye_parity(smiles_to_molecule("C"))
 
 
-def test_am1_bcc_missing_parameters(bond_charge_corrections):
+def test_am1_bcc_missing_parameters():
     """Tests that the correct exception is raised when generating partial charges
     for a molecule without conformers and no conformer generator.
     """
-    oe_molecule = smiles_to_molecule("C")
+    oe_molecule = smiles_to_molecule("o1cccc1")
 
     with pytest.raises(UnableToAssignChargeError) as error_info:
         BCCGenerator.generate(oe_molecule, BCCSettings(bond_charge_corrections=[]))
@@ -211,4 +167,18 @@ def test_am1_bcc_aromaticity():
         bond.IsAromatic()
         for bond in oe_molecule.GetBonds()
         if bond.GetBgn().GetAtomicNum() == 6 and bond.GetEnd().GetAtomicNum() == 6
+    )
+
+
+def test_generate():
+    """Test that the full generate method can be called without
+    error"""
+
+    bond_charge_corrections = original_am1bcc_corrections()
+
+    # Generate a small molecule
+    oe_molecule = smiles_to_molecule("C")
+
+    BCCGenerator.generate(
+        oe_molecule, BCCSettings(bond_charge_corrections=bond_charge_corrections)
     )

@@ -10,7 +10,9 @@ import numpy
 from openeye import oechem
 from pydantic import BaseModel, Field, constr
 
+from openff.recharge.charges.charges import ChargeGenerator, ChargeSettings
 from openff.recharge.charges.exceptions import UnableToAssignChargeError
+from openff.recharge.conformers.conformers import OmegaELF10
 from openff.recharge.utilities import get_data_file_path
 from openff.recharge.utilities.openeye import match_smirks
 

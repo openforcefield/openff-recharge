@@ -5,11 +5,10 @@ from openff.recharge.charges.bcc import (
     BCCGenerator,
     BCCSettings,
     BondChargeCorrection,
+    compare_openeye_parity,
     original_am1bcc_corrections,
 )
-from openff.recharge.charges.charges import ChargeGenerator, ChargeSettings
 from openff.recharge.charges.exceptions import UnableToAssignChargeError
-from openff.recharge.conformers.conformers import OmegaELF10
 from openff.recharge.utilities.openeye import smiles_to_molecule
 
 
@@ -127,29 +126,7 @@ def test_am1_bcc_oe_parity(bond_charge_corrections, smiles):
     """Test that this frameworks AM1BCC implementation matches the OpenEye
     implementation."""
 
-    # Build the molecule
-    oe_molecule = smiles_to_molecule(smiles)
-    # Generate a conformer for the molecule.
-    conformers = OmegaELF10.generate(oe_molecule, max_conformers=1)
-
-    # Generate a set of reference charges using the OpenEye implementation
-    reference_charges = ChargeGenerator.generate(
-        oe_molecule, conformers, ChargeSettings(theory="am1bcc")
-    )
-
-    # Generate a set of charges using this frameworks functions
-    am1_charges = ChargeGenerator.generate(
-        oe_molecule, conformers, ChargeSettings(theory="am1")
-    )
-    charge_corrections = BCCGenerator.generate(
-        oe_molecule, BCCSettings(bond_charge_corrections=bond_charge_corrections)
-    )
-
-    implementation_charges = am1_charges + charge_corrections
-
-    # Check that their is no difference between the implemented and
-    # reference charges.
-    assert numpy.allclose(reference_charges, implementation_charges)
+    assert compare_openeye_parity(smiles_to_molecule(smiles))
 
 
 def test_am1_bcc_missing_parameters(bond_charge_corrections):

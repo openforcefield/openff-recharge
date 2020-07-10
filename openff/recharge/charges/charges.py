@@ -21,6 +21,17 @@ class ChargeSettings(BaseModel):
         "am1", description="The level of theory to use when computing the charges."
     )
 
+    symmetrize: bool = Field(
+        True,
+        description="Whether the partial charges should be made equal for bond-"
+        "topology equivalent atoms.",
+    )
+    optimize: bool = Field(
+        True,
+        description="Whether to optimize the input conformer during the charge"
+        "calculation.",
+    )
+
 
 class ChargeGenerator:
     """A class which will compute the partial charges of a molecule
@@ -65,14 +76,18 @@ class ChargeGenerator:
             call_openeye(
                 oequacpac.OEAssignCharges,
                 oe_molecule,
-                oequacpac.OEAM1Charges(optimize=True, symmetrize=True),
+                oequacpac.OEAM1Charges(
+                    optimize=settings.optimize, symmetrize=settings.symmetrize
+                ),
                 exception_type=OEQuacpacError,
             )
         elif settings.theory == "am1bcc":
             call_openeye(
                 oequacpac.OEAssignCharges,
                 oe_molecule,
-                oequacpac.OEAM1BCCCharges(optimize=True, symmetrize=True),
+                oequacpac.OEAM1BCCCharges(
+                    optimize=settings.optimize, symmetrize=settings.symmetrize
+                ),
                 exception_type=OEQuacpacError,
             )
         else:

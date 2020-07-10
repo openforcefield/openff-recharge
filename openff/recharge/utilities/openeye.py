@@ -4,7 +4,7 @@ import re
 from typing import Any, Callable, Dict, List, Type, TypeVar
 
 import numpy
-from openeye import oechem
+from openeye import oechem, oeomega
 
 from openff.recharge.utilities.exceptions import (
     InvalidSmirksError,
@@ -67,13 +67,19 @@ def call_openeye(
         logger.debug(output_string)
 
 
-def smiles_to_molecule(smiles: str) -> oechem.OEMol:
+def smiles_to_molecule(
+    smiles: str, guess_stereochemistry: bool = False
+) -> oechem.OEMol:
     """Attempts to parse a smiles pattern into a molecule object.
 
     Parameters
     ----------
-    smiles: str
+    smiles
         The smiles pattern to parse.
+    guess_stereochemistry
+        If true, the stereochemistry of molecules which is not
+        defined in the SMILES pattern will be guessed using the
+        OpenEye ``OEFlipper`` utility.
 
     Returns
     -------
@@ -101,6 +107,16 @@ def smiles_to_molecule(smiles: str) -> oechem.OEMol:
         exception_type=MoleculeFromSmilesError,
         exception_kwargs={"smiles": smiles},
     )
+
+    unspecified_stereochemistry = any(
+        entity.IsChiral() and not entity.HasStereoSpecified()
+        for entity in [*oe_molecule.GetAtoms(), *oe_molecule.GetBonds()]
+    )
+
+    if unspecified_stereochemistry and guess_stereochemistry:
+
+        stereoisomer = next(iter(oeomega.OEFlipper(oe_molecule.GetActive(), 12, True)))
+        oe_molecule = oechem.OEMol(stereoisomer)
 
     return oe_molecule
 

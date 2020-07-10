@@ -2,6 +2,7 @@ name: test
 channels:
   - conda-forge
   - openeye
+  - psi4
 dependencies:
     # Base depends
   - python
@@ -13,11 +14,13 @@ dependencies:
   - codecov
 
     # Standard dependencies.
+  - jinja2
   - numpy
   - pydantic
   - openeye-toolkits
 
     # Optional dependencies.
+  - psi4
   - distributed
   - dask-jobqueue
 

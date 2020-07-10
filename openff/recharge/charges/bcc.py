@@ -10,7 +10,9 @@ import numpy
 from openeye import oechem
 from pydantic import BaseModel, Field, constr
 
+from openff.recharge.charges.charges import ChargeGenerator, ChargeSettings
 from openff.recharge.charges.exceptions import UnableToAssignChargeError
+from openff.recharge.conformers.conformers import OmegaELF10
 from openff.recharge.utilities import get_data_file_path
 from openff.recharge.utilities.openeye import match_smirks
 
@@ -109,20 +111,35 @@ class AromaticityModel:
 
         cls._set_aromatic(case_1_atoms, oe_molecule)
 
+        # Track the ar6 assignments as there is no atom attribute to
+        # safely determine if an atom is in a six member ring when
+        # that same atom is also in a five member ring.
+        ar6_assignments = {*case_1_atoms}
+
         # Case 2)
         case_2_smirks = (
             f"{x_type.replace('N', '1')}1"
             f"=@{x_type.replace('N', '2')}"
             f"-@{x_type.replace('N', '3')}"
             f"=@{x_type.replace('N', '4')}"
-            f"-@[#6ar6:5]"
-            f":@[#6ar6:6]-@1"
+            f"-@[#6a:5]"
+            f":@[#6a:6]-@1"
         )
 
         case_2_matches = match_smirks(case_2_smirks, oe_molecule, unique=True)
+
+        # Enforce the ar6 condition
+        case_2_matches = [
+            case_2_match
+            for case_2_match in case_2_matches
+            if case_2_match[4] in ar6_assignments and case_2_match[5] in ar6_assignments
+        ]
+
         case_2_atoms = {
             match for matches in case_2_matches for match in matches.values()
         }
+
+        ar6_assignments.update(case_2_atoms)
 
         cls._set_aromatic(case_2_atoms, oe_molecule)
 
@@ -130,22 +147,35 @@ class AromaticityModel:
         case_3_smirks = (
             f"{x_type.replace('N', '1')}1"
             f"=@{x_type.replace('N', '2')}"
-            f"-@[#6ar6:3]"
-            f":@[#6ar6:4]"
-            f":@[#6ar6:5]"
-            f":@[#6ar6:6]-@1"
+            f"-@[#6a:3]"
+            f":@[#6a:4]"
+            f":@[#6a:5]"
+            f":@[#6a:6]-@1"
         )
 
         case_3_matches = match_smirks(case_3_smirks, oe_molecule, unique=True)
+
+        # Enforce the ar6 condition
+        case_3_matches = [
+            case_3_match
+            for case_3_match in case_3_matches
+            if case_3_match[2] in ar6_assignments
+            and case_3_match[3] in ar6_assignments
+            and case_3_match[4] in ar6_assignments
+            and case_3_match[5] in ar6_assignments
+        ]
+
         case_3_atoms = {
             match for matches in case_3_matches for match in matches.values()
         }
+
+        ar6_assignments.update(case_3_atoms)
 
         cls._set_aromatic(case_3_atoms, oe_molecule)
 
         # Case 4)
         case_4_smirks = (
-            "[#6+1r7:1]1"
+            "[#6+1:1]1"
             f"-@{x_type.replace('N', '2')}"
             f"=@{x_type.replace('N', '3')}"
             f"-@{x_type.replace('N', '4')}"
@@ -271,7 +301,7 @@ class BCCGenerator:
         """
 
         # Check for unassigned atoms
-        unassigned_atoms = numpy.where(~assignment_matrix.any(axis=1))[0]
+        unassigned_atoms = numpy.where(~bcc_counts_matrix.any(axis=1))[0]
 
         if len(unassigned_atoms) > 0:
             unassigned_atom_string = ", ".join(map(str, unassigned_atoms))
@@ -522,3 +552,61 @@ def original_am1bcc_corrections() -> List[BondChargeCorrection]:
     ]
 
     return bond_charge_corrections
+
+
+def compare_openeye_parity(oe_molecule: oechem.OEMol) -> bool:
+    """A utility function to compute the bond charge corrections
+    on a molecule using both the internal AM1BCC implementation,
+    and the OpenEye AM1BCC implementation.
+
+    This method is mainly only to be used for testing and validation
+    purposes.
+
+    Parameters
+    ----------
+    oe_molecule
+        The molecule to compute the charges of.
+
+    Returns
+    -------
+        Whether the internal and OpenEye implementations are in
+        agreement for this molecule.
+    """
+
+    bond_charge_corrections = original_am1bcc_corrections()
+
+    # Generate a conformer for the molecule.
+    conformers = OmegaELF10.generate(oe_molecule, max_conformers=1)
+
+    # Generate a set of reference charges using the OpenEye implementation
+    reference_charges = ChargeGenerator.generate(
+        oe_molecule,
+        conformers,
+        ChargeSettings(theory="am1bcc", symmetrize=False, optimize=False),
+    )
+
+    # Generate a set of charges using this frameworks functions
+    am1_charges = ChargeGenerator.generate(
+        oe_molecule,
+        conformers,
+        ChargeSettings(theory="am1", symmetrize=False, optimize=False),
+    )
+
+    # Determine the values of the OE BCCs
+    reference_charge_corrections = reference_charges - am1_charges
+
+    # Compute the internal BCCs
+    assignment_matrix = BCCGenerator.build_assignment_matrix(
+        oe_molecule, BCCSettings(bond_charge_corrections=bond_charge_corrections)
+    )
+    charge_corrections = BCCGenerator.apply_assignment_matrix(
+        assignment_matrix, BCCSettings(bond_charge_corrections=bond_charge_corrections)
+    )
+
+    implementation_charges = am1_charges + charge_corrections
+
+    # Check that their is no difference between the implemented and
+    # reference charges.
+    return numpy.allclose(reference_charges, implementation_charges) and numpy.allclose(
+        charge_corrections, reference_charge_corrections
+    )

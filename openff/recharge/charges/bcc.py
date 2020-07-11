@@ -4,7 +4,7 @@ of a cheaper QM method and a set of bond charge corrections.
 import json
 import os
 from enum import Enum
-from typing import Any, Dict, List, Set
+from typing import Any, Dict, List
 
 import numpy
 from openeye import oechem
@@ -39,37 +39,42 @@ class AromaticityModel:
     a specified aromatic model."""
 
     @classmethod
-    def _set_aromatic(cls, atom_indices: Set[int], oe_molecule: oechem.OEMol):
-        """Flag all specified atoms and all ring bonds between those atoms
+    def _set_aromatic(
+        cls, ring_matches: List[Dict[int, int]], oe_molecule: oechem.OEMol
+    ):
+        """Flag all specified ring atoms and all ring bonds between those atoms
         as being aromatic.
 
         Parameters
         ----------
-        atom_indices
-            The indices of the atoms to flag as aromatic.
+        ring_matches
+            The indices of the atoms in each of the rings to flag as aromatic.
         oe_molecule
             The molecule to assign the aromatic flags to.
         """
 
         atoms = {atom.GetIdx(): atom for atom in oe_molecule.GetAtoms()}
-
-        for matched_atom_index in atom_indices:
-            atoms[matched_atom_index].SetAromatic(True)
-
         bonds = {
             tuple(sorted((bond.GetBgnIdx(), bond.GetEndIdx()))): bond
             for bond in oe_molecule.GetBonds()
         }
 
-        for (index_a, index_b), bond in bonds.items():
+        for ring_match in ring_matches:
 
-            if index_a not in atom_indices or index_b not in atom_indices:
-                continue
+            ring_atom_indices = {match for match in ring_match.values()}
 
-            if not bond.IsInRing():
-                continue
+            for matched_atom_index in ring_atom_indices:
+                atoms[matched_atom_index].SetAromatic(True)
 
-            bond.SetAromatic(True)
+            for (index_a, index_b), bond in bonds.items():
+
+                if index_a not in ring_atom_indices or index_b not in ring_atom_indices:
+                    continue
+
+                if not bond.IsInRing():
+                    continue
+
+                bond.SetAromatic(True)
 
     @classmethod
     def _assign_am1bcc(cls, oe_molecule: oechem.OEMol):
@@ -109,7 +114,7 @@ class AromaticityModel:
             match for matches in case_1_matches for match in matches.values()
         }
 
-        cls._set_aromatic(case_1_atoms, oe_molecule)
+        cls._set_aromatic(case_1_matches, oe_molecule)
 
         # Track the ar6 assignments as there is no atom attribute to
         # safely determine if an atom is in a six member ring when
@@ -122,56 +127,68 @@ class AromaticityModel:
             f"=@{x_type.replace('N', '2')}"
             f"-@{x_type.replace('N', '3')}"
             f"=@{x_type.replace('N', '4')}"
-            f"-@[#6a:5]"
-            f":@[#6a:6]-@1"
+            f"-@{x_type.replace('N', '5')}"
+            f":@{x_type.replace('N', '6')}-@1"
         )
 
-        case_2_matches = match_smirks(case_2_smirks, oe_molecule, unique=True)
+        previous_case_2_atoms = None
+        case_2_atoms = {}
 
-        # Enforce the ar6 condition
-        case_2_matches = [
-            case_2_match
-            for case_2_match in case_2_matches
-            if case_2_match[4] in ar6_assignments and case_2_match[5] in ar6_assignments
-        ]
+        while previous_case_2_atoms != case_2_atoms:
 
-        case_2_atoms = {
-            match for matches in case_2_matches for match in matches.values()
-        }
+            case_2_matches = match_smirks(case_2_smirks, oe_molecule, unique=True)
 
-        ar6_assignments.update(case_2_atoms)
+            # Enforce the ar6 condition
+            case_2_matches = [
+                case_2_match
+                for case_2_match in case_2_matches
+                if case_2_match[4] in ar6_assignments
+                and case_2_match[5] in ar6_assignments
+            ]
 
-        cls._set_aromatic(case_2_atoms, oe_molecule)
+            previous_case_2_atoms = case_2_atoms
+            case_2_atoms = {
+                match for matches in case_2_matches for match in matches.values()
+            }
+
+            ar6_assignments.update(case_2_atoms)
+            cls._set_aromatic(case_2_matches, oe_molecule)
 
         # Case 3)
         case_3_smirks = (
             f"{x_type.replace('N', '1')}1"
             f"=@{x_type.replace('N', '2')}"
-            f"-@[#6a:3]"
-            f":@[#6a:4]"
-            f":@[#6a:5]"
-            f":@[#6a:6]-@1"
+            f"-@{x_type.replace('N', '3')}"
+            f":@{x_type.replace('N', '4')}"
+            f"~@{x_type.replace('N', '5')}"
+            f":@{x_type.replace('N', '6')}-@1"
         )
 
-        case_3_matches = match_smirks(case_3_smirks, oe_molecule, unique=True)
+        previous_case_3_atoms = None
+        case_3_atoms = {}
 
-        # Enforce the ar6 condition
-        case_3_matches = [
-            case_3_match
-            for case_3_match in case_3_matches
-            if case_3_match[2] in ar6_assignments
-            and case_3_match[3] in ar6_assignments
-            and case_3_match[4] in ar6_assignments
-            and case_3_match[5] in ar6_assignments
-        ]
+        while previous_case_3_atoms != case_3_atoms:
 
-        case_3_atoms = {
-            match for matches in case_3_matches for match in matches.values()
-        }
+            case_3_matches = match_smirks(case_3_smirks, oe_molecule, unique=True)
 
-        ar6_assignments.update(case_3_atoms)
+            # Enforce the ar6 condition
+            case_3_matches = [
+                case_3_match
+                for case_3_match in case_3_matches
+                if case_3_match[2] in ar6_assignments
+                and case_3_match[3] in ar6_assignments
+                and case_3_match[4] in ar6_assignments
+                and case_3_match[5] in ar6_assignments
+            ]
 
-        cls._set_aromatic(case_3_atoms, oe_molecule)
+            previous_case_3_atoms = case_3_atoms
+            case_3_atoms = {
+                match for matches in case_3_matches for match in matches.values()
+            }
+
+            ar6_assignments.update(case_3_atoms)
+
+            cls._set_aromatic(case_3_matches, oe_molecule)
 
         # Case 4)
         case_4_smirks = (
@@ -189,7 +206,7 @@ class AromaticityModel:
             match for matches in case_4_matches for match in matches.values()
         }
 
-        cls._set_aromatic(case_4_atoms, oe_molecule)
+        cls._set_aromatic(case_4_matches, oe_molecule)
 
         # Case 5)
         case_5_smirks = (
@@ -215,11 +232,7 @@ class AromaticityModel:
             and matches[2] not in ar_6_ar_7_matches
         ]
 
-        case_5_atoms = {
-            match for matches in case_5_matches for match in matches.values()
-        }
-
-        cls._set_aromatic(case_5_atoms, oe_molecule)
+        cls._set_aromatic(case_5_matches, oe_molecule)
 
     @classmethod
     def assign(cls, oe_molecule: oechem.OEMol, model: AromaticityModels):

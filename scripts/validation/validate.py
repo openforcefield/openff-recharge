@@ -184,6 +184,8 @@ def coverage_molecules() -> List[str]:
         "FNC=O",
         # 220631
         "[O-]NC=O",
+        # 240631,
+        "[O-]N=C",
         # 140125
         "O=C[N+]#C",
         # 130125

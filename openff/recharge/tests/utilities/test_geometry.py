@@ -1,14 +1,14 @@
 import numpy
 
-from openff.recharge.utilities.geometry import inverse_distance_matrix
+from openff.recharge.utilities.geometry import compute_inverse_distance_matrix
 
 
-def test_inverse_distance_matrix():
+def test_compute_inverse_distance_matrix():
 
     points_a = numpy.array([[0.0, 1.0], [2.0, 3.0]])
     points_b = numpy.array([[0.0, 2.0], [4.0, 6.0], [6.0, 8.0]])
 
-    inverse_distances = inverse_distance_matrix(points_a, points_b)
+    inverse_distances = compute_inverse_distance_matrix(points_a, points_b)
     assert inverse_distances.shape == (2, 3)
 
     expected = numpy.array(

@@ -168,6 +168,28 @@ def coverage_molecules() -> List[str]:
         "C",
         "C(=O)O",
         "C[N+](=C)[O-]",
+        # 220125
+        "O=CN[N+]#C",
+        # 150125
+        "C#C[N+]#C",
+        # 240171
+        "FN=C",
+        # # 250191 - Omega cannot generate a conformer.
+        # "C#[NH+]",
+        # 150171
+        "FC#C",
+        # 240125
+        "C=N[N+]#C",
+        # 220171
+        "FNC=O",
+        # 220631
+        "[O-]NC=O",
+        # 240631,
+        "[O-]N=C",
+        # 140125
+        "O=C[N+]#C",
+        # 130125
+        "N=C[N+]#C",
     ]
 
 

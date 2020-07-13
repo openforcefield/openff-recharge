@@ -22,16 +22,6 @@ class MoleculeFromSmilesError(RechargeException):
         self.smiles = smiles
 
 
-class MissingConformersError(RechargeException):
-    """An exception raised when a molecule which does not contain any conformers
-    was provided to a function which required them."""
-
-    def __init__(self):
-        super(MissingConformersError, self).__init__(
-            "The provided molecule does not contain any conformers."
-        )
-
-
 class InvalidSmirksError(RechargeException):
     """An exception raised when an invalid smirks pattern is provided."""
 

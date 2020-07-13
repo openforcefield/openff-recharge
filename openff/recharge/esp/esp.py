@@ -1,13 +1,12 @@
 import abc
-from typing import List, Tuple
+import os
+from typing import Tuple
 
 import numpy
 from openeye.oechem import OEMol
 from pydantic import BaseModel, Field
 
 from openff.recharge.grids import GridGenerator, GridSettings
-from openff.recharge.utilities.exceptions import MissingConformersError
-from openff.recharge.utilities.openeye import molecule_to_conformers
 
 
 class ESPSettings(BaseModel):
@@ -62,11 +61,16 @@ class ESPGenerator(abc.ABC):
         -------
             The ESP [Hartree / e] at each grid point with shape=(n_grid_points, 1).
         """
+        raise NotImplementedError
 
     @classmethod
     def generate(
-        cls, oe_molecule: OEMol, settings: ESPSettings, directory: str = None
-    ) -> List[Tuple[numpy.ndarray, numpy.ndarray]]:
+        cls,
+        oe_molecule: OEMol,
+        conformer: numpy.ndarray,
+        settings: ESPSettings,
+        directory: str = None,
+    ) -> Tuple[numpy.ndarray, numpy.ndarray]:
         """Generate the electrostatic potential (ESP) on a grid defined by
         a provided set of settings.
 
@@ -74,6 +78,8 @@ class ESPGenerator(abc.ABC):
         ----------
         oe_molecule
             The molecule to generate the ESP for.
+        conformer
+            The molecule conformer to generate the ESP of.
         settings
             The settings to use when generating the ESP.
         directory
@@ -82,26 +88,16 @@ class ESPGenerator(abc.ABC):
 
         Returns
         -------
-            The grid which the ESP [Hartree / e] was generated on with
-            shape=(n_grid_points, 3) and the ESP  at each grid point with
+            The grid [Angstrom] which the ESP  was generated on with
+            shape=(n_grid_points, 3) and the ESP [Hartree / e] at each grid point with
             shape=(n_grid_points, 1) for each conformer present on the specified
             molecule.
         """
 
-        if oe_molecule.NumConfs() == 0:
-            raise MissingConformersError()
+        if directory is not None and len(directory) > 0:
+            os.makedirs(directory, exist_ok=True)
 
-        conformers = molecule_to_conformers(oe_molecule)
+        grid = GridGenerator.generate(oe_molecule, conformer, settings.grid_settings)
+        esp = cls._generate(oe_molecule, conformer, grid, settings, directory)
 
-        values = []
-
-        for conformer in conformers:
-
-            grid = GridGenerator.generate(
-                oe_molecule, conformer, settings.grid_settings
-            )
-            esp = cls._generate(oe_molecule, conformer, grid, settings, directory)
-
-            values.append((grid, esp))
-
-        return values
+        return grid, esp

@@ -18,6 +18,8 @@ dependencies:
   - numpy
   - pydantic
   - openeye-toolkits
+  - sqlalchemy
+  - sqlite
 
     # Optional dependencies.
   - psi4

@@ -60,7 +60,7 @@ class ESPGenerator(abc.ABC):
 
         Returns
         -------
-            The ESP at each grid point with shape=(n_grid_points, 1).
+            The ESP [Hartree / e] at each grid point with shape=(n_grid_points, 1).
         """
 
     @classmethod
@@ -82,9 +82,10 @@ class ESPGenerator(abc.ABC):
 
         Returns
         -------
-            The grid which the ESP was generated on with shape=(n_grid_points, 3)
-            and the ESP at each grid point with shape=(n_grid_points, 1) for each
-            conformer present on the specified molecule.
+            The grid which the ESP [Hartree / e] was generated on with
+            shape=(n_grid_points, 3) and the ESP  at each grid point with
+            shape=(n_grid_points, 1) for each conformer present on the specified
+            molecule.
         """
 
         if oe_molecule.NumConfs() == 0:

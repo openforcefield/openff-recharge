@@ -1,6 +1,5 @@
 import numpy
 import pytest
-from openeye import oechem
 
 from openff.recharge.esp import ESPSettings
 from openff.recharge.esp.exceptions import Psi4Error
@@ -83,12 +82,7 @@ def test_generate():
         ]
     )
 
-    oe_molecule.NewConf(oechem.OEFloatArray(conformer.flatten()))
-
-    electrostatic_potentials = Psi4ESPGenerator.generate(oe_molecule, settings)
-    assert len(electrostatic_potentials) == 1
-
-    grid, esp = electrostatic_potentials[0]
+    grid, esp = Psi4ESPGenerator.generate(oe_molecule, conformer, settings)
 
     assert len(grid) == len(esp)
     assert len(grid) > 0
@@ -105,12 +99,10 @@ def test_ps4_error():
 
     # Generate a small molecule with an invalid conformer.
     oe_molecule = smiles_to_molecule("C")
-    oe_molecule.DeleteConfs()
     conformer = numpy.zeros((5, 3))
-    oe_molecule.NewConf(oechem.OEFloatArray(conformer.flatten()))
 
     with pytest.raises(Psi4Error) as error_info:
-        Psi4ESPGenerator.generate(oe_molecule, settings)
+        Psi4ESPGenerator.generate(oe_molecule, conformer, settings)
 
     error_message = str(error_info.value)
 

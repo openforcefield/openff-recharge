@@ -1,7 +1,8 @@
 import numpy
 
 
-def inverse_distance_matrix(points_a: numpy.ndarray, points_b: numpy.ndarray):
+
+def compute_inverse_distance_matrix(points_a: numpy.ndarray, points_b: numpy.ndarray):
     """Computes a matrix of the inverse distances between all of the points
     in ``points_a`` and all of the points in ``points_b``.
 

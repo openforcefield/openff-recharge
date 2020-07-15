@@ -251,8 +251,8 @@ class MoleculeESPStore:
                     )
                     for coordinate, esp in zip(record.grid_coordinates, record.esp)
                 ],
-                grid_settings=DBGridSettings(
-                    **record.esp_settings.grid_settings.dict()
+                grid_settings=DBGridSettings.unique(
+                    db, record.esp_settings.grid_settings
                 ),
                 esp_settings=DBESPSettings.unique(db, record.esp_settings),
             )

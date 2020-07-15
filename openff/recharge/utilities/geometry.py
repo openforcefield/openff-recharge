@@ -1,4 +1,5 @@
 import numpy
+from openeye import oechem
 
 
 def compute_inverse_distance_matrix(points_a: numpy.ndarray, points_b: numpy.ndarray):

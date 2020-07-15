@@ -34,3 +34,21 @@ def compute_inverse_distance_matrix(points_a: numpy.ndarray, points_b: numpy.nda
             inverse_distances[i, j] = 1.0 / distance
 
     return inverse_distances
+
+
+def reorder_conformer(
+    oe_molecule: oechem.OEMol, conformer: numpy.ndarray
+) -> numpy.ndarray:
+    """Reorder a conformer to match the ordering of the atoms
+    in a molecule. The map index on each atom in the molecule
+    should match the original orderings of the atoms for which
+    the conformer was generated."""
+
+    index_map = {atom.GetIdx(): atom.GetMapIdx() for atom in oe_molecule.GetAtoms()}
+
+    indices = numpy.array(
+        [index_map[index] - 1 for index in range(oe_molecule.NumAtoms())]
+    )
+
+    reordered_conformer = conformer[indices]
+    return reordered_conformer

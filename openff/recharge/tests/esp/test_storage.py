@@ -2,6 +2,7 @@ import numpy
 
 from openff.recharge.esp import ESPSettings
 from openff.recharge.esp.storage import MoleculeESPRecord, MoleculeESPStore
+from openff.recharge.esp.storage.db import DBESPSettings, DBGridSettings
 from openff.recharge.grids import GridSettings
 from openff.recharge.utilities.openeye import smiles_to_molecule
 
@@ -54,10 +55,79 @@ def test_store(tmp_path):
             grid_coordinates=numpy.array([[0.0, 0.0, 0.0]]),
             esp=numpy.array([[0.0]]),
             esp_settings=ESPSettings(grid_settings=GridSettings()),
-        )
+        ),
+        MoleculeESPRecord(
+            tagged_smiles="[Ar:1]",
+            conformer=numpy.array([[0.0, 0.0, 0.0]]),
+            grid_coordinates=numpy.array([[0.0, 0.0, 0.0]]),
+            esp=numpy.array([[0.0]]),
+            esp_settings=ESPSettings(grid_settings=GridSettings()),
+        ),
     )
 
     assert esp_store.list() == ["[Ar]"]
+
+
+def test_unique_esp_settings(tmp_path):
+    """Tests that ESP settings are stored uniquely in the DB."""
+
+    esp_store = MoleculeESPStore(f"{tmp_path}.sqlite")
+    esp_settings = ESPSettings(grid_settings=GridSettings())
+
+    # Store duplicate settings in the same session.
+    with esp_store._get_session() as db:
+        db.add(DBESPSettings.unique(db, esp_settings))
+        db.add(DBESPSettings.unique(db, esp_settings))
+
+    with esp_store._get_session() as db:
+        assert db.query(DBESPSettings.id).count() == 1
+
+    # Store a duplicate setting in a new session.
+    with esp_store._get_session() as db:
+        db.add(DBESPSettings.unique(db, esp_settings))
+
+    with esp_store._get_session() as db:
+        assert db.query(DBESPSettings.id).count() == 1
+
+    # Store a non-duplicate set of settings
+    esp_settings.method = "dft"
+
+    with esp_store._get_session() as db:
+        db.add(DBESPSettings.unique(db, esp_settings))
+
+    with esp_store._get_session() as db:
+        assert db.query(DBESPSettings.id).count() == 2
+
+
+def test_unique_grid_settings(tmp_path):
+    """Tests that ESP settings are stored uniquely in the DB."""
+
+    esp_store = MoleculeESPStore(f"{tmp_path}.sqlite")
+    grid_settings = GridSettings()
+
+    # Store duplicate settings in the same session.
+    with esp_store._get_session() as db:
+        db.add(DBGridSettings.unique(db, grid_settings))
+        db.add(DBGridSettings.unique(db, grid_settings))
+
+    with esp_store._get_session() as db:
+        assert db.query(DBGridSettings.id).count() == 1
+
+    # Store a duplicate setting in a new session.
+    with esp_store._get_session() as db:
+        db.add(DBGridSettings.unique(db, grid_settings))
+
+    with esp_store._get_session() as db:
+        assert db.query(DBGridSettings.id).count() == 1
+
+    # Store a non-duplicate set of settings
+    grid_settings.spacing = 0.7
+
+    with esp_store._get_session() as db:
+        db.add(DBGridSettings.unique(db, grid_settings))
+
+    with esp_store._get_session() as db:
+        assert db.query(DBGridSettings.id).count() == 2
 
 
 def test_retrieve(tmp_path):

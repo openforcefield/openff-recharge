@@ -487,27 +487,33 @@ class BCCGenerator:
 
     @classmethod
     def applied_corrections(
-        cls, assignment_matrix: numpy.ndarray, settings: BCCSettings,
+        cls, *oe_molecules: oechem.OEMol, settings: BCCSettings,
     ) -> List[BondChargeCorrection]:
         """Returns the bond charge corrections which will be applied
-        by an assignment matrix.
+        to a given molecule.
 
         Parameters
         ----------
-        assignment_matrix
-            The assignment matrix which describes which bond charge
-            corrections will be assigned to a molecule.
+        oe_molecules
+            The molecule which the bond charge corrections would be applied to.
         settings
             The settings which describe which bond charge correction
             may be assigned as well as information about how they
             should be assigned.
         """
-        applied_correction_indices = numpy.where(assignment_matrix.any(axis=0))[0]
 
-        applied_corrections = [
-            settings.bond_charge_corrections[index]
-            for index in applied_correction_indices
-        ]
+        applied_corrections = []
+
+        for oe_molecule in oe_molecules:
+
+            assignment_matrix = cls.build_assignment_matrix(oe_molecule, settings)
+            applied_correction_indices = numpy.where(assignment_matrix.any(axis=0))[0]
+
+            applied_corrections.extend(
+                settings.bond_charge_corrections[index]
+                for index in applied_correction_indices
+                if settings.bond_charge_corrections[index] not in applied_corrections
+            )
 
         return applied_corrections
 

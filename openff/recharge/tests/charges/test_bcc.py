@@ -43,18 +43,19 @@ def test_build_assignment_matrix():
 
 def test_applied_corrections():
 
-    oe_molecule = smiles_to_molecule("C")
-    bond_charge_corrections = [
-        BondChargeCorrection(smirks="[#6:1]-[#6:2]", value=1.0, provenance={}),
-        BondChargeCorrection(smirks="[#6:1]-[#1:2]", value=1.0, provenance={}),
-    ]
-    settings = BCCSettings(bond_charge_corrections=bond_charge_corrections)
+    settings = BCCSettings(
+        bond_charge_corrections=[
+            BondChargeCorrection(smirks="[#6:1]-[#6:2]", value=1.0, provenance={}),
+            BondChargeCorrection(smirks="[#6:1]-[#1:2]", value=1.0, provenance={}),
+        ]
+    )
 
-    assignment_matrix = BCCGenerator.build_assignment_matrix(oe_molecule, settings)
-    applied_corrections = BCCGenerator.applied_corrections(assignment_matrix, settings)
+    applied_corrections = BCCGenerator.applied_corrections(
+        smiles_to_molecule("C"), settings=settings
+    )
 
     assert len(applied_corrections) == 1
-    assert applied_corrections[0] == bond_charge_corrections[1]
+    assert applied_corrections[0] == settings.bond_charge_corrections[1]
 
 
 def test_apply_assignment():

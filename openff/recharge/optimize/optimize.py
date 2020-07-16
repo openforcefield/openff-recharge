@@ -13,12 +13,13 @@ from openff.recharge.utilities.geometry import (
 )
 
 
-class PrecalulatedObjective:
-    """A class which stores the precalculated portion of the
-    objective function. This includes the grid point - atom
-    inverse distance matrix, the BCC parameter assignment
-    matrix, and the difference between the full QM and
-    uncorrected charge ESP."""
+class PrecalulatedTerms:
+    """A class which stores the precalculated terms which appear in the objective,
+    but which do not depend on the bond charge correction values being parameterised.
+    This includes the grid point - atom inverse distance matrix, the BCC parameter
+    assignment matrix, and the difference between the full QM and uncorrected charge
+    ESP.
+    """
 
     def __init__(self, inverse_distance_matrix, assignment_matrix, v_difference):
 
@@ -124,7 +125,7 @@ class ESPOptimization:
         bcc_settings: BCCSettings,
         fixed_parameter_indices: List[int],
         charge_settings: ChargeSettings,
-    ) -> List[PrecalulatedObjective]:
+    ) -> List[PrecalulatedTerms]:
         """Pre-calculates those terms which appear in the objective function,
         particularly the difference between the ESP calculated using QM methods
         and using the uncorrected atoms partial charges, the matrix of which
@@ -198,7 +199,7 @@ class ESPOptimization:
                 )
 
                 precalculated_components.append(
-                    PrecalulatedObjective(
+                    PrecalulatedTerms(
                         inverse_distance_matrix, assignment_matrix, v_difference
                     )
                 )

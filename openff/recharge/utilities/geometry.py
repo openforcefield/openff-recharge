@@ -1,6 +1,9 @@
 import numpy
 from openeye import oechem
 
+BOHR_TO_ANGSTROM = 0.529177210903  # NIST 2018 CODATA
+INVERSE_ANGSTROM_TO_BOHR = BOHR_TO_ANGSTROM
+
 
 def compute_inverse_distance_matrix(points_a: numpy.ndarray, points_b: numpy.ndarray):
     """Computes a matrix of the inverse distances between all of the points

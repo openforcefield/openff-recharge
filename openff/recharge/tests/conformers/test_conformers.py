@@ -8,4 +8,4 @@ def test_omega_elf10():
     """
 
     oe_molecule = smiles_to_molecule("CO")
-    OmegaELF10.generate(oe_molecule, max_conformers=1)
+    assert len(OmegaELF10.generate(oe_molecule, max_conformers=1)) == 1

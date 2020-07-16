@@ -11,6 +11,7 @@ import json
 import logging
 from typing import Dict, List
 
+import numpy
 import pandas
 from openeye import oechem
 
@@ -185,19 +186,38 @@ def main():
         "170931": "[#6a$(*~[#7aX2,#8aX2]):1]-[#8X1-1:2]",
         "160931": "[#6a:1]-[#8X1-1:2]",
     }
-    # [#7X3ar5,#7X3$(*~[#8])$(*~[#8]):1]
+
     bcc_overrides = {"110112": 0.0024, "120114": -0.0172}
 
-    bond_charge_corrections = build_bond_charge_corrections(
+    bcc_parameters = build_bond_charge_corrections(
         atom_codes, bond_codes, bcc_overrides, custom_bcc_smirks
     )
-    bond_charge_corrections = [
-        bond_charge_correction.dict()
-        for bond_charge_correction in bond_charge_corrections
-    ]
+
+    # Remove duplicate parameters caused by the duplication of the aromatic
+    # bond type.
+    bcc_parameters_per_smirks = {}
+    unique_bcc_parameters = []
+
+    for bcc_parameter in bcc_parameters:
+
+        if bcc_parameter.smirks in bcc_parameters_per_smirks:
+
+            assert numpy.isclose(
+                bcc_parameter.value,
+                bcc_parameters_per_smirks[bcc_parameter.smirks].value,
+            )
+            assert bcc_parameter.provenance["code"][2:4] in ["07", "08"]
+
+            continue
+
+        unique_bcc_parameters.append(bcc_parameter)
+        bcc_parameters_per_smirks[bcc_parameter.smirks] = bcc_parameter
 
     with open("original-am1-bcc.json", "w") as file:
-        json.dump(bond_charge_corrections, file)
+
+        json.dump(
+            [bcc_parameter.dict() for bcc_parameter in unique_bcc_parameters], file
+        )
 
 
 if __name__ == "__main__":

@@ -14,7 +14,7 @@ from typing import Dict, List
 import pandas
 from openeye import oechem
 
-from openff.recharge.charges.bcc import BondChargeCorrection
+from openff.recharge.charges.bcc import BCCParameter
 from openff.recharge.utilities.exceptions import InvalidSmirksError
 from openff.recharge.utilities.openeye import call_openeye
 
@@ -27,7 +27,7 @@ def build_bond_charge_corrections(
     bond_codes: Dict[str, str],
     bcc_overrides: Dict[str, float],
     custom_bcc_smirks: Dict[str, str],
-) -> List[BondChargeCorrection]:
+) -> List[BCCParameter]:
 
     # Convert the atom and bond codes into the six number codes used
     # in the AM1BCC paper.
@@ -88,7 +88,7 @@ def build_bond_charge_corrections(
 
         value = bcc_overrides.get(code, bcc_row["BCC"])
 
-        bond_charge_corrections[code] = BondChargeCorrection(
+        bond_charge_corrections[code] = BCCParameter(
             smirks=smirks, value=value, provenance={"code": code}
         )
 

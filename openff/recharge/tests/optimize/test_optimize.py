@@ -2,7 +2,7 @@ from typing import List, Optional
 
 import numpy
 
-from openff.recharge.charges.bcc import BCCSettings, BondChargeCorrection
+from openff.recharge.charges.bcc import BCCCollection, BCCParameter
 from openff.recharge.charges.charges import ChargeSettings
 from openff.recharge.esp import ESPSettings
 from openff.recharge.esp.storage import MoleculeESPRecord, MoleculeESPStore
@@ -73,17 +73,17 @@ def test_compute_objective_function():
 
 def test_precalculate(tmp_path):
 
-    bcc_settings = BCCSettings(
-        bond_charge_corrections=[
-            BondChargeCorrection(smirks="[#6:1]-[#1:2]", value=1.0, provenance={}),
-            BondChargeCorrection(smirks="[#6:1]#[#6:2]", value=2.0, provenance={}),
+    bcc_collection = BCCCollection(
+        parameters=[
+            BCCParameter(smirks="[#6:1]-[#1:2]", value=1.0, provenance={}),
+            BCCParameter(smirks="[#6:1]#[#6:2]", value=2.0, provenance={}),
         ]
     )
 
     precalculated_terms = ESPOptimization.precalculate(
         ["C#C"],
         MockMoleculeESPStore(f"{tmp_path}.sqlite"),
-        bcc_settings,
+        bcc_collection,
         [1],
         ChargeSettings(),
     )

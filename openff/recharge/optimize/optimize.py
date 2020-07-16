@@ -3,7 +3,7 @@ from typing import List
 import numpy
 from openeye import oechem
 
-from openff.recharge.charges.bcc import BCCGenerator, BCCSettings
+from openff.recharge.charges.bcc import BCCCollection, BCCGenerator
 from openff.recharge.charges.charges import ChargeGenerator, ChargeSettings
 from openff.recharge.esp.storage import MoleculeESPRecord, MoleculeESPStore
 from openff.recharge.utilities.geometry import (
@@ -122,7 +122,7 @@ class ESPOptimization:
         cls,
         smiles: List[str],
         esp_store: MoleculeESPStore,
-        bcc_settings: BCCSettings,
+        bcc_collection: BCCCollection,
         fixed_parameter_indices: List[int],
         charge_settings: ChargeSettings,
     ) -> List[PrecalulatedTerms]:
@@ -138,11 +138,10 @@ class ESPOptimization:
             The SMILES patterns of the molecules being optimised against.
         esp_store
             The store which contains the calculated ESP records.
-        bcc_settings
-            The settings which describe the parameters which are to be trained,
-            and how they should be applied to molecules.
+        bcc_collection
+            The collection of bond charge correction parameter to be trained.
         fixed_parameter_indices
-            The indices of the bond charge parameters specified by ``bcc_settings``
+            The indices of the bond charge parameters specified by ``bcc_collection``
             which should be kept fixed while training.
         charge_settings
             The settings which define how to calculate the uncorrected partial charges
@@ -154,7 +153,7 @@ class ESPOptimization:
         trainable_parameter_indices = numpy.array(
             [
                 i
-                for i in range(len(bcc_settings.bond_charge_corrections))
+                for i in range(len(bcc_collection.parameters))
                 if i not in fixed_parameter_indices
             ]
         )
@@ -175,7 +174,7 @@ class ESPOptimization:
                     atom.SetMapIdx(0)
 
                 assignment_matrix = BCCGenerator.build_assignment_matrix(
-                    oe_molecule, bcc_settings
+                    oe_molecule, bcc_collection
                 )
                 assignment_matrix = assignment_matrix[:, trainable_parameter_indices]
 

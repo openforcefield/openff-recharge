@@ -253,7 +253,7 @@ class AromaticityModel:
             raise NotImplementedError()
 
 
-class BondChargeCorrection(BaseModel):
+class BCCParameter(BaseModel):
     """An object which encodes the value of a bond-charge correction, the chemical
     environment to which it should be applied, and provenance about its source.
     """
@@ -270,11 +270,11 @@ class BondChargeCorrection(BaseModel):
     )
 
 
-class BCCSettings(BaseModel):
+class BCCCollection(BaseModel):
     """The settings which describes which BCCs should be applied,
     as well as information about how they should be applied."""
 
-    bond_charge_corrections: List[BondChargeCorrection] = Field(
+    parameters: List[BCCParameter] = Field(
         ..., description="The bond charge corrections to apply."
     )
     aromaticity_model: AromaticityModels = Field(
@@ -293,7 +293,7 @@ class BCCGenerator:
         oe_molecule: oechem.OEMol,
         assignment_matrix: numpy.ndarray,
         bcc_counts_matrix: numpy.ndarray,
-        settings: BCCSettings,
+        bcc_collection: BCCCollection,
     ):
         """Validates the assignment matrix.
 
@@ -309,8 +309,8 @@ class BCCGenerator:
             A matrix which contains the number of times that a bond charge
             correction is applied to a given atom with
             shape=(n_atoms, n_bond_charge_corrections).
-        settings
-            The settings used to generate the assignment matrix.
+        bcc_collection
+            The collection of parameters to be assigned.
         """
 
         # Check for unassigned atoms
@@ -330,7 +330,7 @@ class BCCGenerator:
         if len(non_zero_assignments) > 0:
 
             correction_smirks = [
-                settings.bond_charge_corrections[index].smirks
+                bcc_collection.parameters[index].smirks
                 for index in non_zero_assignments
             ]
 
@@ -366,7 +366,7 @@ class BCCGenerator:
 
     @classmethod
     def build_assignment_matrix(
-        cls, oe_molecule: oechem.OEMol, settings: BCCSettings,
+        cls, oe_molecule: oechem.OEMol, bcc_collection: BCCCollection,
     ) -> numpy.ndarray:
         """Generated a matrix which indicates which bond charge
         corrections have been applied to each atom in the molecule.
@@ -381,10 +381,8 @@ class BCCGenerator:
         ----------
         oe_molecule
             The molecule to assign the bond charge corrections to.
-        settings
-            The settings which describe which bond charge correction
-            may be assigned as well as information about how they
-            should be assigned.
+        bcc_collection
+            The bond charge correction parameters which may be assigned.
 
         Returns
         -------
@@ -397,9 +395,9 @@ class BCCGenerator:
         # Make a copy of the molecule to assign the aromatic flags to.
         oe_molecule = oechem.OEMol(oe_molecule)
         # Assign aromaticity flags to ensure correct smirks matches.
-        AromaticityModel.assign(oe_molecule, settings.aromaticity_model)
+        AromaticityModel.assign(oe_molecule, bcc_collection.aromaticity_model)
 
-        bond_charge_corrections = settings.bond_charge_corrections
+        bond_charge_corrections = bcc_collection.parameters
 
         atoms = {atom.GetIdx(): atom for atom in oe_molecule.GetAtoms()}
 
@@ -436,14 +434,14 @@ class BCCGenerator:
 
         # Validate the assignments
         cls._validate_assignment_matrix(
-            oe_molecule, assignment_matrix, bcc_counts_matrix, settings
+            oe_molecule, assignment_matrix, bcc_counts_matrix, bcc_collection
         )
 
         return assignment_matrix
 
     @classmethod
     def apply_assignment_matrix(
-        cls, assignment_matrix: numpy.ndarray, settings: BCCSettings,
+        cls, assignment_matrix: numpy.ndarray, bcc_collection: BCCCollection,
     ) -> numpy.ndarray:
         """Applies an assignment matrix to a list of bond charge corrections
         yield the final bond-charge corrections for a molecule.
@@ -455,10 +453,8 @@ class BCCGenerator:
             ``build_assignment_matrix`` which describes how the
             bond charge corrections should be applied. This
             should have shape=(n_atoms, n_bond_charge_corrections)
-        settings
-            The settings which describe which bond charge correction
-            may be assigned as well as information about how they
-            should be assigned.
+        bcc_collection
+            The bond charge correction parameters which may be assigned.
 
         Returns
         -------
@@ -468,7 +464,7 @@ class BCCGenerator:
         correction_values = numpy.array(
             [
                 [bond_charge_correction.value]
-                for bond_charge_correction in settings.bond_charge_corrections
+                for bond_charge_correction in bcc_collection.parameters
             ]
         )
 
@@ -487,8 +483,8 @@ class BCCGenerator:
 
     @classmethod
     def applied_corrections(
-        cls, *oe_molecules: oechem.OEMol, settings: BCCSettings,
-    ) -> List[BondChargeCorrection]:
+        cls, *oe_molecules: oechem.OEMol, bcc_collection: BCCCollection,
+    ) -> List[BCCParameter]:
         """Returns the bond charge corrections which will be applied
         to a given molecule.
 
@@ -496,30 +492,28 @@ class BCCGenerator:
         ----------
         oe_molecules
             The molecule which the bond charge corrections would be applied to.
-        settings
-            The settings which describe which bond charge correction
-            may be assigned as well as information about how they
-            should be assigned.
+        bcc_collection
+            The bond charge correction parameters which may be assigned.
         """
 
         applied_corrections = []
 
         for oe_molecule in oe_molecules:
 
-            assignment_matrix = cls.build_assignment_matrix(oe_molecule, settings)
+            assignment_matrix = cls.build_assignment_matrix(oe_molecule, bcc_collection)
             applied_correction_indices = numpy.where(assignment_matrix.any(axis=0))[0]
 
             applied_corrections.extend(
-                settings.bond_charge_corrections[index]
+                bcc_collection.parameters[index]
                 for index in applied_correction_indices
-                if settings.bond_charge_corrections[index] not in applied_corrections
+                if bcc_collection.parameters[index] not in applied_corrections
             )
 
         return applied_corrections
 
     @classmethod
     def generate(
-        cls, oe_molecule: oechem.OEMol, settings: BCCSettings,
+        cls, oe_molecule: oechem.OEMol, bcc_collection: BCCCollection,
     ) -> numpy.ndarray:
         """Generate the partial charges for a molecule. If no conformer
         generator is provided those conformers on the provided molecule
@@ -530,10 +524,8 @@ class BCCGenerator:
         ----------
         oe_molecule
             The molecule to generate the bond-charge corrections for.
-        settings
-            The settings which describe which bond charge correction
-            may be assigned as well as information about how they
-            should be assigned.
+        bcc_collection
+            The bond charge correction parameters which may be assigned.
 
         Returns
         -------
@@ -542,15 +534,17 @@ class BCCGenerator:
         """
 
         # Build the assignment matrix
-        assignment_matrix = cls.build_assignment_matrix(oe_molecule, settings)
+        assignment_matrix = cls.build_assignment_matrix(oe_molecule, bcc_collection)
 
         # Determine which bond charge corrections have actually been applied to the
         # molecule
-        generated_corrections = cls.apply_assignment_matrix(assignment_matrix, settings)
+        generated_corrections = cls.apply_assignment_matrix(
+            assignment_matrix, bcc_collection
+        )
         return generated_corrections
 
 
-def original_am1bcc_corrections() -> List[BondChargeCorrection]:
+def original_am1bcc_corrections() -> BCCCollection:
     """Returns the bond charge corrections originally reported
     in the literture [1]_.
 
@@ -567,10 +561,12 @@ def original_am1bcc_corrections() -> List[BondChargeCorrection]:
         bcc_dictionaries = json.load(file)
 
     bond_charge_corrections = [
-        BondChargeCorrection(**dictionary) for dictionary in bcc_dictionaries
+        BCCParameter(**dictionary) for dictionary in bcc_dictionaries
     ]
 
-    return bond_charge_corrections
+    return BCCCollection(
+        parameters=bond_charge_corrections, aromaticity_model=AromaticityModels.AM1BCC
+    )
 
 
 def compare_openeye_parity(oe_molecule: oechem.OEMol) -> bool:
@@ -616,10 +612,10 @@ def compare_openeye_parity(oe_molecule: oechem.OEMol) -> bool:
 
     # Compute the internal BCCs
     assignment_matrix = BCCGenerator.build_assignment_matrix(
-        oe_molecule, BCCSettings(bond_charge_corrections=bond_charge_corrections)
+        oe_molecule, bond_charge_corrections
     )
     charge_corrections = BCCGenerator.apply_assignment_matrix(
-        assignment_matrix, BCCSettings(bond_charge_corrections=bond_charge_corrections)
+        assignment_matrix, bond_charge_corrections
     )
 
     implementation_charges = am1_charges + charge_corrections

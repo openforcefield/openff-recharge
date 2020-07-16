@@ -5,9 +5,9 @@ from openeye import oechem
 from openff.recharge.charges.bcc import (
     AromaticityModel,
     AromaticityModels,
+    BCCCollection,
     BCCGenerator,
-    BCCSettings,
-    BondChargeCorrection,
+    BCCParameter,
     compare_openeye_parity,
     original_am1bcc_corrections,
 )
@@ -18,7 +18,7 @@ from openff.recharge.utilities.openeye import smiles_to_molecule
 def test_load_original_am1_bcc():
     """Tests that the original BCC values can be parsed from the
     data directory."""
-    assert len(original_am1bcc_corrections()) > 0
+    assert len(original_am1bcc_corrections().parameters) > 0
 
 
 def test_build_assignment_matrix():
@@ -26,12 +26,12 @@ def test_build_assignment_matrix():
     oe_molecule = smiles_to_molecule("C")
 
     bond_charge_corrections = [
-        BondChargeCorrection(smirks="[#6:1]-[#6:2]", value=1.0, provenance={}),
-        BondChargeCorrection(smirks="[#6:1]-[#1:2]", value=1.0, provenance={}),
+        BCCParameter(smirks="[#6:1]-[#6:2]", value=1.0, provenance={}),
+        BCCParameter(smirks="[#6:1]-[#1:2]", value=1.0, provenance={}),
     ]
 
     assignment_matrix = BCCGenerator.build_assignment_matrix(
-        oe_molecule, BCCSettings(bond_charge_corrections=bond_charge_corrections)
+        oe_molecule, BCCCollection(parameters=bond_charge_corrections)
     )
 
     assert assignment_matrix.shape == (5, 2)
@@ -43,27 +43,25 @@ def test_build_assignment_matrix():
 
 def test_applied_corrections():
 
-    settings = BCCSettings(
-        bond_charge_corrections=[
-            BondChargeCorrection(smirks="[#6:1]-[#6:2]", value=1.0, provenance={}),
-            BondChargeCorrection(smirks="[#6:1]-[#1:2]", value=1.0, provenance={}),
+    bcc_collection = BCCCollection(
+        parameters=[
+            BCCParameter(smirks="[#6:1]-[#6:2]", value=1.0, provenance={}),
+            BCCParameter(smirks="[#6:1]-[#1:2]", value=1.0, provenance={}),
         ]
     )
 
     applied_corrections = BCCGenerator.applied_corrections(
-        smiles_to_molecule("C"), settings=settings
+        smiles_to_molecule("C"), bcc_collection=bcc_collection
     )
 
     assert len(applied_corrections) == 1
-    assert applied_corrections[0] == settings.bond_charge_corrections[1]
+    assert applied_corrections[0] == bcc_collection.parameters[1]
 
 
 def test_apply_assignment():
 
-    settings = BCCSettings(
-        bond_charge_corrections=[
-            BondChargeCorrection(smirks="[#1:1]-[#1:2]", value=0.0, provenance={})
-        ]
+    settings = BCCCollection(
+        parameters=[BCCParameter(smirks="[#1:1]-[#1:2]", value=0.0, provenance={})]
     )
     assignment_matrix = numpy.array([[1], [1]])
 
@@ -76,7 +74,7 @@ def test_apply_assignment():
     assert numpy.allclose(charge_corrections, 0.0)
 
     # Test with invalid BCCs
-    settings.bond_charge_corrections[0].value = 1.0
+    settings.parameters[0].value = 1.0
 
     with pytest.raises(UnableToAssignChargeError) as error_info:
         BCCGenerator.apply_assignment_matrix(assignment_matrix, settings)
@@ -96,7 +94,7 @@ def test_am1_bcc_missing_parameters():
     oe_molecule = smiles_to_molecule("o1cccc1")
 
     with pytest.raises(UnableToAssignChargeError) as error_info:
-        BCCGenerator.generate(oe_molecule, BCCSettings(bond_charge_corrections=[]))
+        BCCGenerator.generate(oe_molecule, BCCCollection(parameters=[]))
 
     assert "could not be assigned a bond charge correction atom type" in str(
         error_info.value
@@ -160,6 +158,4 @@ def test_generate():
     # Generate a small molecule
     oe_molecule = smiles_to_molecule("C")
 
-    BCCGenerator.generate(
-        oe_molecule, BCCSettings(bond_charge_corrections=bond_charge_corrections)
-    )
+    BCCGenerator.generate(oe_molecule, bond_charge_corrections)

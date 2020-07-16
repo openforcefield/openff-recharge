@@ -11,7 +11,7 @@ from openeye import oechem
 from tqdm import tqdm
 
 from openff.recharge.charges.bcc import (
-    BondChargeCorrection,
+    BCCParameter,
     compare_openeye_parity,
     original_am1bcc_corrections,
 )
@@ -194,7 +194,7 @@ def coverage_molecules() -> List[str]:
 
 
 def match_bcc_parameters(
-    smiles: str, bond_charge_corrections: List[BondChargeCorrection]
+    smiles: str, bond_charge_corrections: List[BCCParameter]
 ) -> List[str]:
     """Returns the list of bond charge correction SMIRKS patterns which a molecule
     defined by it's SMILES pattern will exercise.
@@ -240,7 +240,7 @@ def map_smiles_to_smirks(smiles: List[str]) -> Dict[str, List[str]]:
     print("Mapping smiles to smirks.")
 
     match_function = functools.partial(
-        match_bcc_parameters, bond_charge_corrections=original_am1bcc_corrections()
+        match_bcc_parameters, parameters=original_am1bcc_corrections().parameters
     )
 
     with Pool(processes=4) as pool:
@@ -276,11 +276,13 @@ def main():
             smiles_per_smirks = json.load(file)
 
     # Check which bond charge correction parameters weren't covered by the set.
-    all_bcc_codes = {bcc.provenance["code"] for bcc in original_am1bcc_corrections()}
+    all_bcc_codes = {
+        bcc.provenance["code"] for bcc in original_am1bcc_corrections().parameters
+    }
 
     covered_codes = {
         bcc.provenance["code"]
-        for bcc in original_am1bcc_corrections()
+        for bcc in original_am1bcc_corrections().parameters
         if bcc.smirks in smiles_per_smirks
     }
 

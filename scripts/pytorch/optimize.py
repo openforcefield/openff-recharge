@@ -2,8 +2,8 @@ import torch
 import torch.optim
 
 from openff.recharge.charges.bcc import (
+    BCCCollection,
     BCCGenerator,
-    BCCSettings,
     original_am1bcc_corrections,
 )
 from openff.recharge.charges.charges import ChargeSettings
@@ -23,7 +23,7 @@ def main():
     # and fix any with a fixed zero value
     bcc_parameters = BCCGenerator.applied_corrections(
         *[smiles_to_molecule(smiles_pattern) for smiles_pattern in smiles],
-        settings=BCCSettings(bond_charge_corrections=original_am1bcc_corrections()),
+        bcc_collection=original_am1bcc_corrections(),
     )
     fixed_parameter_indices = [
         index
@@ -32,7 +32,7 @@ def main():
         == bcc_parameters[index].provenance["code"][-2:]
     ]
 
-    bcc_settings = BCCSettings(bond_charge_corrections=bcc_parameters)
+    bcc_collection = BCCCollection(parameters=bcc_parameters)
     charge_settings = ChargeSettings()
 
     # Define the starting parameters
@@ -50,7 +50,7 @@ def main():
     # evaluate the objective function, but do not depend on the
     # current parameters.
     precalculated_terms = ESPOptimization.precalculate(
-        smiles, esp_store, bcc_settings, fixed_parameter_indices, charge_settings
+        smiles, esp_store, bcc_collection, fixed_parameter_indices, charge_settings
     )
 
     for precalculated_term in precalculated_terms:

@@ -23,6 +23,7 @@ class AromaticityModels(Enum):
     These include
 
     * AM1BCC - the aromaticity model defined in the original AM1BCC publications _[1].
+    * MDL - The MDL aromaticity model.
 
     References
     ----------
@@ -32,6 +33,7 @@ class AromaticityModels(Enum):
     """
 
     AM1BCC = "AM1BCC"
+    MDL = "MDL"
 
 
 class AromaticityModel:
@@ -92,8 +94,6 @@ class AromaticityModel:
             of high-quality atomic charges. AM1-BCC model: II. Parameterization and
             validation. Journal of computational chemistry, 23(16), 1623–1641.
         """
-
-        oechem.OEClearAromaticFlags(oe_molecule)
 
         x_type = "[#6X3,#7X2,#15X2,#7X3+1,#15X3+1,#8X2+1,#16X2+1:N]"
         y_type = "[#6X2-1,#7X2-1,#8X2,#16X2,#7X3,#15X3:N]"
@@ -247,8 +247,12 @@ class AromaticityModel:
             The aromaticity model to apply.
         """
 
+        oechem.OEClearAromaticFlags(oe_molecule)
+
         if model == AromaticityModels.AM1BCC:
             cls._assign_am1bcc(oe_molecule)
+        elif model == AromaticityModels.MDL:
+            oechem.OEAssignAromaticFlags(oe_molecule, oechem.OEAroModel_MDL)
         else:
             raise NotImplementedError()
 

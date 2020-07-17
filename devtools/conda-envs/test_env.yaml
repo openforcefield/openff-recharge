@@ -1,6 +1,7 @@
 name: test
 channels:
   - conda-forge
+  - omnia
   - openeye
   - psi4
 dependencies:
@@ -21,8 +22,18 @@ dependencies:
   - sqlalchemy
   - sqlite
 
-    # Optional dependencies.
+    # Python < 3.8
+  - typing-extensions
+
+    ### Optional dependencies.
+
+    # ESP calculations
   - psi4
+
+    # SMIRNOFF
+  - openforcefield >= 0.7.0
+
+    # Distributed calculation.
   - distributed
   - dask-jobqueue
 

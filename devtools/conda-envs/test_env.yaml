@@ -2,7 +2,7 @@ name: test
 channels:
   - conda-forge
   - openeye
-  - psi4
+  - psi4/label/dev
 dependencies:
     # Base depends
   - python
@@ -13,18 +13,29 @@ dependencies:
   - pytest-cov
   - codecov
 
-    # Standard dependencies.
-  - jinja2
+    ### Core dependencies.
+
   - numpy
   - pydantic
   - openeye-toolkits
+
+    # ESP calculations
+  - jinja2
+  - psi4
+
+    # ESP storage
   - sqlalchemy
   - sqlite
 
-    # Optional dependencies.
-  - psi4
-  - distributed
-  - dask-jobqueue
+    # Python < 3.8
+  - typing-extensions
+
+    ### Optional dependencies.
+
+    # Linting
+  - black
+  - isort
+  - flake8
 
     # Python < 3.8
   - typing-extensions

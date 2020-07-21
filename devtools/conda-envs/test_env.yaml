@@ -3,6 +3,7 @@ channels:
   - conda-forge
   - openeye
   - psi4/label/dev
+  - pytorch
 dependencies:
     # Base depends
   - python
@@ -32,6 +33,9 @@ dependencies:
 
     ### Optional dependencies.
 
+    # Plotting
+  - arviz
+
     # Linting
   - black
   - isort
@@ -39,3 +43,8 @@ dependencies:
 
     # Python < 3.8
   - typing-extensions
+
+    # Optimization
+  - pytorch
+  - pip:
+    - pyro-ppl

@@ -3,7 +3,7 @@ channels:
   - conda-forge
   - omnia
   - openeye
-  - psi4
+  - psi4/label/dev
 dependencies:
     # Base depends
   - python
@@ -14,11 +14,17 @@ dependencies:
   - pytest-cov
   - codecov
 
-    # Standard dependencies.
-  - jinja2
+    ### Core dependencies.
+
   - numpy
   - pydantic
   - openeye-toolkits
+
+    # ESP calculations
+  - jinja2
+  - psi4
+
+    # ESP storage
   - sqlalchemy
   - sqlite
 
@@ -27,15 +33,10 @@ dependencies:
 
     ### Optional dependencies.
 
-    # ESP calculations
-  - psi4
-
     # SMIRNOFF
   - openforcefield >= 0.7.0
 
-    # Distributed calculation.
-  - distributed
-  - dask-jobqueue
-
-    # Python < 3.8
-  - typing-extensions
+    # Linting
+  - black
+  - isort
+  - flake8

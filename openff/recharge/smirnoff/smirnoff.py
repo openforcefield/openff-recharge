@@ -68,7 +68,7 @@ def to_smirnoff(bcc_collection: BCCCollection) -> "ChargeIncrementModelHandler":
 
 
 def from_smirnoff(
-    parameter_handler: ChargeIncrementModelHandler,
+    parameter_handler: "ChargeIncrementModelHandler",
     aromaticity_model=AromaticityModels.MDL,
 ) -> BCCCollection:
     """Attempts to convert a SMIRNOFF bond charge increment parameter handler

@@ -1,6 +1,4 @@
-"""A module for generating conformers with a focus on generating extended conformers
-(i.e. conformers where strongly polar groups are not interacting)."""
-import abc
+"""A module for generating conformers for molecules."""
 import logging
 from typing import List, Optional
 
@@ -33,7 +31,7 @@ class ConformerSettings(BaseModel):
     )
 
 
-class ConformerGenerator(abc.ABC):
+class ConformerGenerator:
     """A class to generate a set of conformers for a molecule according to
     a specified set of settings.
     """

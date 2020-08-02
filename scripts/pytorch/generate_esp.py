@@ -2,7 +2,7 @@ import functools
 from multiprocessing import Pool
 from typing import List
 
-from openff.recharge.conformers.conformers import OmegaELF10
+from openff.recharge.conformers import ConformerGenerator, ConformerSettings
 from openff.recharge.esp import ESPSettings
 from openff.recharge.esp.psi4 import Psi4ESPGenerator
 from openff.recharge.esp.storage import MoleculeESPRecord, MoleculeESPStore
@@ -13,7 +13,7 @@ N_PROCESSES = 4
 
 
 def compute_esp(
-    smiles: str, n_conformers: int, settings: ESPSettings
+    smiles: str, max_conformers: int, settings: ESPSettings
 ) -> List[MoleculeESPRecord]:
     """Compute the ESP for a molecule in different conformers.
 
@@ -21,7 +21,7 @@ def compute_esp(
     ----------
     smiles
         The SMILES representation of the molecule.
-    n_conformers
+    max_conformers
         The target number of conformers to compute the ESP of.
     settings
         The settings to use when generating the ESP.
@@ -30,7 +30,9 @@ def compute_esp(
     oe_molecule = smiles_to_molecule(smiles)
 
     # Generate a set of conformers for the molecule.
-    conformers = OmegaELF10.generate(oe_molecule, n_conformers)
+    conformers = ConformerGenerator.generate(
+        oe_molecule, ConformerSettings(max_conformers=max_conformers)
+    )
 
     esp_records = []
 
@@ -148,7 +150,7 @@ def main():
                 esp_record
                 for esp_records in pool.map(
                     functools.partial(
-                        compute_esp, n_conformers=5, settings=esp_settings
+                        compute_esp, max_conformers=5, settings=esp_settings
                     ),
                     smiles,
                 )

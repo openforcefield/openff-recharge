@@ -35,25 +35,9 @@ class MockMoleculeESPStore(MoleculeESPStore):
         ]
 
 
-def test_inverse_distance_matrix():
+def test_compute_esp_residuals():
 
-    esp_record = MoleculeESPRecord(
-        tagged_smiles="[Ar:1]",
-        conformer=numpy.array([[0.0, 0.0, 0.0]]),
-        grid_coordinates=numpy.array([[5.0, 0.0, 0.0]]),
-        esp=numpy.zeros((1, 1)),
-        esp_settings=ESPSettings(grid_settings=GridSettings()),
-    )
-
-    inverse_distance_matrix = ESPOptimization.inverse_distance_matrix(esp_record)
-
-    distance_matrix = 1.0 / inverse_distance_matrix
-    assert numpy.isclose(distance_matrix, 5.0)
-
-
-def test_compute_v_difference():
-
-    v_difference = ESPOptimization.compute_v_difference(
+    v_difference = ESPOptimization.compute_esp_residuals(
         numpy.array([[1.0 / 5.0, 0.0], [0.0, 1.0 / 5.0]]),
         numpy.array([[5.0], [10.0]]),
         numpy.array([[1.0], [2.0]]),
@@ -62,16 +46,7 @@ def test_compute_v_difference():
     assert numpy.allclose(v_difference, 0.0)
 
 
-def test_compute_objective_function():
-
-    objective_function = ESPOptimization.compute_objective_function(
-        numpy.array([[6.0]]), numpy.array([[2.0]]),
-    )
-
-    assert numpy.isclose(objective_function, 16.0)
-
-
-def test_precalculate(tmp_path):
+def test_compute_objective_terms(tmp_path):
 
     bcc_collection = BCCCollection(
         parameters=[
@@ -80,7 +55,7 @@ def test_precalculate(tmp_path):
         ]
     )
 
-    precalculated_terms = ESPOptimization.precalculate(
+    objective_terms = ESPOptimization.compute_objective_terms(
         ["C#C"],
         MockMoleculeESPStore(f"{tmp_path}.sqlite"),
         bcc_collection,
@@ -88,9 +63,8 @@ def test_precalculate(tmp_path):
         ChargeSettings(),
     )
 
-    assert len(precalculated_terms) == 1
-    precalculated_term = precalculated_terms[0]
+    assert len(objective_terms) == 1
+    objective_term = objective_terms[0]
 
-    assert precalculated_term.assignment_matrix.shape == (4, 1)
-    assert precalculated_term.inverse_distance_matrix.shape == (1, 4)
-    assert precalculated_term.v_difference.shape == (1, 1)
+    assert objective_term.design_matrix.shape == (1, 1)
+    assert objective_term.target_residuals.shape == (1, 1)

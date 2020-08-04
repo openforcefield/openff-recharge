@@ -53,6 +53,9 @@ def to_smirnoff(bcc_collection: BCCCollection) -> "ChargeIncrementModelHandler":
     # noinspection PyTypeChecker
     bcc_parameter_handler = ChargeIncrementModelHandler(version="0.3")
 
+    bcc_parameter_handler.number_of_conformers = 500
+    bcc_parameter_handler.partial_charge_method = "am1elf10"
+
     for bcc_parameter in reversed(bcc_collection.parameters):
         bcc_parameter_handler.add_parameter(
             {
@@ -105,18 +108,19 @@ def from_smirnoff(
         if len(off_parameter.charge_increment) != 2:
             raise UnsupportedBCCSmirksError(smirks, len(off_parameter.charge_increment))
 
-        if not numpy.isclose(
-            off_parameter.charge_increment[0], -off_parameter.charge_increment[1]
-        ):
+        forward_value = off_parameter.charge_increment[0].value_in_unit(unit.elementary_charge)
+        reverse_value = off_parameter.charge_increment[1].value_in_unit(unit.elementary_charge)
+
+        if not numpy.isclose(forward_value, -reverse_value):
 
             raise UnsupportedBCCValueError(
                 smirks,
-                off_parameter.charge_increment[0].value_in_unit(unit.elementary_charge),
-                off_parameter.charge_increment[1].value_in_unit(unit.elementary_charge),
+                forward_value,
+                reverse_value,
             )
 
-        value = off_parameter.charge_increment[0].value_in_unit(unit.elementary_charge)
-
-        bcc_parameters.append(BCCParameter(smirks=smirks, value=value, provenance={}))
+        bcc_parameters.append(
+            BCCParameter(smirks=smirks, value=forward_value, provenance={})
+        )
 
     return BCCCollection(parameters=bcc_parameters, aromaticity_model=aromaticity_model)

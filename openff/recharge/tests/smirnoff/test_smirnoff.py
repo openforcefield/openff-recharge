@@ -92,7 +92,7 @@ def test_missing_dependency():
     OpenFF toolkit cannot be imported."""
 
     try:
-        import openforcefield
+        import openforcefield  # noqa F401
     except ImportError:
         pass
     else:

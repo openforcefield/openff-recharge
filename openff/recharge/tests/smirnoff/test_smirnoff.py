@@ -5,6 +5,7 @@ from openff.recharge.charges.bcc import BCCGenerator, original_am1bcc_correction
 from openff.recharge.charges.charges import ChargeGenerator, ChargeSettings
 from openff.recharge.conformers import ConformerGenerator, ConformerSettings
 from openff.recharge.smirnoff.smirnoff import from_smirnoff, to_smirnoff
+from openff.recharge.utilities.exceptions import MissingOptionalDependency
 from openff.recharge.utilities.openeye import smiles_to_molecule
 
 
@@ -84,3 +85,17 @@ def test_collection_from_smirnoff():
     assert numpy.isclose(bcc_collection.parameters[0].value, 0.1)
     assert bcc_collection.parameters[1].smirks == "[#6:1]-[#6:2]"
     assert numpy.isclose(bcc_collection.parameters[1].value, -0.1)
+
+
+def test_missing_dependency():
+    """Test that the correct custom exception is raised when the
+    OpenFF toolkit cannot be imported."""
+
+    if pytest.importorskip("openforcefield") is not None:
+        pytest.skip(
+            "This test should only be run in cases where the OpenFF Toolkit is not "
+            "installed."
+        )
+
+    with pytest.raises(MissingOptionalDependency):
+        to_smirnoff(original_am1bcc_corrections())

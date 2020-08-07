@@ -1,8 +1,9 @@
 import numpy
+import pytest
 
 from openff.recharge.charges.bcc import BCCGenerator, original_am1bcc_corrections
 from openff.recharge.charges.charges import ChargeGenerator, ChargeSettings
-from openff.recharge.conformers.conformers import OmegaELF10
+from openff.recharge.conformers import ConformerGenerator, ConformerSettings
 from openff.recharge.smirnoff.smirnoff import from_smirnoff, to_smirnoff
 from openff.recharge.utilities.openeye import smiles_to_molecule
 
@@ -11,6 +12,7 @@ def test_collection_to_smirnoff():
     """Test that a collection of bcc parameters can be mapped to
     a SMIRNOFF `ChargeIncrementModelHandler` in a way that yields
     the same partial charges on a molecule."""
+    pytest.importorskip("openforcefield")
 
     from openforcefield.topology import Molecule
     from openforcefield.typing.engines.smirnoff.parameters import ElectrostaticsHandler
@@ -41,7 +43,11 @@ def test_collection_to_smirnoff():
     ]
 
     oe_molecule = smiles_to_molecule("C")
-    conformers = OmegaELF10.generate(oe_molecule, 1)
+
+    conformers = ConformerGenerator.generate(
+        oe_molecule,
+        ConformerSettings(method="omega", sampling_mode="sparse", max_conformers=1),
+    )
 
     expected_charges = ChargeGenerator.generate(
         oe_molecule, conformers, ChargeSettings()
@@ -53,6 +59,7 @@ def test_collection_from_smirnoff():
     """Test that a SMIRNOFF `ChargeIncrementModelHandler` can be mapped to
     a collection of bcc parameters
     """
+    pytest.importorskip("openforcefield")
 
     from openforcefield.typing.engines.smirnoff.parameters import (
         ChargeIncrementModelHandler,

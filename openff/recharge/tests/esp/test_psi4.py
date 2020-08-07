@@ -11,6 +11,7 @@ from openff.recharge.utilities.openeye import smiles_to_molecule
 def test_generate_input():
     """Test that the correct input is generated from the
     jinja template."""
+    pytest.importorskip("psi4")
 
     # Define the settings to use.
     settings = ESPSettings(grid_settings=GridSettings())
@@ -64,6 +65,7 @@ def test_generate_input():
 
 def test_generate():
     """Perform a test run of Psi4."""
+    pytest.importorskip("psi4")
 
     # Define the settings to use.
     settings = ESPSettings(grid_settings=GridSettings(spacing=2.0))
@@ -93,6 +95,7 @@ def test_generate():
 def test_ps4_error():
     """Tests that the correct custom error is raised when Psi4
     fails to run"""
+    pytest.importorskip("psi4")
 
     # Define the settings to use.
     settings = ESPSettings(grid_settings=GridSettings(spacing=2.0))

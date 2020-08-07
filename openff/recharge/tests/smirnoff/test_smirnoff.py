@@ -91,7 +91,11 @@ def test_missing_dependency():
     """Test that the correct custom exception is raised when the
     OpenFF toolkit cannot be imported."""
 
-    if pytest.importorskip("openforcefield") is not None:
+    try:
+        import openforcefield
+    except ImportError:
+        pass
+    else:
         pytest.skip(
             "This test should only be run in cases where the OpenFF Toolkit is not "
             "installed."

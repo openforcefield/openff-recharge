@@ -149,6 +149,15 @@ def test_am1_bcc_aromaticity_ring_size():
     assert [atoms[index].IsAromatic() for index in range(2, 12)]
 
 
+@pytest.mark.parametrize(
+    "aromaticity_model", [AromaticityModels.AM1BCC, AromaticityModels.MDL],
+)
+def test_aromaticity_models(aromaticity_model):
+
+    oe_molecule = smiles_to_molecule("C")
+    AromaticityModel.assign(oe_molecule, aromaticity_model)
+
+
 def test_generate():
     """Test that the full generate method can be called without
     error"""

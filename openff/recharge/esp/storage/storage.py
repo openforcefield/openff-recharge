@@ -14,16 +14,18 @@ from sqlalchemy.orm import Session, sessionmaker
 
 from openff.recharge.esp import ESPSettings
 from openff.recharge.esp.storage.db import (
+    DB_VERSION,
     DBBase,
     DBConformerRecord,
     DBCoordinate,
     DBESPSettings,
     DBGridESP,
     DBGridSettings,
+    DBInformation,
     DBMoleculeRecord,
     DBPCMSettings,
 )
-from openff.recharge.grids import GridSettings
+from openff.recharge.esp.storage.exceptions import IncompatibleDBVersion
 from openff.recharge.utilities.openeye import smiles_to_molecule
 
 if TYPE_CHECKING:
@@ -144,6 +146,17 @@ class MoleculeESPStore:
             autocommit=False, autoflush=False, bind=self._engine
         )
 
+        # Validate the DB version if present, or add one if not.
+        with self._get_session() as db:
+            db_info = db.query(DBInformation).first()
+
+            if not db_info:
+                db_info = DBInformation(version=DB_VERSION)
+                db.add(db_info)
+
+            if db_info.version != DB_VERSION:
+                raise IncompatibleDBVersion(db_info.version, DB_VERSION)
+
     @contextmanager
     def _get_session(self) -> ContextManager[Session]:
 
@@ -199,11 +212,8 @@ class MoleculeESPStore:
                 esp_settings=ESPSettings(
                     basis=db_conformer.esp_settings.basis,
                     method=db_conformer.esp_settings.method,
-                    grid_settings=GridSettings(
-                        type=db_conformer.grid_settings.type,
-                        spacing=db_conformer.grid_settings.spacing,
-                        inner_vdw_scale=db_conformer.grid_settings.inner_vdw_scale,
-                        outer_vdw_scale=db_conformer.grid_settings.outer_vdw_scale,
+                    grid_settings=DBGridSettings.db_to_instance(
+                        db_conformer.grid_settings
                     ),
                     pcm_settings=None
                     if not db_conformer.pcm_settings

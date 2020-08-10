@@ -21,6 +21,7 @@ from openff.recharge.esp.storage.db import (
     DBGridESP,
     DBGridSettings,
     DBMoleculeRecord,
+    DBPCMSettings,
 )
 from openff.recharge.grids import GridSettings
 from openff.recharge.utilities.openeye import smiles_to_molecule
@@ -204,6 +205,9 @@ class MoleculeESPStore:
                         inner_vdw_scale=db_conformer.grid_settings.inner_vdw_scale,
                         outer_vdw_scale=db_conformer.grid_settings.outer_vdw_scale,
                     ),
+                    pcm_settings=None
+                    if not db_conformer.pcm_settings
+                    else DBPCMSettings.db_to_instance(db_conformer.pcm_settings),
                 ),
             )
             for db_record in db_records
@@ -254,6 +258,9 @@ class MoleculeESPStore:
                 grid_settings=DBGridSettings.unique(
                     db, record.esp_settings.grid_settings
                 ),
+                pcm_settings=None
+                if not record.esp_settings.pcm_settings
+                else DBPCMSettings.unique(db, record.esp_settings.pcm_settings),
                 esp_settings=DBESPSettings.unique(db, record.esp_settings),
             )
             for record in records
@@ -321,6 +328,7 @@ class MoleculeESPStore:
         smiles: Optional[str] = None,
         basis: Optional[str] = None,
         method: Optional[str] = None,
+        implicit_solvent: Optional[bool] = None,
     ) -> List[MoleculeESPRecord]:
         """Retrieve records stored in this data store, optionally
         according to a set of filters."""
@@ -334,16 +342,31 @@ class MoleculeESPStore:
                 smiles = oechem.OECreateCanSmiString(smiles_to_molecule(smiles))
                 db_records = db_records.filter(DBMoleculeRecord.smiles == smiles)
 
-            if basis is not None or method is not None:
+            if basis is not None or method is not None or implicit_solvent is not None:
 
-                db_records = db_records.join(DBConformerRecord).join(
-                    DBESPSettings, DBConformerRecord.esp_settings
-                )
+                db_records = db_records.join(DBConformerRecord)
 
-                if basis is not None:
-                    db_records = db_records.filter(DBESPSettings.basis == basis)
-                if method is not None:
-                    db_records = db_records.filter(DBESPSettings.method == method)
+                if basis is not None or method is not None:
+
+                    db_records = db_records.join(
+                        DBESPSettings, DBConformerRecord.esp_settings
+                    )
+
+                    if basis is not None:
+                        db_records = db_records.filter(DBESPSettings.basis == basis)
+                    if method is not None:
+                        db_records = db_records.filter(DBESPSettings.method == method)
+
+                if implicit_solvent is not None:
+
+                    if implicit_solvent:
+                        db_records = db_records.filter(
+                            DBConformerRecord.pcm_settings_id.isnot(None)
+                        )
+                    else:
+                        db_records = db_records.filter(
+                            DBConformerRecord.pcm_settings_id.is_(None)
+                        )
 
             db_records = db_records.all()
 

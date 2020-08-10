@@ -1,14 +1,14 @@
 import numpy
 import pytest
 
-from openff.recharge.esp import ESPSettings
+from openff.recharge.esp import ESPSettings, PCMSettings
 from openff.recharge.esp.exceptions import Psi4Error
 from openff.recharge.esp.psi4 import Psi4ESPGenerator
 from openff.recharge.grids import GridSettings
 from openff.recharge.utilities.openeye import smiles_to_molecule
 
 
-def test_generate_input():
+def test_generate_input_no_pcm():
     """Test that the correct input is generated from the
     jinja template."""
     pytest.importorskip("psi4")
@@ -31,7 +31,10 @@ def test_generate_input():
             "  Cl  0.000000000  0.000000000  0.000000000",
             "}",
             "",
-            "set basis 6-31g*",
+            "set {",
+            "  basis 6-31g*",
+            "}",
+            "",
             "E,wfn = prop('hf', properties = ['GRID_ESP', 'GRID_FIELD'], "
             "return_wfn=True)",
         ]
@@ -54,7 +57,10 @@ def test_generate_input():
             "  B  0.000000000  0.000000000  0.000000000",
             "}",
             "",
-            "set basis 6-31g*",
+            "set {",
+            "  basis 6-31g*",
+            "}",
+            "",
             "E,wfn = prop('uhf', properties = ['GRID_ESP', 'GRID_FIELD'], "
             "return_wfn=True)",
         ]
@@ -63,16 +69,72 @@ def test_generate_input():
     assert expected_output == input_contents
 
 
-def test_generate():
+def test_generate_input_pcm():
+    """Test that the correct input is generated from the
+    jinja template."""
+    pytest.importorskip("psi4")
+
+    # Define the settings to use.
+    settings = ESPSettings(pcm_settings=PCMSettings(), grid_settings=GridSettings())
+
+    # Create a closed shell molecule.
+    oe_molecule = smiles_to_molecule("[Cl-]")
+    conformer = numpy.array([[0.0, 0.0, 0.0]])
+
+    input_contents = Psi4ESPGenerator._generate_input(oe_molecule, conformer, settings)
+
+    expected_output = "\n".join(
+        [
+            "molecule mol {",
+            "  noreorient",
+            "  nocom",
+            "  -1 1",
+            "  Cl  0.000000000  0.000000000  0.000000000",
+            "}",
+            "",
+            "set {",
+            "  basis 6-31g*",
+            "",
+            "  pcm true",
+            "  pcm_scf_type total",
+            "}",
+            "pcm = {",
+            "  Units = Angstrom",
+            "  Medium {",
+            "  SolverType = CPCM",
+            "  Solvent = Water",
+            "  }",
+            "",
+            "  Cavity {",
+            "  RadiiSet = Bondi",
+            "  Type = GePol",
+            "  Scaling = True",
+            "  Area = 0.3",
+            "  Mode = Implicit",
+            "  }",
+            "}",
+            "",
+            "E,wfn = prop('hf', properties = ['GRID_ESP', 'GRID_FIELD'], "
+            "return_wfn=True)",
+        ]
+    )
+
+    assert expected_output == input_contents
+
+
+@pytest.mark.parametrize("enable_pcm", [False, True])
+def test_generate(enable_pcm):
     """Perform a test run of Psi4."""
     pytest.importorskip("psi4")
 
     # Define the settings to use.
     settings = ESPSettings(grid_settings=GridSettings(spacing=2.0))
 
+    if enable_pcm:
+        settings.pcm_settings = PCMSettings()
+
     # Generate a small molecule which should finish fast.
     oe_molecule = smiles_to_molecule("C")
-    oe_molecule.DeleteConfs()
 
     conformer = numpy.array(
         [

@@ -1,8 +1,8 @@
 import numpy
 
-from openff.recharge.esp import ESPSettings
+from openff.recharge.esp import ESPSettings, PCMSettings
 from openff.recharge.esp.storage import MoleculeESPRecord, MoleculeESPStore
-from openff.recharge.esp.storage.db import DBESPSettings, DBGridSettings
+from openff.recharge.esp.storage.db import DBESPSettings, DBGridSettings, DBPCMSettings
 from openff.recharge.grids import GridSettings
 from openff.recharge.utilities.openeye import smiles_to_molecule
 
@@ -17,7 +17,7 @@ def test_record_from_oe_mol():
     grid_coordinates = numpy.array([[0.0, 1.0, 0.0]])
     esp = numpy.array([[2.0]])
 
-    esp_settings = ESPSettings(grid_settings=GridSettings())
+    esp_settings = ESPSettings(pcm_settings=PCMSettings(), grid_settings=GridSettings())
 
     record = MoleculeESPRecord.from_oe_molecule(
         oe_molecule=oe_molecule,
@@ -61,7 +61,9 @@ def test_store(tmp_path):
             conformer=numpy.array([[0.0, 0.0, 0.0]]),
             grid_coordinates=numpy.array([[0.0, 0.0, 0.0]]),
             esp=numpy.array([[0.0]]),
-            esp_settings=ESPSettings(grid_settings=GridSettings()),
+            esp_settings=ESPSettings(
+                pcm_settings=PCMSettings(), grid_settings=GridSettings()
+            ),
         ),
     )
 
@@ -130,6 +132,57 @@ def test_unique_grid_settings(tmp_path):
         assert db.query(DBGridSettings.id).count() == 2
 
 
+def test_unique_pcm_settings(tmp_path):
+    """Tests that ESP settings are stored uniquely in the DB."""
+
+    esp_store = MoleculeESPStore(f"{tmp_path}.sqlite")
+    pcm_settings = PCMSettings()
+
+    # Store duplicate settings in the same session.
+    with esp_store._get_session() as db:
+        db.add(DBPCMSettings.unique(db, pcm_settings))
+        db.add(DBPCMSettings.unique(db, pcm_settings))
+
+    with esp_store._get_session() as db:
+        assert db.query(DBPCMSettings.id).count() == 1
+
+    # Store a duplicate setting in a new session.
+    with esp_store._get_session() as db:
+        db.add(DBPCMSettings.unique(db, pcm_settings))
+
+    with esp_store._get_session() as db:
+        assert db.query(DBPCMSettings.id).count() == 1
+
+    # Store a non-duplicate set of settings
+    pcm_settings.cavity_area *= 2.0
+
+    with esp_store._get_session() as db:
+        db.add(DBPCMSettings.unique(db, pcm_settings))
+
+    with esp_store._get_session() as db:
+        assert db.query(DBPCMSettings.id).count() == 2
+
+
+def test_pcm_settings_round_trip():
+    """Test the round trip to / from the DB representation
+    of a ``PCMSettings`` object."""
+
+    original_pcm_settings = PCMSettings()
+
+    db_pcm_settings = DBPCMSettings._instance_to_db(original_pcm_settings)
+    recreated_pcm_settings = DBPCMSettings.db_to_instance(db_pcm_settings)
+
+    assert original_pcm_settings.solver == recreated_pcm_settings.solver
+    assert original_pcm_settings.solvent == recreated_pcm_settings.solvent
+
+    assert original_pcm_settings.radii_model == recreated_pcm_settings.radii_model
+    assert original_pcm_settings.radii_scaling == recreated_pcm_settings.radii_scaling
+
+    assert numpy.isclose(
+        original_pcm_settings.cavity_area, recreated_pcm_settings.cavity_area
+    )
+
+
 def test_retrieve(tmp_path):
     """Tests that records can be retrieved from a store."""
 
@@ -161,7 +214,10 @@ def test_retrieve(tmp_path):
             grid_coordinates=numpy.array([[0.0, 0.0, 0.0]]),
             esp=numpy.array([[0.0]]),
             esp_settings=ESPSettings(
-                basis="6-31g*", method="hf", grid_settings=GridSettings(),
+                basis="6-31g*",
+                method="hf",
+                grid_settings=GridSettings(),
+                pcm_settings=PCMSettings(),
             ),
         ),
     )
@@ -188,6 +244,16 @@ def test_retrieve(tmp_path):
     assert records[1].esp_settings.method == "hf"
 
     records = esp_store.retrieve(smiles="C", basis="6-31g*")
+    assert len(records) == 1
+    assert records[0].esp_settings.basis == "6-31g*"
+    assert records[0].tagged_smiles == "[H:2][C:1]([H:3])([H:4])[H:5]"
+
+    records = esp_store.retrieve(basis="6-31g*", implicit_solvent=True)
+    assert len(records) == 1
+    assert records[0].esp_settings.basis == "6-31g*"
+    assert records[0].tagged_smiles == "[H:3][C:1]([H:4])([H:5])[O:2][H:6]"
+
+    records = esp_store.retrieve(basis="6-31g*", implicit_solvent=False)
     assert len(records) == 1
     assert records[0].esp_settings.basis == "6-31g*"
     assert records[0].tagged_smiles == "[H:2][C:1]([H:3])([H:4])[H:5]"

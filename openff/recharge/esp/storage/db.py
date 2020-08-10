@@ -1,9 +1,11 @@
 import abc
+import math
 from decimal import Decimal
 from typing import TypeVar
 
 from sqlalchemy import (
     DECIMAL,
+    Boolean,
     Column,
     Float,
     ForeignKey,
@@ -14,13 +16,15 @@ from sqlalchemy import (
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import Query, Session, relationship
 
-from openff.recharge.esp import ESPSettings
+from openff.recharge.esp import ESPSettings, PCMSettings
 from openff.recharge.grids import GridSettings
 
 DBBase = declarative_base()
 
 _InstanceType = TypeVar("_InstanceType")
 _DBInstanceType = TypeVar("_DBInstanceType")
+
+FLOAT_PRECISION = 100000.0
 
 
 class _UniqueMixin:
@@ -154,6 +158,74 @@ class DBGridSettings(_UniqueMixin, DBBase):
         )
 
 
+class DBPCMSettings(_UniqueMixin, DBBase):
+
+    __tablename__ = "pcm_settings"
+
+    id = Column(Integer, primary_key=True, index=True)
+
+    solver = Column(String(6), nullable=False)
+    solvent = Column(String(20), nullable=False)
+
+    radii_model = Column(String(8), nullable=False)
+    radii_scaling = Column(Boolean, nullable=False)
+
+    cavity_area = Column(Integer)
+
+    @classmethod
+    def _hash(cls, instance: PCMSettings) -> int:
+        return hash(
+            (
+                instance.solver,
+                instance.solvent,
+                instance.radii_model,
+                instance.radii_scaling,
+                int(math.floor(instance.cavity_area * FLOAT_PRECISION)),
+            )
+        )
+
+    @classmethod
+    def _query(cls, db: Session, instance: PCMSettings) -> Query:
+
+        cavity_area = int(math.floor(instance.cavity_area * FLOAT_PRECISION))
+
+        return (
+            db.query(DBPCMSettings)
+            .filter(DBPCMSettings.solver == instance.solver)
+            .filter(DBPCMSettings.solvent == instance.solvent)
+            .filter(DBPCMSettings.radii_model == instance.radii_model)
+            .filter(DBPCMSettings.radii_scaling == instance.radii_scaling)
+            .filter(DBPCMSettings.cavity_area == cavity_area)
+        )
+
+    @classmethod
+    def _instance_to_db(cls, instance: PCMSettings) -> "DBPCMSettings":
+
+        cavity_area = int(math.floor(instance.cavity_area * FLOAT_PRECISION))
+
+        return DBPCMSettings(
+            solver=instance.solver,
+            solvent=instance.solvent,
+            radii_model=instance.radii_model,
+            radii_scaling=instance.radii_scaling,
+            cavity_area=cavity_area,
+        )
+
+    @classmethod
+    def db_to_instance(cls, db_instance: "DBPCMSettings") -> PCMSettings:
+
+        cavity_area = db_instance.cavity_area / FLOAT_PRECISION
+
+        # noinspection PyTypeChecker
+        return PCMSettings(
+            solver=db_instance.solver,
+            solvent=db_instance.solvent,
+            radii_model=db_instance.radii_model,
+            radii_scaling=db_instance.radii_scaling,
+            cavity_area=cavity_area,
+        )
+
+
 class DBESPSettings(_UniqueMixin, DBBase):
 
     __tablename__ = "esp_settings"
@@ -178,7 +250,7 @@ class DBESPSettings(_UniqueMixin, DBBase):
 
     @classmethod
     def _instance_to_db(cls, instance: ESPSettings) -> "DBESPSettings":
-        return DBESPSettings(**instance.dict(exclude={"grid_settings"}))
+        return DBESPSettings(**instance.dict(exclude={"grid_settings", "pcm_settings"}))
 
 
 class DBConformerRecord(DBBase):
@@ -194,10 +266,13 @@ class DBConformerRecord(DBBase):
     grid_esp_values = relationship("DBGridESP")
 
     grid_settings = relationship("DBGridSettings", uselist=False)
-    grid_settings_id = Column(Integer, ForeignKey("grid_settings.id"))
+    grid_settings_id = Column(Integer, ForeignKey("grid_settings.id"), nullable=False)
+
+    pcm_settings = relationship("DBPCMSettings", uselist=False)
+    pcm_settings_id = Column(Integer, ForeignKey("pcm_settings.id"), nullable=True)
 
     esp_settings = relationship("DBESPSettings", uselist=False)
-    esp_settings_id = Column(Integer, ForeignKey("esp_settings.id"))
+    esp_settings_id = Column(Integer, ForeignKey("esp_settings.id"), nullable=False)
 
 
 class DBMoleculeRecord(DBBase):

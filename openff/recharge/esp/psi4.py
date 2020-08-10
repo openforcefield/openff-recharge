@@ -62,15 +62,30 @@ class Psi4ESPGenerator(ESPGenerator):
         with open(template_path) as file:
             template = jinja2.Template(file.read())
 
-        rendered_template = template.render(
-            {
-                "charge": formal_charge,
-                "spin": spin_multiplicity,
-                "atoms": atoms,
-                "basis": settings.basis,
-                "method": settings.method,
-            }
-        )
+        enable_pcm = settings.pcm_settings is not None
+
+        template_inputs = {
+            "charge": formal_charge,
+            "spin": spin_multiplicity,
+            "atoms": atoms,
+            "basis": settings.basis,
+            "method": settings.method,
+            "enable_pcm": enable_pcm,
+        }
+
+        if enable_pcm:
+
+            template_inputs.update(
+                {
+                    "pcm_solver": settings.pcm_settings.solver,
+                    "pcm_solvent": settings.pcm_settings.solvent,
+                    "pcm_radii_set": settings.pcm_settings.radii_model,
+                    "pcm_scaling": settings.pcm_settings.radii_scaling,
+                    "pcm_area": settings.pcm_settings.cavity_area,
+                }
+            )
+
+        rendered_template = template.render(template_inputs)
         # Remove the white space after the for loop
         rendered_template = rendered_template.replace("  \n}", "}")
 

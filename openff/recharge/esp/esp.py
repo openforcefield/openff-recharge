@@ -1,12 +1,40 @@
 import abc
 import os
-from typing import Tuple
+from typing import Optional, Tuple
 
 import numpy
 from openeye.oechem import OEMol
 from pydantic import BaseModel, Field
+from typing_extensions import Literal
 
 from openff.recharge.grids import GridGenerator, GridSettings
+
+
+class PCMSettings(BaseModel):
+    """A class which describes the polarizable continuum model (PCM)
+    to include in the calculation of an ESP.
+    """
+
+    solver: Literal["CPCM", "IEFPCM"] = Field("CPCM", description="The solver to use.")
+
+    solvent: Literal["Water"] = Field(
+        "Water",
+        description="The solvent to simulate. This controls the dielectric constant "
+        "of the model.",
+    )
+
+    radii_model: Literal["Bondi", "UFF", "Allinger"] = Field(
+        "Bondi",
+        description="The type of atomic radii to use when computing the molecular "
+        "cavity.",
+    )
+    radii_scaling: bool = Field(
+        True, description="Whether to scale the atomic radii by a factor of 1.2."
+    )
+
+    cavity_area: float = Field(
+        0.3, description="The average area of the surface partition for the cavity."
+    )
 
 
 class ESPSettings(BaseModel):
@@ -22,6 +50,12 @@ class ESPSettings(BaseModel):
         ...,
         description="The settings to use when generating the grid to generate the "
         "electrostatic potential on.",
+    )
+
+    pcm_settings: Optional[PCMSettings] = Field(
+        None,
+        description="The settings to use if including a polarizable continuum "
+        "model in the ESP calculation.",
     )
 
 

@@ -7,5 +7,29 @@ molecule mol {
   {% endfor %}
 }
 
-set basis {{ basis }}
+set {
+  basis {{ basis }}
+{% if enable_pcm %}
+  pcm true
+  pcm_scf_type total
+{% endif -%}
+}
+{%- if enable_pcm %}
+pcm = {
+  Units = Angstrom
+  Medium {
+  SolverType = {{ pcm_solver }}
+  Solvent = {{ pcm_solvent }}
+  }
+
+  Cavity {
+  RadiiSet = {{ pcm_radii_set }}
+  Type = GePol
+  Scaling = {{ pcm_scaling }}
+  Area = {{ pcm_area }}
+  Mode = Implicit
+  }
+}
+{%- endif %}
+
 E,wfn = prop('{%- if spin == 2 %}u{% endif %}{{ method }}', properties = ['GRID_ESP', 'GRID_FIELD'], return_wfn=True)

@@ -1,6 +1,6 @@
 import abc
 import os
-from typing import Optional, Tuple
+from typing import TYPE_CHECKING, Optional, Tuple
 
 import numpy
 from openeye.oechem import OEMol
@@ -8,6 +8,11 @@ from pydantic import BaseModel, Field
 from typing_extensions import Literal
 
 from openff.recharge.grids import GridGenerator, GridSettings
+
+if TYPE_CHECKING:
+    PositiveFloat = float
+else:
+    from pydantic import PositiveFloat
 
 
 class PCMSettings(BaseModel):
@@ -32,7 +37,7 @@ class PCMSettings(BaseModel):
         True, description="Whether to scale the atomic radii by a factor of 1.2."
     )
 
-    cavity_area: float = Field(
+    cavity_area: PositiveFloat = Field(
         0.3, description="The average area of the surface partition for the cavity."
     )
 

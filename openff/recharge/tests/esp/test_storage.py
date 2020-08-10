@@ -1,10 +1,48 @@
 import numpy
+import pytest
 
 from openff.recharge.esp import ESPSettings, PCMSettings
 from openff.recharge.esp.storage import MoleculeESPRecord, MoleculeESPStore
-from openff.recharge.esp.storage.db import DBESPSettings, DBGridSettings, DBPCMSettings
+from openff.recharge.esp.storage.db import (
+    DB_VERSION,
+    DBESPSettings,
+    DBGridSettings,
+    DBInformation,
+    DBPCMSettings,
+)
+from openff.recharge.esp.storage.exceptions import IncompatibleDBVersion
 from openff.recharge.grids import GridSettings
 from openff.recharge.utilities.openeye import smiles_to_molecule
+
+
+def test_db_version(tmp_path):
+    """Tests that a version is correctly added to a new store."""
+
+    esp_store = MoleculeESPStore(f"{tmp_path}.sqlite")
+
+    with esp_store._get_session() as db:
+
+        db_info = db.query(DBInformation).first()
+
+        assert db_info is not None
+        assert db_info.version == DB_VERSION
+
+
+def test_db_invalid_version(tmp_path):
+    """Tests that the correct exception is raised when loading a store
+    with an unsupported version."""
+
+    esp_store = MoleculeESPStore(f"{tmp_path}.sqlite")
+
+    with esp_store._get_session() as db:
+        db_info = db.query(DBInformation).first()
+        db_info.version = DB_VERSION - 1
+
+    with pytest.raises(IncompatibleDBVersion) as error_info:
+        MoleculeESPStore(f"{tmp_path}.sqlite")
+
+    assert error_info.value.found_version == DB_VERSION - 1
+    assert error_info.value.expected_version == DB_VERSION
 
 
 def test_record_from_oe_mol():
@@ -161,6 +199,28 @@ def test_unique_pcm_settings(tmp_path):
 
     with esp_store._get_session() as db:
         assert db.query(DBPCMSettings.id).count() == 2
+
+
+def test_grid_settings_round_trip():
+    """Test the round trip to / from the DB representation
+    of a ``GridSettings`` object."""
+
+    original_grid_settings = GridSettings()
+
+    db_grid_settings = DBGridSettings._instance_to_db(original_grid_settings)
+    recreated_grid_settings = DBGridSettings.db_to_instance(db_grid_settings)
+
+    assert original_grid_settings.type == recreated_grid_settings.type
+
+    assert numpy.isclose(
+        original_grid_settings.spacing, recreated_grid_settings.spacing
+    )
+    assert numpy.isclose(
+        original_grid_settings.inner_vdw_scale, recreated_grid_settings.inner_vdw_scale
+    )
+    assert numpy.isclose(
+        original_grid_settings.outer_vdw_scale, recreated_grid_settings.outer_vdw_scale
+    )
 
 
 def test_pcm_settings_round_trip():

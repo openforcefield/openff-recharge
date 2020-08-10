@@ -8,8 +8,7 @@ OpenFF Recharge
 
 OpenFF Recharge is an framework which provides utilities for optimising the partial charges of molecules against electrostatic potential data through the use of bond-charge corrections (BCC).
 
-**Warning** - nothing in this repository should be considered as being scientifically correct and should in no way be
-used in any production work.
+**Warning** - although a significant effort has been made to ensure the scientific validity of these repository (especially the hand-converted AM1BCC parameters), this framework is still under heavy development and much care should be taken when using it in production work.
 
 #### License
 

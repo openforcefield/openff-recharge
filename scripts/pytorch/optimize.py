@@ -9,11 +9,15 @@ from openff.recharge.charges.bcc import (
 )
 from openff.recharge.charges.charges import ChargeSettings
 from openff.recharge.esp.storage import MoleculeESPStore
-from openff.recharge.optimize.optimize import ESPOptimization
+from openff.recharge.optimize.optimize import ElectricFieldOptimization, ESPOptimization
 from openff.recharge.utilities.openeye import smiles_to_molecule
 
 
 def main():
+
+    # Define the type of optimization
+    # optimization_class = ESPOptimization
+    optimization_class = ElectricFieldOptimization
 
     # Load the data base of ESP values.
     esp_store = MoleculeESPStore()
@@ -50,9 +54,10 @@ def main():
     # Precalculate the expensive operations which are needed to
     # evaluate the objective function, but do not depend on the
     # current parameters.
-    objective_terms = ESPOptimization.compute_objective_terms(
+    objective_term_generator = optimization_class.compute_objective_terms(
         smiles, esp_store, bcc_collection, fixed_parameter_indices, charge_settings
     )
+    objective_terms = [*objective_term_generator]
 
     design_matrix = torch.from_numpy(
         numpy.vstack(objective_term.design_matrix for objective_term in objective_terms)
@@ -72,7 +77,13 @@ def main():
 
     for epoch in range(n_epochs):
 
-        delta = target_residuals - design_matrix @ current_parameters
+        if isinstance(optimization_class, ElectricFieldOptimization):
+            delta = target_residuals - design_matrix @ current_parameters.flatten()
+        elif isinstance(optimization_class, ESPOptimization):
+            delta = target_residuals - design_matrix @ current_parameters
+        else:
+            raise NotImplementedError()
+
         loss = (delta * delta).sum()
 
         loss.backward()

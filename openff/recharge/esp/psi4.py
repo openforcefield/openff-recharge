@@ -129,6 +129,6 @@ class Psi4ESPGenerator(ESPGenerator):
                 raise Psi4Error(std_output.decode(), std_error.decode())
 
             esp = numpy.loadtxt("grid_esp.dat").reshape(-1, 1)
-            electric_field = numpy.loadtxt("grid_field.dat").reshape(-1, 1)
+            electric_field = numpy.loadtxt("grid_field.dat")
 
         return esp, electric_field

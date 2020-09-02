@@ -43,8 +43,7 @@ class PCMSettings(BaseModel):
 
 
 class ESPSettings(BaseModel):
-    """A class which contains the settings to use in an ESP calculation.
-    """
+    """A class which contains the settings to use in an ESP calculation."""
 
     basis: str = Field(
         "6-31g*", description="The basis set to use in the ESP calculation."

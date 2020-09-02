@@ -261,7 +261,9 @@ def test_retrieve(tmp_path):
             esp=numpy.array([[0.0]]),
             electric_field=numpy.array([[0.0, 0.0, 0.0]]),
             esp_settings=ESPSettings(
-                basis="6-31g*", method="scf", grid_settings=GridSettings(),
+                basis="6-31g*",
+                method="scf",
+                grid_settings=GridSettings(),
             ),
         ),
         MoleculeESPRecord.from_oe_molecule(
@@ -271,7 +273,9 @@ def test_retrieve(tmp_path):
             esp=numpy.array([[0.0]]),
             electric_field=numpy.array([[0.0, 0.0, 0.0]]),
             esp_settings=ESPSettings(
-                basis="6-31g**", method="hf", grid_settings=GridSettings(),
+                basis="6-31g**",
+                method="hf",
+                grid_settings=GridSettings(),
             ),
         ),
         MoleculeESPRecord.from_oe_molecule(

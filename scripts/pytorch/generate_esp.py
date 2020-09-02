@@ -38,13 +38,13 @@ def compute_esp(
 
     for conformer in conformers:
 
-        grid_coordinates, esp = Psi4ESPGenerator.generate(
+        grid_coordinates, esp, electric_field = Psi4ESPGenerator.generate(
             oe_molecule, conformer, settings
         )
 
         esp_records.append(
             MoleculeESPRecord.from_oe_molecule(
-                oe_molecule, conformer, grid_coordinates, esp, settings
+                oe_molecule, conformer, grid_coordinates, esp, electric_field, settings
             )
         )
 

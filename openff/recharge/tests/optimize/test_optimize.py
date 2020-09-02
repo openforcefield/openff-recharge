@@ -17,6 +17,7 @@ class MockMoleculeESPStore(MoleculeESPStore):
         smiles: Optional[str] = None,
         basis: Optional[str] = None,
         method: Optional[str] = None,
+        implicit_solvent: Optional[bool] = None,
     ) -> List[MoleculeESPRecord]:
 
         oe_molecule = smiles_to_molecule("C#C")
@@ -30,6 +31,7 @@ class MockMoleculeESPStore(MoleculeESPStore):
                 conformer=conformer,
                 grid_coordinates=numpy.zeros((1, 3)),
                 esp=numpy.zeros((1, 1)),
+                electric_field=numpy.zeros((1, 3)),
                 esp_settings=ESPSettings(grid_settings=GridSettings()),
             )
         ]

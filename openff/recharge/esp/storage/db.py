@@ -111,6 +111,10 @@ class DBGridESP(DBBase):
 
     value = Column(Float, nullable=False)
 
+    field_x = Column(Float, nullable=False)
+    field_y = Column(Float, nullable=False)
+    field_z = Column(Float, nullable=False)
+
 
 class DBGridSettings(_UniqueMixin, DBBase):
 

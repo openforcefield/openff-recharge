@@ -1,5 +1,6 @@
 import os
 import subprocess
+from typing import Tuple
 
 import jinja2
 import numpy
@@ -99,7 +100,7 @@ class Psi4ESPGenerator(ESPGenerator):
         grid: numpy.ndarray,
         settings: ESPSettings,
         directory: str = None,
-    ) -> numpy.ndarray:
+    ) -> Tuple[numpy.ndarray, numpy.ndarray]:
 
         # Perform the calculation in a temporary directory
         with temporary_cd(directory):
@@ -128,5 +129,6 @@ class Psi4ESPGenerator(ESPGenerator):
                 raise Psi4Error(std_output.decode(), std_error.decode())
 
             esp = numpy.loadtxt("grid_esp.dat").reshape(-1, 1)
+            electric_field = numpy.loadtxt("grid_field.dat")
 
-        return esp
+        return esp, electric_field

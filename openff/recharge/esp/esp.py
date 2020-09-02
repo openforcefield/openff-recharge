@@ -77,7 +77,7 @@ class ESPGenerator(abc.ABC):
         grid: numpy.ndarray,
         settings: ESPSettings,
         directory: str = None,
-    ) -> numpy.ndarray:
+    ) -> Tuple[numpy.ndarray, numpy.ndarray]:
         """The implementation of the public ``generate`` function which
         should return the ESP for the provided conformer.
 
@@ -97,7 +97,8 @@ class ESPGenerator(abc.ABC):
 
         Returns
         -------
-            The ESP [Hartree / e] at each grid point with shape=(n_grid_points, 1).
+            The ESP [Hartree / e] at each grid point with shape=(n_grid_points, 1)
+            and the electric field [Hartree / (e . a0)] with shape=(n_grid_points, 3).
         """
         raise NotImplementedError
 
@@ -108,7 +109,7 @@ class ESPGenerator(abc.ABC):
         conformer: numpy.ndarray,
         settings: ESPSettings,
         directory: str = None,
-    ) -> Tuple[numpy.ndarray, numpy.ndarray]:
+    ) -> Tuple[numpy.ndarray, numpy.ndarray, numpy.ndarray]:
         """Generate the electrostatic potential (ESP) on a grid defined by
         a provided set of settings.
 
@@ -127,15 +128,17 @@ class ESPGenerator(abc.ABC):
         Returns
         -------
             The grid [Angstrom] which the ESP  was generated on with
-            shape=(n_grid_points, 3) and the ESP [Hartree / e] at each grid point with
-            shape=(n_grid_points, 1) for each conformer present on the specified
-            molecule.
+            shape=(n_grid_points, 3), the ESP [Hartree / e] with shape=(n_grid_points, 1)
+            and the electric field [Hartree / (e . a0)] with shape=(n_grid_points, 3) at
+            each grid point with for each conformer present on the specified molecule.
         """
 
         if directory is not None and len(directory) > 0:
             os.makedirs(directory, exist_ok=True)
 
         grid = GridGenerator.generate(oe_molecule, conformer, settings.grid_settings)
-        esp = cls._generate(oe_molecule, conformer, grid, settings, directory)
+        esp, electric_field = cls._generate(
+            oe_molecule, conformer, grid, settings, directory
+        )
 
-        return grid, esp
+        return grid, esp, electric_field

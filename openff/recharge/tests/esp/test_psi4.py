@@ -146,12 +146,18 @@ def test_generate(enable_pcm):
         ]
     )
 
-    grid, esp = Psi4ESPGenerator.generate(oe_molecule, conformer, settings)
+    grid, esp, electric_field = Psi4ESPGenerator.generate(
+        oe_molecule, conformer, settings
+    )
 
-    assert len(grid) == len(esp)
-    assert len(grid) > 0
+    assert grid.shape[0] > 0
+    assert grid.shape[1] == 3
+
+    assert esp.shape == (len(grid), 1)
+    assert electric_field.shape == (len(grid), 3)
 
     assert not numpy.all(numpy.isclose(esp, 0.0))
+    assert not numpy.all(numpy.isclose(electric_field, 0.0))
 
 
 def test_ps4_error():

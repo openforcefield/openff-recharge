@@ -54,6 +54,7 @@ def test_record_from_oe_mol():
 
     grid_coordinates = numpy.array([[0.0, 1.0, 0.0]])
     esp = numpy.array([[2.0]])
+    electric_field = numpy.array([[2.0, 3.0, 4.0]])
 
     esp_settings = ESPSettings(pcm_settings=PCMSettings(), grid_settings=GridSettings())
 
@@ -62,6 +63,7 @@ def test_record_from_oe_mol():
         conformer=conformer,
         grid_coordinates=grid_coordinates,
         esp=esp,
+        electric_field=electric_field,
         esp_settings=esp_settings,
     )
 
@@ -92,6 +94,7 @@ def test_store(tmp_path):
             conformer=numpy.array([[0.0, 0.0, 0.0]]),
             grid_coordinates=numpy.array([[0.0, 0.0, 0.0]]),
             esp=numpy.array([[0.0]]),
+            electric_field=numpy.array([[0.0, 0.0, 0.0]]),
             esp_settings=ESPSettings(grid_settings=GridSettings()),
         ),
         MoleculeESPRecord(
@@ -99,6 +102,7 @@ def test_store(tmp_path):
             conformer=numpy.array([[0.0, 0.0, 0.0]]),
             grid_coordinates=numpy.array([[0.0, 0.0, 0.0]]),
             esp=numpy.array([[0.0]]),
+            electric_field=numpy.array([[0.0, 0.0, 0.0]]),
             esp_settings=ESPSettings(
                 pcm_settings=PCMSettings(), grid_settings=GridSettings()
             ),
@@ -255,6 +259,7 @@ def test_retrieve(tmp_path):
             conformer=numpy.array([[index, 0.0, 0.0] for index in range(5)]),
             grid_coordinates=numpy.array([[0.0, 0.0, 0.0]]),
             esp=numpy.array([[0.0]]),
+            electric_field=numpy.array([[0.0, 0.0, 0.0]]),
             esp_settings=ESPSettings(
                 basis="6-31g*",
                 method="scf",
@@ -266,6 +271,7 @@ def test_retrieve(tmp_path):
             conformer=numpy.array([[index, 0.0, 0.0] for index in range(5)]),
             grid_coordinates=numpy.array([[0.0, 0.0, 0.0]]),
             esp=numpy.array([[0.0]]),
+            electric_field=numpy.array([[0.0, 0.0, 0.0]]),
             esp_settings=ESPSettings(
                 basis="6-31g**",
                 method="hf",
@@ -277,6 +283,7 @@ def test_retrieve(tmp_path):
             conformer=numpy.array([[index, 0.0, 0.0] for index in range(5)]),
             grid_coordinates=numpy.array([[0.0, 0.0, 0.0]]),
             esp=numpy.array([[0.0]]),
+            electric_field=numpy.array([[0.0, 0.0, 0.0]]),
             esp_settings=ESPSettings(
                 basis="6-31g*",
                 method="hf",

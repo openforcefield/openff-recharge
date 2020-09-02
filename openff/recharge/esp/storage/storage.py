@@ -63,6 +63,11 @@ class MoleculeESPRecord(BaseModel):
         description="The value of the ESP [Hartree / e] at each of the grid "
         "coordinates with shape=(n_grid_points, 1).",
     )
+    electric_field: Array[float] = Field(
+        ...,
+        description="The value of the electric field [Hartree / (e . a0)] at each of "
+        "the grid coordinates with shape=(n_grid_points, 3).",
+    )
 
     esp_settings: ESPSettings = Field(
         ..., description="The settings used to generate the ESP stored in this record."
@@ -75,6 +80,7 @@ class MoleculeESPRecord(BaseModel):
         conformer: numpy.ndarray,
         grid_coordinates: numpy.ndarray,
         esp: numpy.ndarray,
+        electric_field: numpy.ndarray,
         esp_settings: ESPSettings,
     ) -> "MoleculeESPRecord":
         """Creates a new ``MoleculeESPRecord`` from an existing molecule
@@ -90,8 +96,11 @@ class MoleculeESPRecord(BaseModel):
             The grid coordinates [Angstrom] which the ESP was calculated on
             with shape=(n_grid_points, 3).
         esp
-            The value of the ESP [Hartree / e] at each of the grid coordinates "
+            The value of the ESP [Hartree / e] at each of the grid coordinates
             with shape=(n_grid_points, 1).
+        electric_field
+            The value of the electric field [Hartree / (e . a0)] at each of
+            the grid coordinates with shape=(n_grid_points, 3).
         esp_settings
             The settings used to generate the ESP stored in this record.
 
@@ -114,6 +123,7 @@ class MoleculeESPRecord(BaseModel):
             conformer=conformer,
             grid_coordinates=grid_coordinates,
             esp=esp,
+            electric_field=electric_field,
             esp_settings=esp_settings,
         )
 
@@ -209,6 +219,16 @@ class MoleculeESPStore:
                         for grid_esp_value in db_conformer.grid_esp_values
                     ]
                 ),
+                electric_field=numpy.array(
+                    [
+                        [
+                            grid_esp_value.field_x,
+                            grid_esp_value.field_y,
+                            grid_esp_value.field_z,
+                        ]
+                        for grid_esp_value in db_conformer.grid_esp_values
+                    ]
+                ),
                 esp_settings=ESPSettings(
                     basis=db_conformer.esp_settings.basis,
                     method=db_conformer.esp_settings.method,
@@ -265,8 +285,13 @@ class MoleculeESPStore:
                         y=coordinate[1],
                         z=coordinate[2],
                         value=esp[0],
+                        field_x=electric_field[0],
+                        field_y=electric_field[1],
+                        field_z=electric_field[2],
                     )
-                    for coordinate, esp in zip(record.grid_coordinates, record.esp)
+                    for coordinate, esp, electric_field in zip(
+                        record.grid_coordinates, record.esp, record.electric_field
+                    )
                 ],
                 grid_settings=DBGridSettings.unique(
                     db, record.esp_settings.grid_settings

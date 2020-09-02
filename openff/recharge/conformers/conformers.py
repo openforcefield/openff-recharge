@@ -38,7 +38,9 @@ class ConformerGenerator:
 
     @classmethod
     def generate(
-        cls, oe_molecule: oechem.OEMol, settings: ConformerSettings,
+        cls,
+        oe_molecule: oechem.OEMol,
+        settings: ConformerSettings,
     ) -> List[numpy.ndarray]:
         """Generates a set of conformers for a given molecule.
 

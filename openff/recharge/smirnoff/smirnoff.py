@@ -118,7 +118,9 @@ def from_smirnoff(
         if not numpy.isclose(forward_value, -reverse_value):
 
             raise UnsupportedBCCValueError(
-                smirks, forward_value, reverse_value,
+                smirks,
+                forward_value,
+                reverse_value,
             )
 
         bcc_parameters.append(

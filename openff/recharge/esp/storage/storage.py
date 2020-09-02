@@ -261,7 +261,10 @@ class MoleculeESPStore:
                 ],
                 grid_esp_values=[
                     DBGridESP(
-                        x=coordinate[0], y=coordinate[1], z=coordinate[2], value=esp[0],
+                        x=coordinate[0],
+                        y=coordinate[1],
+                        z=coordinate[2],
+                        value=esp[0],
                     )
                     for coordinate, esp in zip(record.grid_coordinates, record.esp)
                 ],

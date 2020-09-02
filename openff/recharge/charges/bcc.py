@@ -370,7 +370,9 @@ class BCCGenerator:
 
     @classmethod
     def build_assignment_matrix(
-        cls, oe_molecule: oechem.OEMol, bcc_collection: BCCCollection,
+        cls,
+        oe_molecule: oechem.OEMol,
+        bcc_collection: BCCCollection,
     ) -> numpy.ndarray:
         """Generated a matrix which indicates which bond charge
         corrections have been applied to each atom in the molecule.
@@ -445,7 +447,9 @@ class BCCGenerator:
 
     @classmethod
     def apply_assignment_matrix(
-        cls, assignment_matrix: numpy.ndarray, bcc_collection: BCCCollection,
+        cls,
+        assignment_matrix: numpy.ndarray,
+        bcc_collection: BCCCollection,
     ) -> numpy.ndarray:
         """Applies an assignment matrix to a list of bond charge corrections
         yield the final bond-charge corrections for a molecule.
@@ -487,7 +491,9 @@ class BCCGenerator:
 
     @classmethod
     def applied_corrections(
-        cls, *oe_molecules: oechem.OEMol, bcc_collection: BCCCollection,
+        cls,
+        *oe_molecules: oechem.OEMol,
+        bcc_collection: BCCCollection,
     ) -> List[BCCParameter]:
         """Returns the bond charge corrections which will be applied
         to a given molecule.
@@ -517,7 +523,9 @@ class BCCGenerator:
 
     @classmethod
     def generate(
-        cls, oe_molecule: oechem.OEMol, bcc_collection: BCCCollection,
+        cls,
+        oe_molecule: oechem.OEMol,
+        bcc_collection: BCCCollection,
     ) -> numpy.ndarray:
         """Generate the partial charges for a molecule. If no conformer
         generator is provided those conformers on the provided molecule

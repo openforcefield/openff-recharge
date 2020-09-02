@@ -150,7 +150,8 @@ def test_am1_bcc_aromaticity_ring_size():
 
 
 @pytest.mark.parametrize(
-    "aromaticity_model", [AromaticityModels.AM1BCC, AromaticityModels.MDL],
+    "aromaticity_model",
+    [AromaticityModels.AM1BCC, AromaticityModels.MDL],
 )
 def test_aromaticity_models(aromaticity_model):
 

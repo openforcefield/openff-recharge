@@ -519,6 +519,7 @@ class BCCGenerator:
                 if bcc_collection.parameters[index] not in applied_corrections
             )
 
+        applied_corrections.sort(key=lambda x: bcc_collection.parameters.index(x))
         return applied_corrections
 
     @classmethod

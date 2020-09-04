@@ -1,7 +1,9 @@
 import numpy
 
 from openff.recharge.utilities.geometry import (
+    compute_field_vector,
     compute_inverse_distance_matrix,
+    compute_vector_field,
     reorder_conformer,
 )
 from openff.recharge.utilities.openeye import smiles_to_molecule
@@ -20,6 +22,17 @@ def test_compute_inverse_distance_matrix():
     )
 
     assert numpy.allclose(expected, inverse_distances)
+
+
+def test_compute_field_vector():
+
+    field_vector = compute_field_vector(
+        numpy.zeros((1, 3)), numpy.array([[3.0, 0.0, 0.0]])
+    )
+
+    expected = numpy.array([[1.0 / 9.0, 0.0, 0.0]])
+
+    assert numpy.allclose(field_vector, expected)
 
 
 def test_reorder_conformer():
@@ -41,3 +54,15 @@ def test_reorder_conformer():
 
     reordered_conformer = reorder_conformer(oe_molecule, conformer)
     assert numpy.allclose(reordered_conformer, expected_conformer)
+
+
+def test_compute_vector_field():
+
+    points_a = numpy.array([[1.0, 1.0, 0.0], [1.0, 0.0, 1.0]])
+    points_b = numpy.array([[1.0, 1.0, 1.0]])
+
+    vector_field = compute_vector_field(points_a, points_b)
+    assert vector_field.shape == (1, 3, 2)
+
+    expected = numpy.array([[0.0, 0.0, 1.0], [0.0, 1.0, 0.0]])
+    assert numpy.allclose(expected, vector_field[0, :, :].T)

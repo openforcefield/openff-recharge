@@ -3,13 +3,14 @@ import os
 from typing import TYPE_CHECKING, Optional, Tuple
 
 import numpy
-from openeye.oechem import OEMol
 from pydantic import BaseModel, Field
 from typing_extensions import Literal
 
 from openff.recharge.grids import GridGenerator, GridSettings
 
 if TYPE_CHECKING:
+    from openeye import oechem
+
     PositiveFloat = float
 else:
     from pydantic import PositiveFloat
@@ -72,7 +73,7 @@ class ESPGenerator(abc.ABC):
     @abc.abstractmethod
     def _generate(
         cls,
-        oe_molecule: OEMol,
+        oe_molecule: "oechem.OEMol",
         conformer: numpy.ndarray,
         grid: numpy.ndarray,
         settings: ESPSettings,
@@ -105,7 +106,7 @@ class ESPGenerator(abc.ABC):
     @classmethod
     def generate(
         cls,
-        oe_molecule: OEMol,
+        oe_molecule: "oechem.OEMol",
         conformer: numpy.ndarray,
         settings: ESPSettings,
         directory: str = None,

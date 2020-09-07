@@ -1,5 +1,9 @@
+from typing import TYPE_CHECKING
+
 import numpy
-from openeye import oechem
+
+if TYPE_CHECKING:
+    from openeye import oechem
 
 BOHR_TO_ANGSTROM = 0.529177210903  # NIST 2018 CODATA
 INVERSE_ANGSTROM_TO_BOHR = BOHR_TO_ANGSTROM
@@ -105,7 +109,7 @@ def compute_vector_field(
 
 
 def reorder_conformer(
-    oe_molecule: oechem.OEMol, conformer: numpy.ndarray
+    oe_molecule: "oechem.OEMol", conformer: numpy.ndarray
 ) -> numpy.ndarray:
     """Reorder a conformer to match the ordering of the atoms
     in a molecule. The map index on each atom in the molecule

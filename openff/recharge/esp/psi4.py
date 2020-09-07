@@ -1,14 +1,17 @@
 import os
 import subprocess
-from typing import Tuple
+from typing import TYPE_CHECKING, Tuple
 
 import jinja2
 import numpy
-from openeye import oechem
 
 from openff.recharge.esp import ESPGenerator, ESPSettings
 from openff.recharge.esp.exceptions import Psi4Error
 from openff.recharge.utilities import get_data_file_path, temporary_cd
+from openff.recharge.utilities.openeye import import_oechem
+
+if TYPE_CHECKING:
+    from openeye import oechem
 
 
 class Psi4ESPGenerator(ESPGenerator):
@@ -18,7 +21,10 @@ class Psi4ESPGenerator(ESPGenerator):
 
     @classmethod
     def _generate_input(
-        cls, oe_molecule: oechem.OEMol, conformer: numpy.ndarray, settings: ESPSettings
+        cls,
+        oe_molecule: "oechem.OEMol",
+        conformer: numpy.ndarray,
+        settings: ESPSettings,
     ) -> str:
         """Generate the input files for Psi4.
 
@@ -35,6 +41,8 @@ class Psi4ESPGenerator(ESPGenerator):
         -------
             The contents of the input file.
         """
+
+        oechem = import_oechem()
 
         # Compute the total formal charge on the molecule.
         formal_charge = sum(atom.GetFormalCharge() for atom in oe_molecule.GetAtoms())
@@ -95,7 +103,7 @@ class Psi4ESPGenerator(ESPGenerator):
     @classmethod
     def _generate(
         cls,
-        oe_molecule: oechem.OEMol,
+        oe_molecule: "oechem.OEMol",
         conformer: numpy.ndarray,
         grid: numpy.ndarray,
         settings: ESPSettings,

@@ -7,7 +7,6 @@ from contextlib import contextmanager
 from typing import TYPE_CHECKING, ContextManager, Dict, List, Optional
 
 import numpy
-from openeye import oechem
 from pydantic import BaseModel, Field
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
@@ -26,9 +25,11 @@ from openff.recharge.esp.storage.db import (
     DBPCMSettings,
 )
 from openff.recharge.esp.storage.exceptions import IncompatibleDBVersion
-from openff.recharge.utilities.openeye import smiles_to_molecule
+from openff.recharge.utilities.openeye import import_oechem, smiles_to_molecule
 
 if TYPE_CHECKING:
+    from openeye import oechem
+
     Array = numpy.ndarray
 else:
     from openff.recharge.utilities.pydantic import Array
@@ -76,7 +77,7 @@ class MoleculeESPRecord(BaseModel):
     @classmethod
     def from_oe_molecule(
         cls,
-        oe_molecule: oechem.OEMol,
+        oe_molecule: "oechem.OEMol",
         conformer: numpy.ndarray,
         grid_coordinates: numpy.ndarray,
         esp: numpy.ndarray,
@@ -108,6 +109,8 @@ class MoleculeESPRecord(BaseModel):
         -------
             The created record.
         """
+
+        oechem = import_oechem()
 
         # Work on a copy of the molecule
         oe_molecule = oechem.OEMol(oe_molecule)
@@ -324,6 +327,9 @@ class MoleculeESPStore:
         -------
             The canonical smiles pattern.
         """
+
+        oechem = import_oechem()
+
         oe_molecule = smiles_to_molecule(tagged_smiles)
 
         for atom in oe_molecule.GetAtoms():
@@ -370,6 +376,8 @@ class MoleculeESPStore:
     ) -> List[MoleculeESPRecord]:
         """Retrieve records stored in this data store, optionally
         according to a set of filters."""
+
+        oechem = import_oechem()
 
         with self._get_session() as db:
 

@@ -1,15 +1,23 @@
 """A module for generating conformers for molecules."""
 import logging
-from typing import List, Optional
+from typing import TYPE_CHECKING, List, Optional
 
 import numpy
-from openeye import oechem, oeomega, oequacpac
 from pydantic import BaseModel, Field
 from typing_extensions import Literal
 
 from openff.recharge.charges.exceptions import OEQuacpacError
 from openff.recharge.conformers.exceptions import OEOmegaError
-from openff.recharge.utilities.openeye import call_openeye, molecule_to_conformers
+from openff.recharge.utilities.openeye import (
+    call_openeye,
+    import_oechem,
+    import_oeomega,
+    import_oequacpac,
+    molecule_to_conformers,
+)
+
+if TYPE_CHECKING:
+    from openeye import oechem
 
 logger = logging.getLogger()
 
@@ -39,7 +47,7 @@ class ConformerGenerator:
     @classmethod
     def generate(
         cls,
-        oe_molecule: oechem.OEMol,
+        oe_molecule: "oechem.OEMol",
         settings: ConformerSettings,
     ) -> List[numpy.ndarray]:
         """Generates a set of conformers for a given molecule.
@@ -56,6 +64,10 @@ class ConformerGenerator:
         settings
             The settings to generate the conformers according to.
         """
+
+        oechem = import_oechem()
+        oeomega = import_oeomega()
+        oequacpac = import_oequacpac()
 
         oe_molecule = oechem.OEMol(oe_molecule)
 

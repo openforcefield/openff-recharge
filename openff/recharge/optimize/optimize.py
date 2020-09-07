@@ -2,7 +2,6 @@ import abc
 from typing import Generator, List
 
 import numpy
-from openeye import oechem
 
 from openff.recharge.charges.bcc import BCCCollection, BCCGenerator
 from openff.recharge.charges.charges import ChargeGenerator, ChargeSettings
@@ -14,6 +13,7 @@ from openff.recharge.utilities.geometry import (
     compute_vector_field,
     reorder_conformer,
 )
+from openff.recharge.utilities.openeye import import_oechem
 
 
 class ObjectiveTerm(abc.ABC):
@@ -181,6 +181,8 @@ class _Optimization(abc.ABC):
             The precalculated terms which may be used to compute the full
             contribution to the objective function.
         """
+
+        oechem = import_oechem()
 
         trainable_parameter_indices = numpy.array(
             [

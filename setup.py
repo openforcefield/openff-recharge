@@ -54,7 +54,6 @@ setup(
         'jinja2',
         # ESP storage
         'sqlalchemy',
-        'sqlite',
         # Python <3.8 compatibility
         'typing-extensions'
     ],

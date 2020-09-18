@@ -1,12 +1,16 @@
 import functools
 import json
+import logging
 from multiprocessing import Pool
 from typing import List
 
 import click
 
+from openff.recharge.charges.exceptions import OEQuacpacError
 from openff.recharge.conformers import ConformerGenerator, ConformerSettings
+from openff.recharge.conformers.exceptions import OEOmegaError
 from openff.recharge.esp import ESPSettings
+from openff.recharge.esp.exceptions import Psi4Error
 from openff.recharge.esp.psi4 import Psi4ESPGenerator
 from openff.recharge.esp.storage import MoleculeESPRecord, MoleculeESPStore
 from openff.recharge.utilities.openeye import smiles_to_molecule
@@ -27,24 +31,37 @@ def _compute_esp(
         The settings to use when generating the ESP.
     """
 
+    logger = logging.getLogger(__name__)
+    logger.info(f"Processing {smiles}")
+
     oe_molecule = smiles_to_molecule(smiles)
 
     # Generate a set of conformers for the molecule.
-    conformers = ConformerGenerator.generate(oe_molecule, conformer_settings)
+    try:
+        conformers = ConformerGenerator.generate(oe_molecule, conformer_settings)
+    except (OEOmegaError, OEQuacpacError):
+        logger.exception(f"Coordinates could not be generated for {smiles}.")
+        return []
 
     esp_records = []
 
-    for conformer in conformers:
+    for index, conformer in enumerate(conformers):
 
-        grid_coordinates, esp, electric_field = Psi4ESPGenerator.generate(
-            oe_molecule, conformer, settings
-        )
+        try:
+            grid_coordinates, esp, electric_field = Psi4ESPGenerator.generate(
+                oe_molecule, conformer, settings
+            )
+        except Psi4Error:
+            logger.exception(f"Psi4 failed to run for conformer {index} of {smiles}.")
+            continue
 
         esp_records.append(
             MoleculeESPRecord.from_oe_molecule(
                 oe_molecule, conformer, grid_coordinates, esp, electric_field, settings
             )
         )
+
+    logger.info(f"Finished processing {smiles}")
 
     return esp_records
 
@@ -80,6 +97,9 @@ def _compute_esp(
     show_default=True,
 )
 def generate(smiles: str, esp_settings: str, conf_settings: str, n_processors: int):
+
+    logging.basicConfig(level=logging.INFO)
+
     esp_store = MoleculeESPStore()
 
     # Load in the SMILES patterns to compute the ESP properties for.
@@ -92,17 +112,16 @@ def generate(smiles: str, esp_settings: str, conf_settings: str, n_processors: i
 
     with Pool(processes=n_processors) as pool:
 
-        esp_store.store(
-            *[
-                esp_record
-                for esp_records in pool.map(
-                    functools.partial(
-                        _compute_esp,
-                        conformer_settings=conformer_settings,
-                        settings=esp_settings,
-                    ),
-                    smiles,
-                )
-                for esp_record in esp_records
-            ]
-        )
+        for esp_records in pool.imap(
+            functools.partial(
+                _compute_esp,
+                conformer_settings=conformer_settings,
+                settings=esp_settings,
+            ),
+            smiles,
+        ):
+
+            if len(esp_records) == 0:
+                continue
+
+            esp_store.store(*esp_records)

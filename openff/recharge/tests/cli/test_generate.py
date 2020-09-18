@@ -23,14 +23,14 @@ def test_generate(runner, monkeypatch):
     # Mock the Psi4 calls so the test can run even when not present.
     # This requires also mocking the multiprocessing to ensure the
     # monkeypatch on Psi4 holds.
-    def mock_map(_, func, iterable):
+    def mock_imap(_, func, iterable):
         return [func(x) for x in iterable]
 
     def mock_psi4_generate(*_):
         return numpy.zeros((1, 3)), numpy.zeros((1, 1)), numpy.zeros((1, 3))
 
     monkeypatch.setattr(Psi4ESPGenerator, "generate", mock_psi4_generate)
-    monkeypatch.setattr(Pool, "map", mock_map)
+    monkeypatch.setattr(Pool, "imap", mock_imap)
 
     # Create a mock set of inputs.
     with open("smiles.json", "w") as file:

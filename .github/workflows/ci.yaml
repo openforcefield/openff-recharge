@@ -101,7 +101,7 @@ jobs:
         shell: bash -l {0}
         run: |
 
-          conda install --yes -c conda-forge -c psi4/label/dev "psi4 <=1.4a2.dev215"
+          conda install --yes -c conda-forge -c psi4/label/dev psi4
 
       - name: Install Package
         shell: bash -l {0}

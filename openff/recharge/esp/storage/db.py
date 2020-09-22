@@ -249,9 +249,13 @@ class DBESPSettings(_UniqueMixin, DBBase):
     basis = Column(String, nullable=False)
     method = Column(String, nullable=False)
 
+    psi4_dft_grid_settings = Column(String, nullable=False)
+
     @classmethod
     def _hash(cls, instance: ESPSettings) -> int:
-        return hash((instance.basis, instance.method))
+        return hash(
+            (instance.basis, instance.method, instance.psi4_dft_grid_settings.value)
+        )
 
     @classmethod
     def _query(cls, db: Session, instance: ESPSettings) -> Query:
@@ -259,11 +263,20 @@ class DBESPSettings(_UniqueMixin, DBBase):
             db.query(DBESPSettings)
             .filter(DBESPSettings.basis == instance.basis)
             .filter(DBESPSettings.method == instance.method)
+            .filter(
+                DBESPSettings.psi4_dft_grid_settings
+                == instance.psi4_dft_grid_settings.value
+            )
         )
 
     @classmethod
     def _instance_to_db(cls, instance: ESPSettings) -> "DBESPSettings":
-        return DBESPSettings(**instance.dict(exclude={"grid_settings", "pcm_settings"}))
+        return DBESPSettings(
+            **instance.dict(
+                exclude={"grid_settings", "pcm_settings", "psi4_dft_grid_settings"}
+            ),
+            psi4_dft_grid_settings=instance.psi4_dft_grid_settings.value
+        )
 
 
 class DBConformerRecord(DBBase):

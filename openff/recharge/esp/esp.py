@@ -1,5 +1,6 @@
 import abc
 import os
+from enum import Enum
 from typing import TYPE_CHECKING, Optional, Tuple
 
 import numpy
@@ -14,6 +15,30 @@ if TYPE_CHECKING:
     PositiveFloat = float
 else:
     from pydantic import PositiveFloat
+
+
+class DFTGridSettings(Enum):
+    """An enumeration of the possible DFT grid settings to use when computing
+    properties using PSI4.
+
+    * Default - The values of `dft_spherical_points`, `dft_radial_points`,
+      and `dft_pruning_scheme` are not explicitly set and are left for Psi4 to
+      select.
+    * Medium - `dft_spherical_points=434`, `dft_radial_points=85`,
+      `dft_pruning_scheme=robust` [1]_.
+    * Fine - `dft_spherical_points=590`, `dft_radial_points=99`,
+      `dft_pruning_scheme=robust` [2]_.
+
+    References
+    ----------
+    [1] http://forum.psicode.org/t/dft-scf-not-converging/1725/7 (accessed 22/09/2020)
+    [2] http://www.psicode.org/psi4manual/1.3.2/dft.html#grid-selection
+        (accessed 22/09/2020)
+    """
+
+    Default = "default"
+    Medium = "medium"
+    Fine = "fine"
 
 
 class PCMSettings(BaseModel):
@@ -61,6 +86,12 @@ class ESPSettings(BaseModel):
         None,
         description="The settings to use if including a polarizable continuum "
         "model in the ESP calculation.",
+    )
+
+    psi4_dft_grid_settings: DFTGridSettings = Field(
+        DFTGridSettings.Default,
+        description="The DFT grid settings to use when performing computations with "
+        "Psi4.",
     )
 
 

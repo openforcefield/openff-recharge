@@ -80,6 +80,7 @@ class Psi4ESPGenerator(ESPGenerator):
             "basis": settings.basis,
             "method": settings.method,
             "enable_pcm": enable_pcm,
+            "dft_settings": settings.psi4_dft_grid_settings.value,
         }
 
         if enable_pcm:

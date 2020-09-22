@@ -1,14 +1,16 @@
+from typing import List
+
 import numpy
 import pytest
 
-from openff.recharge.esp import ESPSettings, PCMSettings
+from openff.recharge.esp import DFTGridSettings, ESPSettings, PCMSettings
 from openff.recharge.esp.exceptions import Psi4Error
 from openff.recharge.esp.psi4 import Psi4ESPGenerator
 from openff.recharge.grids import GridSettings
 from openff.recharge.utilities.openeye import smiles_to_molecule
 
 
-def test_generate_input_no_pcm():
+def test_generate_input_base():
     """Test that the correct input is generated from the
     jinja template."""
     pytest.importorskip("psi4")
@@ -62,6 +64,70 @@ def test_generate_input_no_pcm():
             "}",
             "",
             "E,wfn = prop('uhf', properties = ['GRID_ESP', 'GRID_FIELD'], "
+            "return_wfn=True)",
+        ]
+    )
+
+    assert expected_output == input_contents
+
+
+@pytest.mark.parametrize(
+    "dft_grid_settings, expected_grid_settings",
+    [
+        (DFTGridSettings.Default, []),
+        (
+            DFTGridSettings.Medium,
+            [
+                "",
+                "  dft_spherical_points 434",
+                "  dft_radial_points 85",
+                "  dft_pruning_scheme robust",
+            ],
+        ),
+        (
+            DFTGridSettings.Fine,
+            [
+                "",
+                "  dft_spherical_points 590",
+                "  dft_radial_points 99",
+                "  dft_pruning_scheme robust",
+            ],
+        ),
+    ],
+)
+def test_generate_input_dft_settings(
+    dft_grid_settings: DFTGridSettings, expected_grid_settings: List[str]
+):
+    """Test that the correct input is generated from the
+    jinja template."""
+    pytest.importorskip("psi4")
+
+    # Define the settings to use.
+    settings = ESPSettings(
+        psi4_dft_grid_settings=dft_grid_settings, grid_settings=GridSettings()
+    )
+
+    # Create a closed shell molecule.
+    oe_molecule = smiles_to_molecule("[Cl-]")
+    conformer = numpy.array([[0.0, 0.0, 0.0]])
+
+    input_contents = Psi4ESPGenerator._generate_input(oe_molecule, conformer, settings)
+
+    expected_output = "\n".join(
+        [
+            "molecule mol {",
+            "  noreorient",
+            "  nocom",
+            "  -1 1",
+            "  Cl  0.000000000  0.000000000  0.000000000",
+            "}",
+            "",
+            "set {",
+            "  basis 6-31g*",
+            *expected_grid_settings,
+            "}",
+            "",
+            "E,wfn = prop('hf', properties = ['GRID_ESP', 'GRID_FIELD'], "
             "return_wfn=True)",
         ]
     )

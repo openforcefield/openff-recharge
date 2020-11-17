@@ -122,7 +122,7 @@ def main():
         # N3hdeloc Trivalent nitrogen with a highly delocalized lone pair
         "23": "[#7X3ar5,#7X3+1,#7X3+0$(*-[#6X3$(*=[#7X3+1])]),$([#7X3](-[#8X1-1])=[#8X1]),$([#7X3](=[#8X1])=[#8X1]):1]",
         # N3deloc Trivalent nitrogen with a delocalized lone pair
-        "22": "[#7X2-1$(*-[#6X3$(*=[#8])]),#7X3$(*-[#6X3$(*=[#8])]):1]",
+        "22": "[#7X2-1$(*-[#6X3$(*=[#8X1,#16X1])]),#7X3$(*-[#6X3$(*=[#8X1,#16X1])]):1]",
         # N2,3,4 Amine nitrogen
         "21": "[#7X4,#7X3,#7X2-1:1]",
         # N1,2 Univalent or cationic divalent nitrogen
@@ -140,11 +140,11 @@ def main():
         # # P2,3 Divalent or trivalent phosphorus
         # "41": "[#15X2,#15X3:1]",
         # # S4 Tetravalent sulfur
-        # "53": "[#16X4:1]",
+        "53": "[#16X4:1]",
         # # S3 Trivalent sulfur
-        # "52": "[#16X3:1]",
+        "52": "[#16X3:1]",
         # # S1,2 Univalent or divalent sulfur
-        # "51": "[#16X1,#16X2:1]",
+        "51": "[#16X1,#16X2:1]",
         # Si4 Tetravalent silicon
         "61": "[#14X4:1]",
         # F1 Fluorine
@@ -154,7 +154,7 @@ def main():
         # Br1 Bromine
         "73": "[#35:1]",
         # # # I1 Iodine
-        # "74": "[#53:1]",
+        "74": "[#53:1]",
         # H1 Hydrogen
         "91": "[#1:1]",
     }
@@ -169,6 +169,20 @@ def main():
     }
 
     custom_bcc_smirks = {
+        # 'Delocalised' S-O
+        # "310951": "",
+        # "310952": "",
+        # "310953": "",
+        # 'Delocalised' S-S
+        # "510953": "",
+        # 'Delocalised' S-C
+        "110951": "[#6X4:1]-[#16X1-1:2]",
+        "150951": "[#6X1,#6X2:1]-[#16X1-1:2]",
+        "120951": "[#6X3$(*=[#6]):1]-[#16X1-1:2]",
+        "130951": "[#6X3$(*=[#7,#15]):1]-[#16X1-1:2]",
+        "140951": "[#6X3:1](~[#8X1,#16X1])(~[#16X1:2])",
+        "170951": "[#6a$(*~[#7aX2,#8aX2]):1]-[#16X1-1:2]",
+        "160951": "[#6a:1]-[#16X1-1:2]",
         # 'Delocalised' N-O
         "230931": "[$([#7X3](-[#8X1])=[#8X1]),$([#7X3](=[#8X1])=[#8X1]):1]~[#8X1:2]",
         # Dative N-O.

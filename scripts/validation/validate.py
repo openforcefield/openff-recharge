@@ -18,6 +18,8 @@ from openff.recharge.charges.bcc import (
 from openff.recharge.utilities.exceptions import RechargeException
 from openff.recharge.utilities.openeye import match_smirks, smiles_to_molecule
 
+N_PROCESSES = 4
+
 output_stream = oechem.oeosstream()
 
 oechem.OEThrow.SetOutputStream(output_stream)
@@ -41,7 +43,7 @@ def apply_filter(smiles: str) -> bool:
     """
 
     oe_molecule = smiles_to_molecule(smiles)
-    allowed_elements = [1, 6, 7, 8, 9, 17, 35]
+    allowed_elements = [1, 6, 7, 8, 9, 16, 17, 35]
 
     return oechem.OECount(oe_molecule, oechem.OEIsHeavy()) <= 25 and all(
         atom.GetAtomicNum() in allowed_elements for atom in oe_molecule.GetAtoms()
@@ -60,7 +62,7 @@ def import_nci_molecule() -> List[str]:
         for oe_molecule in input_molecule_stream.GetOEMols()
     ]
 
-    with Pool(processes=4) as pool:
+    with Pool(processes=N_PROCESSES) as pool:
 
         filter_generator = tqdm(
             pool.imap(apply_filter, nci_smiles), total=len(nci_smiles)
@@ -190,6 +192,92 @@ def coverage_molecules() -> List[str]:
         "O=C[N+]#C",
         # 130125
         "N=C[N+]#C",
+        # Sulfides
+        "S",
+        "CSC",
+        # Thiol
+        "CS",
+        "C[S-]",
+        # Disulfides
+        "CSSC",
+        "SS",
+        # Sulfoxide
+        "C[S](C)=O",
+        # Thiosulfate
+        "[O-][S]([S-])(=O)=O",
+        # Sulfones
+        "C[S](C)(=O)=O",
+        "O=[S](=O)(c1ccccc1)c2ccccc2",
+        # Sulfenic acid
+        "OS",
+        "[O-]S",
+        # Sulfinic acid
+        "C[S](O)=O",
+        # Sulfonic acid
+        "C[S](O)(=O)=O",
+        # Sulfuric acid
+        "O[S](O)(=O)=O",
+        # Sulfonates
+        "C[S]([O-])(=O)=O",
+        # Sulfite ester
+        "CO[S](=O)OC",
+        # Thioamide
+        "NC=S",
+        "CN(C)C(C)=S",
+        # Thione
+        "C=S",
+        "CC(C)=S",
+        # Isothiocynate
+        "CN=C=S",
+        # Sulfonamide
+        "CN(C)[S](C)(=O)=O",
+        "C[S](N)(=O)=O",
+        "N[S](=O)(=O)c1ccccc1",
+        # Sulfate
+        "[O-][S]([O-])(=O)=O",
+        "CO[S]([O-])(=O)=O",
+        "CO[S](O)(=O)=O",
+        #
+        "[H]OC1([H])c2c(c(Oc3c([H])c(F)c([H])c(C#N)c3[H])c([H])c([H])c2S(=O)(=O)N([H])[H])C([H])(F)C1(F)F",
+        "[H]OC([H])([H])c1c(Cl)c(Oc2c([H])c([H])c([H])c(C#N)c2[H])c([H])c([H])c1S(=O)(=O)C([H])(F)F",
+        "[H]OC1([H])c2c(c(Oc3c([H])nc([H])c(C#N)c3[H])c([H])c([H])c2S(=O)(=O)C(F)(F)F)C([H])([H])C1(F)F",
+        "[H]OC1([H])c2c(c(Oc3c([H])c(Cl)c([H])c(C#N)c3[H])c([H])c([H])c2S(=O)(=O)C([H])([H])[H])C([H])([H])C1(F)F",
+        "[H]c1c(F)c([H])c(Oc2c([H])c([H])c(S(=O)(=O)C([H])(F)F)c(Cl)c2C#N)c([H])c1C#N",
+        "[H]OC1([H])c2c(c(Oc3c([H])c(F)c([H])c(Cl)c3[H])c([H])c([H])c2S(=O)(=O)C([H])(F)F)C([H])([H])C1([H])[H]",
+        "[H]OC1([H])c2c(c(Oc3c([H])c(F)c([H])c(C#N)c3[H])c([H])c([H])c2S(=O)(=O)C([H])(F)F)C([H])([H])C1(F)F",
+        "[H]OC1([H])c2c(c(Oc3c([H])c(F)c([H])c(C#N)c3[H])c([H])c([H])c2S(=O)(=O)C(F)(F)F)C([H])([H])C1([H])F",
+        "[H]OC1([H])c2c(c(Oc3c([H])c([H])c(F)c4c3c([H])nn4[H])c([H])c([H])c2S(=O)(=O)C(F)(F)F)C([H])([H])C1(F)F",
+        "[H]OC1([H])c2c(c(Oc3c([H])c(F)c([H])c(C#N)c3[H])c([H])c([H])c2S(=O)(=O)C([H])([H])C([H])([H])[H])C([H])([H])C1(F)F",
+        "[H]OC1([H])c2c(C#N)c([H])c([H])c(Oc3c([H])c(F)c([H])c(F)c3[H])c2C([H])([H])C1(F)F",
+        "[H]OC1([H])c2c(c(Oc3c([H])c([H])c([H])c(C#N)c3[H])c([H])c([H])c2S(=O)(=O)C([H])(F)F)C([H])([H])C1([H])[H]",
+        "[H]c1c([H])c(C#N)c([H])c(Oc2c([H])c([H])c(S(=O)(=O)C([H])(F)F)c(C([H])([H])[H])c2C#N)c1[H]",
+        "[H]OC1([H])c2c(c(Oc3c([H])c(F)c([H])c(C#N)c3[H])c([H])c([H])c2S(=O)(=O)C([H])([H])[H])C([H])(F)C1([H])F",
+        "[H]OC1([H])c2c(c(Oc3c([H])c(F)c([H])c(Cl)c3[H])c([H])c([H])c2S(=O)(=O)C([H])([H])F)C([H])([H])C1([H])[H]",
+        "[H]OC1([H])c2c(c(Oc3c([H])c(Cl)c([H])c(C#N)c3[H])c([H])c([H])c2S(=O)(=O)C([H])([H])F)C([H])([H])C1(F)F",
+        "[H]c1c(F)c([H])c(Oc2c([H])c([H])c(S(=O)(=O)C([H])([H])[H])c3c2C([H])([H])C(F)(F)C3([H])N([H])[H])c([H])c1C#N",
+        "[H]OC([H])([H])c1c(Cl)c(Oc2c([H])c(F)c([H])c(Cl)c2[H])c([H])c([H])c1S(=O)(=O)C([H])(F)F",
+        "[H]OC([H])([H])c1c(C([H])(F)F)c(Oc2c([H])c(F)c([H])c(Cl)c2[H])c([H])c([H])c1S(=O)(=O)C([H])([H])[H]",
+        "[H]OC1([H])c2c(c(Oc3c([H])c(F)c([H])c(C#N)c3[H])c([H])c([H])c2S(=O)(=O)C([H])([H])Cl)C([H])([H])C1(F)F",
+        "[H]OC1([H])c2c(c(Oc3c([H])c(F)c([H])c(C#N)c3[H])c([H])c([H])c2S(=O)(=O)C(F)(F)F)C([H])([H])C1([H])[H]",
+        "[H]OC([H])([H])c1c(Cl)c(Oc2c([H])c(F)c([H])c(C#N)c2[H])c([H])c([H])c1S(=O)(=O)C([H])(F)F",
+        "[H]OC([H])([H])c1c(C#N)c(Oc2c([H])c(F)c([H])c(Cl)c2[H])c([H])c([H])c1S(=O)(=O)C([H])(F)F",
+        "[H]OC1([H])c2c(c(Oc3c([H])c(F)c([H])c(C#N)c3[H])c([H])c([H])c2S(=O)(=O)N([H])[H])C([H])([H])C1(F)F",
+        "[H]c1c(F)c([H])c(Oc2c([H])c([H])c(S(=O)(=O)C(F)(F)F)c3c2C([H])([H])C(F)(F)C3([H])N([H])[H])c([H])c1C#N",
+        "[H]OC1([H])c2c(c(Oc3c([H])c(F)c([H])c(C#N)c3[H])c([H])c([H])c2S(=O)(=O)C([H])(F)F)C([H])([H])C1([H])[H]",
+        "[H]c1c(F)c([H])c(Oc2c([H])c([H])c(S(=O)(=O)C([H])([H])[H])c3c2C([H])([H])C(F)(F)C3([H])N([H])[H])c([H])c1C#N",
+        "[H]OC1([H])c2c(c(Oc3c([H])c(F)c([H])c(Cl)c3[H])c([H])c([H])c2S(=O)(=O)C([H])(F)F)C([H])(C([H])([H])[H])C1([H])[H]",
+        "[H]OC1([H])c2c(c(Oc3c([H])nn(C([H])([H])[H])c3[H])c([H])c([H])c2S(=O)(=O)C(F)(F)F)C([H])([H])C1(F)F",
+        "[H]c1c(F)c([H])c(Oc2c([H])c([H])c(S(=O)(=O)C([H])(F)F)c3c2C(=O)OC3([H])[H])c([H])c1Cl",
+        "[H]OC1([H])c2c(c(Oc3c([H])c(F)c([H])c(C#N)c3[H])c([H])c([H])c2S(=O)(=O)N([H])C([H])([H])[H])C([H])([H])C1(F)F",
+        "[H]OC1([H])c2c(c(Oc3c([H])c(F)c([H])c(F)c3[H])c([H])c([H])c2S(=O)(=O)C([H])(F)F)C([H])([H])C1([H])O[H]",
+        "[H]OC1([H])c2c(c(Oc3c([H])c(F)c([H])c(F)c3[H])c([H])c([H])c2S(=O)(=O)N([H])C([H])([H])[H])C([H])([H])C1(F)F",
+        "[H]OC1([H])c2c(c(Oc3c([H])c(F)c([H])c(F)c3[H])c([H])c([H])c2S(=O)(=O)N([H])[H])C([H])([H])C1(F)F",
+        "[H]c1c(F)c([H])c(Oc2c([H])c([H])c(S(=O)(=O)C([H])([H])[H])c(C([H])([H])[H])c2C#N)c([H])c1Cl",
+        "[H]OC1([H])c2c(c(Oc3c([H])c(F)c([H])c(C#N)c3[H])c([H])c([H])c2S(=O)(=O)C([H])([H])[H])C([H])([H])C1([H])F",
+        "[H]OC1([H])c2c(c(Oc3c([H])c(F)c([H])c(C#N)c3[H])c([H])c([H])c2S(=O)(=O)C([H])(F)F)C([H])([H])C1(F)F",
+        "[H]c1c(F)c([H])c(Oc2c([H])c([H])c(S(=O)(=O)C(F)(F)F)c([H])c2C([H])(F)F)c([H])c1Cl",
+        "[H]OC1([H])c2c(c(Oc3c([H])nc([H])c(Cl)c3[H])c([H])c([H])c2S(=O)(=O)C([H])(F)F)C([H])([H])C1(F)F",
+        "[H]OC1([H])c2c(c(Oc3c([H])c(F)c([H])c(C#N)c3[H])c([H])c([H])c2S(=O)(=O)C([H])([H])[H])C([H])([H])C1(F)F",
     ]
 
 
@@ -240,10 +328,11 @@ def map_smiles_to_smirks(smiles: List[str]) -> Dict[str, List[str]]:
     print("Mapping smiles to smirks.")
 
     match_function = functools.partial(
-        match_bcc_parameters, parameters=original_am1bcc_corrections().parameters
+        match_bcc_parameters,
+        bond_charge_corrections=original_am1bcc_corrections().parameters,
     )
 
-    with Pool(processes=4) as pool:
+    with Pool(processes=N_PROCESSES) as pool:
 
         smirks_per_smiles = tqdm(pool.imap(match_function, smiles), total=len(smiles))
 

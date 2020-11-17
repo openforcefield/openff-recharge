@@ -2,7 +2,8 @@ import os
 
 import pytest
 
-from openff.recharge.utilities import get_data_file_path, temporary_cd
+from openff.recharge.utilities import get_data_file_path, requires_package, temporary_cd
+from openff.recharge.utilities.exceptions import MissingOptionalDependency
 
 
 def compare_paths(path_1: str, path_2: str) -> bool:
@@ -69,3 +70,18 @@ def test_temporary_cd():
         assert compare_paths(os.getcwd(), original_directory)
 
     assert compare_paths(os.getcwd(), original_directory)
+
+
+def test_requires_package():
+    """Tests that the ``requires_package`` utility behaves as expected."""
+
+    def dummy_function():
+        pass
+
+    # sys should always be found so this should not raise an exception.
+    requires_package("sys")(dummy_function)()
+
+    with pytest.raises(MissingOptionalDependency) as error_info:
+        requires_package("fake-lib")(dummy_function)()
+
+    assert error_info.value.library_name == "fake-lib"

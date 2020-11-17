@@ -9,7 +9,7 @@ from openff.recharge.smirnoff.exceptions import (
     UnsupportedBCCSmirksError,
     UnsupportedBCCValueError,
 )
-from openff.recharge.utilities.exceptions import MissingOptionalDependency
+from openff.recharge.utilities import requires_package
 
 if TYPE_CHECKING:
     from openforcefield.typing.engines.smirnoff.parameters import (
@@ -17,6 +17,8 @@ if TYPE_CHECKING:
     )
 
 
+@requires_package("openforcefield")
+@requires_package("simtk")
 def to_smirnoff(bcc_collection: BCCCollection) -> "ChargeIncrementModelHandler":
     """Converts a collection of bond charge correction parameters to
     a SMIRNOFF bond charge increment parameter handler.
@@ -42,13 +44,10 @@ def to_smirnoff(bcc_collection: BCCCollection) -> "ChargeIncrementModelHandler":
     -------
         The constructed parameter handler.
     """
-    try:
-        from openforcefield.typing.engines.smirnoff.parameters import (
-            ChargeIncrementModelHandler,
-        )
-        from simtk import unit
-    except ImportError:
-        raise MissingOptionalDependency("openforcefield")
+    from openforcefield.typing.engines.smirnoff.parameters import (
+        ChargeIncrementModelHandler,
+    )
+    from simtk import unit
 
     # noinspection PyTypeChecker
     bcc_parameter_handler = ChargeIncrementModelHandler(version="0.3")
@@ -70,6 +69,7 @@ def to_smirnoff(bcc_collection: BCCCollection) -> "ChargeIncrementModelHandler":
     return bcc_parameter_handler
 
 
+@requires_package("simtk")
 def from_smirnoff(
     parameter_handler: "ChargeIncrementModelHandler",
     aromaticity_model=AromaticityModels.MDL,
@@ -94,10 +94,7 @@ def from_smirnoff(
     -------
         The converted bond charge correction collection.
     """
-    try:
-        from simtk import unit
-    except ImportError:
-        raise MissingOptionalDependency("openforcefield")
+    from simtk import unit
 
     bcc_parameters = []
 

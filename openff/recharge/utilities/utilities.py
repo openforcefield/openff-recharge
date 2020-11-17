@@ -1,8 +1,12 @@
 import errno
+import functools
+import importlib
 import os
 from contextlib import contextmanager
 from tempfile import TemporaryDirectory
 from typing import Optional
+
+from openff.recharge.utilities.exceptions import MissingOptionalDependency
 
 
 def get_data_file_path(relative_path: str) -> str:
@@ -71,3 +75,22 @@ def temporary_cd(directory_path: Optional[str] = None):
 
     finally:
         os.chdir(old_directory)
+
+
+def requires_package(library_path: str):
+    def inner_decorator(function):
+        @functools.wraps(function)
+        def wrapper(*args, **kwargs):
+
+            try:
+                importlib.import_module(library_path)
+            except (ImportError, ModuleNotFoundError):
+                raise MissingOptionalDependency(library_path, False)
+            except Exception as e:
+                raise e
+
+            return function(*args, **kwargs)
+
+        return wrapper
+
+    return inner_decorator

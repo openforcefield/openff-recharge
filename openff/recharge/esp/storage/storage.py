@@ -7,25 +7,29 @@ from contextlib import contextmanager
 from typing import TYPE_CHECKING, ContextManager, Dict, List, Optional
 
 import numpy
-from openeye import oechem
 from pydantic import BaseModel, Field
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 
 from openff.recharge.esp import ESPSettings
 from openff.recharge.esp.storage.db import (
+    DB_VERSION,
     DBBase,
     DBConformerRecord,
     DBCoordinate,
     DBESPSettings,
     DBGridESP,
     DBGridSettings,
+    DBInformation,
     DBMoleculeRecord,
+    DBPCMSettings,
 )
-from openff.recharge.grids import GridSettings
-from openff.recharge.utilities.openeye import smiles_to_molecule
+from openff.recharge.esp.storage.exceptions import IncompatibleDBVersion
+from openff.recharge.utilities.openeye import import_oechem, smiles_to_molecule
 
 if TYPE_CHECKING:
+    from openeye import oechem
+
     Array = numpy.ndarray
 else:
     from openff.recharge.utilities.pydantic import Array
@@ -60,6 +64,11 @@ class MoleculeESPRecord(BaseModel):
         description="The value of the ESP [Hartree / e] at each of the grid "
         "coordinates with shape=(n_grid_points, 1).",
     )
+    electric_field: Array[float] = Field(
+        ...,
+        description="The value of the electric field [Hartree / (e . a0)] at each of "
+        "the grid coordinates with shape=(n_grid_points, 3).",
+    )
 
     esp_settings: ESPSettings = Field(
         ..., description="The settings used to generate the ESP stored in this record."
@@ -68,10 +77,11 @@ class MoleculeESPRecord(BaseModel):
     @classmethod
     def from_oe_molecule(
         cls,
-        oe_molecule: oechem.OEMol,
+        oe_molecule: "oechem.OEMol",
         conformer: numpy.ndarray,
         grid_coordinates: numpy.ndarray,
         esp: numpy.ndarray,
+        electric_field: numpy.ndarray,
         esp_settings: ESPSettings,
     ) -> "MoleculeESPRecord":
         """Creates a new ``MoleculeESPRecord`` from an existing molecule
@@ -87,8 +97,11 @@ class MoleculeESPRecord(BaseModel):
             The grid coordinates [Angstrom] which the ESP was calculated on
             with shape=(n_grid_points, 3).
         esp
-            The value of the ESP [Hartree / e] at each of the grid coordinates "
+            The value of the ESP [Hartree / e] at each of the grid coordinates
             with shape=(n_grid_points, 1).
+        electric_field
+            The value of the electric field [Hartree / (e . a0)] at each of
+            the grid coordinates with shape=(n_grid_points, 3).
         esp_settings
             The settings used to generate the ESP stored in this record.
 
@@ -96,6 +109,8 @@ class MoleculeESPRecord(BaseModel):
         -------
             The created record.
         """
+
+        oechem = import_oechem()
 
         # Work on a copy of the molecule
         oe_molecule = oechem.OEMol(oe_molecule)
@@ -111,6 +126,7 @@ class MoleculeESPRecord(BaseModel):
             conformer=conformer,
             grid_coordinates=grid_coordinates,
             esp=esp,
+            electric_field=electric_field,
             esp_settings=esp_settings,
         )
 
@@ -142,6 +158,17 @@ class MoleculeESPStore:
         self._session_maker = sessionmaker(
             autocommit=False, autoflush=False, bind=self._engine
         )
+
+        # Validate the DB version if present, or add one if not.
+        with self._get_session() as db:
+            db_info = db.query(DBInformation).first()
+
+            if not db_info:
+                db_info = DBInformation(version=DB_VERSION)
+                db.add(db_info)
+
+            if db_info.version != DB_VERSION:
+                raise IncompatibleDBVersion(db_info.version, DB_VERSION)
 
     @contextmanager
     def _get_session(self) -> ContextManager[Session]:
@@ -195,15 +222,25 @@ class MoleculeESPStore:
                         for grid_esp_value in db_conformer.grid_esp_values
                     ]
                 ),
+                electric_field=numpy.array(
+                    [
+                        [
+                            grid_esp_value.field_x,
+                            grid_esp_value.field_y,
+                            grid_esp_value.field_z,
+                        ]
+                        for grid_esp_value in db_conformer.grid_esp_values
+                    ]
+                ),
                 esp_settings=ESPSettings(
                     basis=db_conformer.esp_settings.basis,
                     method=db_conformer.esp_settings.method,
-                    grid_settings=GridSettings(
-                        type=db_conformer.grid_settings.type,
-                        spacing=db_conformer.grid_settings.spacing,
-                        inner_vdw_scale=db_conformer.grid_settings.inner_vdw_scale,
-                        outer_vdw_scale=db_conformer.grid_settings.outer_vdw_scale,
+                    grid_settings=DBGridSettings.db_to_instance(
+                        db_conformer.grid_settings
                     ),
+                    pcm_settings=None
+                    if not db_conformer.pcm_settings
+                    else DBPCMSettings.db_to_instance(db_conformer.pcm_settings),
                 ),
             )
             for db_record in db_records
@@ -247,13 +284,24 @@ class MoleculeESPStore:
                 ],
                 grid_esp_values=[
                     DBGridESP(
-                        x=coordinate[0], y=coordinate[1], z=coordinate[2], value=esp[0],
+                        x=coordinate[0],
+                        y=coordinate[1],
+                        z=coordinate[2],
+                        value=esp[0],
+                        field_x=electric_field[0],
+                        field_y=electric_field[1],
+                        field_z=electric_field[2],
                     )
-                    for coordinate, esp in zip(record.grid_coordinates, record.esp)
+                    for coordinate, esp, electric_field in zip(
+                        record.grid_coordinates, record.esp, record.electric_field
+                    )
                 ],
                 grid_settings=DBGridSettings.unique(
                     db, record.esp_settings.grid_settings
                 ),
+                pcm_settings=None
+                if not record.esp_settings.pcm_settings
+                else DBPCMSettings.unique(db, record.esp_settings.pcm_settings),
                 esp_settings=DBESPSettings.unique(db, record.esp_settings),
             )
             for record in records
@@ -279,6 +327,9 @@ class MoleculeESPStore:
         -------
             The canonical smiles pattern.
         """
+
+        oechem = import_oechem()
+
         oe_molecule = smiles_to_molecule(tagged_smiles)
 
         for atom in oe_molecule.GetAtoms():
@@ -321,9 +372,12 @@ class MoleculeESPStore:
         smiles: Optional[str] = None,
         basis: Optional[str] = None,
         method: Optional[str] = None,
+        implicit_solvent: Optional[bool] = None,
     ) -> List[MoleculeESPRecord]:
         """Retrieve records stored in this data store, optionally
         according to a set of filters."""
+
+        oechem = import_oechem()
 
         with self._get_session() as db:
 
@@ -334,16 +388,31 @@ class MoleculeESPStore:
                 smiles = oechem.OECreateCanSmiString(smiles_to_molecule(smiles))
                 db_records = db_records.filter(DBMoleculeRecord.smiles == smiles)
 
-            if basis is not None or method is not None:
+            if basis is not None or method is not None or implicit_solvent is not None:
 
-                db_records = db_records.join(DBConformerRecord).join(
-                    DBESPSettings, DBConformerRecord.esp_settings
-                )
+                db_records = db_records.join(DBConformerRecord)
 
-                if basis is not None:
-                    db_records = db_records.filter(DBESPSettings.basis == basis)
-                if method is not None:
-                    db_records = db_records.filter(DBESPSettings.method == method)
+                if basis is not None or method is not None:
+
+                    db_records = db_records.join(
+                        DBESPSettings, DBConformerRecord.esp_settings
+                    )
+
+                    if basis is not None:
+                        db_records = db_records.filter(DBESPSettings.basis == basis)
+                    if method is not None:
+                        db_records = db_records.filter(DBESPSettings.method == method)
+
+                if implicit_solvent is not None:
+
+                    if implicit_solvent:
+                        db_records = db_records.filter(
+                            DBConformerRecord.pcm_settings_id.isnot(None)
+                        )
+                    else:
+                        db_records = db_records.filter(
+                            DBConformerRecord.pcm_settings_id.is_(None)
+                        )
 
             db_records = db_records.all()
 

@@ -4,17 +4,19 @@ of a cheaper QM method and a set of bond charge corrections.
 import json
 import os
 from enum import Enum
-from typing import Any, Dict, List
+from typing import TYPE_CHECKING, Any, Dict, List
 
 import numpy
-from openeye import oechem
 from pydantic import BaseModel, Field, constr
 
 from openff.recharge.charges.charges import ChargeGenerator, ChargeSettings
 from openff.recharge.charges.exceptions import UnableToAssignChargeError
-from openff.recharge.conformers.conformers import OmegaELF10
+from openff.recharge.conformers import ConformerGenerator, ConformerSettings
 from openff.recharge.utilities import get_data_file_path
-from openff.recharge.utilities.openeye import match_smirks
+from openff.recharge.utilities.openeye import import_oechem, match_smirks
+
+if TYPE_CHECKING:
+    from openeye import oechem
 
 
 class AromaticityModels(Enum):
@@ -23,6 +25,7 @@ class AromaticityModels(Enum):
     These include
 
     * AM1BCC - the aromaticity model defined in the original AM1BCC publications _[1].
+    * MDL - The MDL aromaticity model.
 
     References
     ----------
@@ -32,6 +35,7 @@ class AromaticityModels(Enum):
     """
 
     AM1BCC = "AM1BCC"
+    MDL = "MDL"
 
 
 class AromaticityModel:
@@ -40,7 +44,7 @@ class AromaticityModel:
 
     @classmethod
     def _set_aromatic(
-        cls, ring_matches: List[Dict[int, int]], oe_molecule: oechem.OEMol
+        cls, ring_matches: List[Dict[int, int]], oe_molecule: "oechem.OEMol"
     ):
         """Flag all specified ring atoms and all ring bonds between those atoms
         as being aromatic.
@@ -77,7 +81,7 @@ class AromaticityModel:
                 bond.SetAromatic(True)
 
     @classmethod
-    def _assign_am1bcc(cls, oe_molecule: oechem.OEMol):
+    def _assign_am1bcc(cls, oe_molecule: "oechem.OEMol"):
         """Applies aromaticity flags based upon the aromaticity model
         outlined in the original AM1BCC publications _[1].
 
@@ -92,8 +96,6 @@ class AromaticityModel:
             of high-quality atomic charges. AM1-BCC model: II. Parameterization and
             validation. Journal of computational chemistry, 23(16), 1623–1641.
         """
-
-        oechem.OEClearAromaticFlags(oe_molecule)
 
         x_type = "[#6X3,#7X2,#15X2,#7X3+1,#15X3+1,#8X2+1,#16X2+1:N]"
         y_type = "[#6X2-1,#7X2-1,#8X2,#16X2,#7X3,#15X3:N]"
@@ -235,7 +237,7 @@ class AromaticityModel:
         cls._set_aromatic(case_5_matches, oe_molecule)
 
     @classmethod
-    def assign(cls, oe_molecule: oechem.OEMol, model: AromaticityModels):
+    def assign(cls, oe_molecule: "oechem.OEMol", model: AromaticityModels):
         """Clears the current aromaticity flags on a molecule and assigns
         new ones based on the specified aromaticity model.
 
@@ -247,8 +249,14 @@ class AromaticityModel:
             The aromaticity model to apply.
         """
 
+        oechem = import_oechem()
+
+        oechem.OEClearAromaticFlags(oe_molecule)
+
         if model == AromaticityModels.AM1BCC:
             cls._assign_am1bcc(oe_molecule)
+        elif model == AromaticityModels.MDL:
+            oechem.OEAssignAromaticFlags(oe_molecule, oechem.OEAroModel_MDL)
         else:
             raise NotImplementedError()
 
@@ -290,7 +298,7 @@ class BCCGenerator:
     @classmethod
     def _validate_assignment_matrix(
         cls,
-        oe_molecule: oechem.OEMol,
+        oe_molecule: "oechem.OEMol",
         assignment_matrix: numpy.ndarray,
         bcc_counts_matrix: numpy.ndarray,
         bcc_collection: BCCCollection,
@@ -366,7 +374,9 @@ class BCCGenerator:
 
     @classmethod
     def build_assignment_matrix(
-        cls, oe_molecule: oechem.OEMol, bcc_collection: BCCCollection,
+        cls,
+        oe_molecule: "oechem.OEMol",
+        bcc_collection: BCCCollection,
     ) -> numpy.ndarray:
         """Generated a matrix which indicates which bond charge
         corrections have been applied to each atom in the molecule.
@@ -391,6 +401,8 @@ class BCCGenerator:
             `n_bond_charge_corrections` is the number of bond charges corrections
             to apply.
         """
+
+        oechem = import_oechem()
 
         # Make a copy of the molecule to assign the aromatic flags to.
         oe_molecule = oechem.OEMol(oe_molecule)
@@ -441,7 +453,9 @@ class BCCGenerator:
 
     @classmethod
     def apply_assignment_matrix(
-        cls, assignment_matrix: numpy.ndarray, bcc_collection: BCCCollection,
+        cls,
+        assignment_matrix: numpy.ndarray,
+        bcc_collection: BCCCollection,
     ) -> numpy.ndarray:
         """Applies an assignment matrix to a list of bond charge corrections
         yield the final bond-charge corrections for a molecule.
@@ -483,7 +497,9 @@ class BCCGenerator:
 
     @classmethod
     def applied_corrections(
-        cls, *oe_molecules: oechem.OEMol, bcc_collection: BCCCollection,
+        cls,
+        *oe_molecules: "oechem.OEMol",
+        bcc_collection: BCCCollection,
     ) -> List[BCCParameter]:
         """Returns the bond charge corrections which will be applied
         to a given molecule.
@@ -509,11 +525,14 @@ class BCCGenerator:
                 if bcc_collection.parameters[index] not in applied_corrections
             )
 
+        applied_corrections.sort(key=lambda x: bcc_collection.parameters.index(x))
         return applied_corrections
 
     @classmethod
     def generate(
-        cls, oe_molecule: oechem.OEMol, bcc_collection: BCCCollection,
+        cls,
+        oe_molecule: "oechem.OEMol",
+        bcc_collection: BCCCollection,
     ) -> numpy.ndarray:
         """Generate the partial charges for a molecule. If no conformer
         generator is provided those conformers on the provided molecule
@@ -569,7 +588,7 @@ def original_am1bcc_corrections() -> BCCCollection:
     )
 
 
-def compare_openeye_parity(oe_molecule: oechem.OEMol) -> bool:
+def compare_openeye_parity(oe_molecule: "oechem.OEMol") -> bool:
     """A utility function to compute the bond charge corrections
     on a molecule using both the internal AM1BCC implementation,
     and the OpenEye AM1BCC implementation.
@@ -591,7 +610,10 @@ def compare_openeye_parity(oe_molecule: oechem.OEMol) -> bool:
     bond_charge_corrections = original_am1bcc_corrections()
 
     # Generate a conformer for the molecule.
-    conformers = OmegaELF10.generate(oe_molecule, max_conformers=1)
+    conformers = ConformerGenerator.generate(
+        oe_molecule,
+        ConformerSettings(method="omega", sampling_mode="sparse", max_conformers=1),
+    )
 
     # Generate a set of reference charges using the OpenEye implementation
     reference_charges = ChargeGenerator.generate(

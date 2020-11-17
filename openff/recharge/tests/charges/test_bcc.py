@@ -58,6 +58,27 @@ def test_applied_corrections():
     assert applied_corrections[0] == bcc_collection.parameters[1]
 
 
+def test_applied_corrections_order():
+    """Ensure that the applied corrections are returned in the correct order
+    when applying them to multiple molecules."""
+
+    bcc_collection = BCCCollection(
+        parameters=[
+            BCCParameter(smirks="[#7:1]-[#1:2]", value=1.0, provenance={}),
+            BCCParameter(smirks="[#6:1]-[#1:2]", value=1.0, provenance={}),
+        ]
+    )
+
+    applied_corrections = BCCGenerator.applied_corrections(
+        smiles_to_molecule("C"), smiles_to_molecule("N"), bcc_collection=bcc_collection
+    )
+
+    assert len(applied_corrections) == 2
+
+    assert applied_corrections[0] == bcc_collection.parameters[0]
+    assert applied_corrections[1] == bcc_collection.parameters[1]
+
+
 def test_apply_assignment():
 
     settings = BCCCollection(
@@ -147,6 +168,16 @@ def test_am1_bcc_aromaticity_ring_size():
 
     assert [not atoms[index].IsAromatic() for index in range(2)]
     assert [atoms[index].IsAromatic() for index in range(2, 12)]
+
+
+@pytest.mark.parametrize(
+    "aromaticity_model",
+    [AromaticityModels.AM1BCC, AromaticityModels.MDL],
+)
+def test_aromaticity_models(aromaticity_model):
+
+    oe_molecule = smiles_to_molecule("C")
+    AromaticityModel.assign(oe_molecule, aromaticity_model)
 
 
 def test_generate():

@@ -1,3 +1,4 @@
+import numpy
 import torch
 import torch.optim
 
@@ -8,11 +9,15 @@ from openff.recharge.charges.bcc import (
 )
 from openff.recharge.charges.charges import ChargeSettings
 from openff.recharge.esp.storage import MoleculeESPStore
-from openff.recharge.optimize.optimize import ESPOptimization
+from openff.recharge.optimize.optimize import ElectricFieldOptimization, ESPOptimization
 from openff.recharge.utilities.openeye import smiles_to_molecule
 
 
 def main():
+
+    # Define the type of optimization
+    # optimization_class = ESPOptimization
+    optimization_class = ElectricFieldOptimization
 
     # Load the data base of ESP values.
     esp_store = MoleculeESPStore()
@@ -49,20 +54,19 @@ def main():
     # Precalculate the expensive operations which are needed to
     # evaluate the objective function, but do not depend on the
     # current parameters.
-    precalculated_terms = ESPOptimization.precalculate(
+    objective_term_generator = optimization_class.compute_objective_terms(
         smiles, esp_store, bcc_collection, fixed_parameter_indices, charge_settings
     )
+    objective_terms = [*objective_term_generator]
 
-    for precalculated_term in precalculated_terms:
-        precalculated_term.assignment_matrix = torch.from_numpy(
-            precalculated_term.assignment_matrix
+    design_matrix = torch.from_numpy(
+        numpy.vstack(objective_term.design_matrix for objective_term in objective_terms)
+    )
+    target_residuals = torch.from_numpy(
+        numpy.vstack(
+            objective_term.target_residuals for objective_term in objective_terms
         )
-        precalculated_term.inverse_distance_matrix = torch.from_numpy(
-            precalculated_term.inverse_distance_matrix
-        )
-        precalculated_term.v_difference = torch.from_numpy(
-            precalculated_term.v_difference
-        )
+    )
 
     # Optimize the parameters.
     lr = 1e-2
@@ -73,20 +77,14 @@ def main():
 
     for epoch in range(n_epochs):
 
-        loss = torch.zeros(1, dtype=torch.float64)
+        if isinstance(optimization_class, ElectricFieldOptimization):
+            delta = target_residuals - design_matrix @ current_parameters.flatten()
+        elif isinstance(optimization_class, ESPOptimization):
+            delta = target_residuals - design_matrix @ current_parameters
+        else:
+            raise NotImplementedError()
 
-        for precalculated_term in precalculated_terms:
-
-            # noinspection PyTypeChecker
-            v_correction = ESPOptimization.compute_v_correction(
-                precalculated_term.inverse_distance_matrix,
-                precalculated_term.assignment_matrix,
-                current_parameters,
-            )
-
-            loss += ESPOptimization.compute_objective_function(
-                precalculated_term.v_difference, v_correction
-            )
+        loss = (delta * delta).sum()
 
         loss.backward()
 

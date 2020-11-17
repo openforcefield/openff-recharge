@@ -1,12 +1,18 @@
+import sys
+
 import numpy
 import pytest
 from openeye import oechem
 
 from openff.recharge.utilities.exceptions import (
     InvalidSmirksError,
+    MissingOptionalDependency,
     MoleculeFromSmilesError,
 )
 from openff.recharge.utilities.openeye import (
+    import_oechem,
+    import_oeomega,
+    import_oequacpac,
     match_smirks,
     molecule_to_conformers,
     smiles_to_molecule,
@@ -86,3 +92,75 @@ def test_molecule_to_conformer():
 
     assert conformers[0].shape == conformer.shape
     assert numpy.allclose(conformers[0], conformer)
+
+
+def test_missing_oechem(monkeypatch):
+    # Mock OE to be missing
+    monkeypatch.setitem(sys.modules, "openeye.oechem", None)
+
+    with pytest.raises(MissingOptionalDependency) as error_info:
+        import_oechem()
+
+    assert error_info.value.library_name == "openeye.oechem"
+    assert error_info.value.license_issue is False
+
+
+def test_missing_oeomega(monkeypatch):
+    # Mock OE to be missing
+    monkeypatch.setitem(sys.modules, "openeye.oeomega", None)
+
+    with pytest.raises(MissingOptionalDependency) as error_info:
+        import_oeomega()
+
+    assert error_info.value.library_name == "openeye.oeomega"
+    assert error_info.value.license_issue is False
+
+
+def test_missing_oequacpac(monkeypatch):
+    # Mock OE to be missing
+    monkeypatch.setitem(sys.modules, "openeye.oequacpac", None)
+
+    with pytest.raises(MissingOptionalDependency) as error_info:
+        import_oequacpac()
+
+    assert error_info.value.library_name == "openeye.oequacpac"
+    assert error_info.value.license_issue is False
+
+
+def test_missing_oechem_license(monkeypatch):
+
+    from openeye import oechem
+
+    monkeypatch.setattr(oechem, "OEChemIsLicensed", lambda: False)
+
+    with pytest.raises(MissingOptionalDependency) as error_info:
+        import_oechem()
+
+    assert error_info.value.library_name == "openeye.oechem"
+    assert error_info.value.license_issue is True
+
+
+def test_missing_oeomega_license(monkeypatch):
+
+    from openeye import oeomega
+
+    monkeypatch.setattr(oeomega, "OEOmegaIsLicensed", lambda: False)
+
+    with pytest.raises(MissingOptionalDependency) as error_info:
+        import_oeomega()
+
+    assert error_info.value.library_name == "openeye.oeomega"
+    assert error_info.value.license_issue is True
+
+
+def test_missing_oequacpac_license(monkeypatch):
+
+    from openeye import oequacpac
+
+    monkeypatch.setattr(oequacpac, "OEQuacPacIsLicensed", lambda: False)
+
+    with pytest.raises(MissingOptionalDependency) as error_info:
+        import_oequacpac()
+
+    assert error_info.value.library_name == "openeye.oequacpac"
+    assert error_info.value.license_issue is True

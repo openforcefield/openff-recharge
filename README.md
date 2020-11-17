@@ -1,4 +1,4 @@
-openff-recharge
+OpenFF Recharge
 ==============================
 [//]: # (Badges)
 ![tests](https://github.com/openforcefield/openff-recharge/workflows/tests/badge.svg?branch=master)
@@ -6,15 +6,17 @@ openff-recharge
 [![codecov](https://codecov.io/gh/openforcefield/openff-recharge/branch/master/graph/badge.svg)](https://codecov.io/gh/openforcefield/openff-recharge/branch/master)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-An automated framework for generating optimized partial charges for molecules.
+OpenFF Recharge is an framework which provides utilities for optimising the partial charges of molecules against electrostatic potential data through the use of bond-charge corrections (BCC).
 
-**Warning** - nothing in this repository should be considered as being scientifically correct and should in no way be
-used in any production work.
+**Warning** - although a significant effort has been made to ensure the scientific validity of this framework (especially the hand-converted AM1BCC parameters), it is still under heavy development and much care should be taken when using it in production work.
 
-### Copyright
+#### License
 
-Copyright (c) 2020, Simon Boothroyd
+MIT. See the [License File](LICENSE) for more information.
 
+#### Copyright
+
+Copyright (c) 2020, Open Force Field Consortium
 
 #### Acknowledgements
  

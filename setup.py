@@ -44,16 +44,27 @@ setup(
     # Allows `setup.py test` to work correctly with pytest
     setup_requires=[] + pytest_runner,
 
-    # Additional entries you may want simply uncomment the lines you want and fill in the data
-    # url='http://www.my_package.com',  # Website
-    # install_requires=[],              # Required packages, pulls from pip if needed; do not use for Conda deployment
-    # platforms=['Linux',
-    #            'Mac OS-X',
-    #            'Unix',
-    #            'Windows'],            # Valid platforms your code works on, adjust to your flavor
-    # python_requires=">=3.5",          # Python version restrictions
+    # Required packages, pulls from pip if needed; do not use for Conda deployment
+    install_requires=[
+        # Core dependencies
+        'click',
+        'numpy',
+        'pydantic',
+        # ESP generation
+        'jinja2',
+        # ESP storage
+        'sqlalchemy',
+        # Python <3.8 compatibility
+        'typing-extensions'
+    ],
 
-    # Manual control if final package is compressible or not, set False to prevent the .egg from being made
-    # zip_safe=False,
+    # Set up the main CLI entry points
+    entry_points={
+        'console_scripts': [
+            'recharge=openff.recharge.cli:cli',
+        ],
+    },
 
+    # Python version restrictions
+    python_requires=">=3.6",
 )

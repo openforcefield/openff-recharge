@@ -1,15 +1,21 @@
 """This module contains classes which will generate partial charges using a combination
 of a cheaper QM method and a set of bond charge corrections.
 """
-from typing import List
+from typing import TYPE_CHECKING, List
 
 import numpy
-from openeye import oechem, oequacpac
 from pydantic import BaseModel, Field
 from typing_extensions import Literal
 
 from openff.recharge.charges.exceptions import OEQuacpacError
-from openff.recharge.utilities.openeye import call_openeye
+from openff.recharge.utilities.openeye import (
+    call_openeye,
+    import_oechem,
+    import_oequacpac,
+)
+
+if TYPE_CHECKING:
+    from openeye import oechem
 
 
 class ChargeSettings(BaseModel):
@@ -40,7 +46,7 @@ class ChargeGenerator:
     @classmethod
     def generate(
         cls,
-        oe_molecule: oechem.OEMol,
+        oe_molecule: "oechem.OEMol",
         conformers: List[numpy.ndarray],
         settings: ChargeSettings,
     ) -> numpy.ndarray:
@@ -61,6 +67,9 @@ class ChargeGenerator:
         -------
             The computed partial charges.
         """
+
+        oechem = import_oechem()
+        oequacpac = import_oequacpac()
 
         # Make a copy of the molecule so as not to perturb the original.
         oe_molecule = oechem.OEMol(oe_molecule)

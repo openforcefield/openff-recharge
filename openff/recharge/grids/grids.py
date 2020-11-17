@@ -2,11 +2,14 @@ import itertools
 from typing import TYPE_CHECKING
 
 import numpy
-from openeye import oechem
 from pydantic import BaseModel, Field
 from typing_extensions import Literal
 
+from openff.recharge.utilities.openeye import import_oechem
+
 if TYPE_CHECKING:
+    from openeye import oechem
+
     PositiveFloat = float
 else:
     from pydantic import PositiveFloat
@@ -40,7 +43,10 @@ class GridGenerator:
 
     @classmethod
     def generate(
-        cls, oe_molecule: oechem.OEMol, conformer: numpy.ndarray, settings: GridSettings
+        cls,
+        oe_molecule: "oechem.OEMol",
+        conformer: numpy.ndarray,
+        settings: GridSettings,
     ) -> numpy.ndarray:
         """Generates a grid of points in a shell around a specified
         molecule in a given conformer according a set of settings.
@@ -59,6 +65,8 @@ class GridGenerator:
         -------
             The coordinates of the grid with shape=(n_grid_points, 3).
         """
+
+        oechem = import_oechem()
 
         # Only operate on a copy of the molecule.
         oe_molecule = oechem.OEMol(oe_molecule)

@@ -1,13 +1,17 @@
 import os
 import subprocess
+from typing import TYPE_CHECKING, Tuple
 
 import jinja2
 import numpy
-from openeye import oechem
 
 from openff.recharge.esp import ESPGenerator, ESPSettings
 from openff.recharge.esp.exceptions import Psi4Error
 from openff.recharge.utilities import get_data_file_path, temporary_cd
+from openff.recharge.utilities.openeye import import_oechem
+
+if TYPE_CHECKING:
+    from openeye import oechem
 
 
 class Psi4ESPGenerator(ESPGenerator):
@@ -17,7 +21,10 @@ class Psi4ESPGenerator(ESPGenerator):
 
     @classmethod
     def _generate_input(
-        cls, oe_molecule: oechem.OEMol, conformer: numpy.ndarray, settings: ESPSettings
+        cls,
+        oe_molecule: "oechem.OEMol",
+        conformer: numpy.ndarray,
+        settings: ESPSettings,
     ) -> str:
         """Generate the input files for Psi4.
 
@@ -34,6 +41,8 @@ class Psi4ESPGenerator(ESPGenerator):
         -------
             The contents of the input file.
         """
+
+        oechem = import_oechem()
 
         # Compute the total formal charge on the molecule.
         formal_charge = sum(atom.GetFormalCharge() for atom in oe_molecule.GetAtoms())
@@ -62,15 +71,31 @@ class Psi4ESPGenerator(ESPGenerator):
         with open(template_path) as file:
             template = jinja2.Template(file.read())
 
-        rendered_template = template.render(
-            {
-                "charge": formal_charge,
-                "spin": spin_multiplicity,
-                "atoms": atoms,
-                "basis": settings.basis,
-                "method": settings.method,
-            }
-        )
+        enable_pcm = settings.pcm_settings is not None
+
+        template_inputs = {
+            "charge": formal_charge,
+            "spin": spin_multiplicity,
+            "atoms": atoms,
+            "basis": settings.basis,
+            "method": settings.method,
+            "enable_pcm": enable_pcm,
+            "dft_settings": settings.psi4_dft_grid_settings.value,
+        }
+
+        if enable_pcm:
+
+            template_inputs.update(
+                {
+                    "pcm_solver": settings.pcm_settings.solver,
+                    "pcm_solvent": settings.pcm_settings.solvent,
+                    "pcm_radii_set": settings.pcm_settings.radii_model,
+                    "pcm_scaling": settings.pcm_settings.radii_scaling,
+                    "pcm_area": settings.pcm_settings.cavity_area,
+                }
+            )
+
+        rendered_template = template.render(template_inputs)
         # Remove the white space after the for loop
         rendered_template = rendered_template.replace("  \n}", "}")
 
@@ -79,12 +104,12 @@ class Psi4ESPGenerator(ESPGenerator):
     @classmethod
     def _generate(
         cls,
-        oe_molecule: oechem.OEMol,
+        oe_molecule: "oechem.OEMol",
         conformer: numpy.ndarray,
         grid: numpy.ndarray,
         settings: ESPSettings,
         directory: str = None,
-    ) -> numpy.ndarray:
+    ) -> Tuple[numpy.ndarray, numpy.ndarray]:
 
         # Perform the calculation in a temporary directory
         with temporary_cd(directory):
@@ -113,5 +138,6 @@ class Psi4ESPGenerator(ESPGenerator):
                 raise Psi4Error(std_output.decode(), std_error.decode())
 
             esp = numpy.loadtxt("grid_esp.dat").reshape(-1, 1)
+            electric_field = numpy.loadtxt("grid_field.dat")
 
-        return esp
+        return esp, electric_field

@@ -329,7 +329,7 @@ def map_smiles_to_smirks(smiles: List[str]) -> Dict[str, List[str]]:
 
     match_function = functools.partial(
         match_bcc_parameters,
-        bond_charge_corrections=original_am1bcc_corrections().parameters
+        bond_charge_corrections=original_am1bcc_corrections().parameters,
     )
 
     with Pool(processes=N_PROCESSES) as pool:

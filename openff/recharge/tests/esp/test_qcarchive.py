@@ -187,6 +187,8 @@ def test_missing_wavefunction(
 
 def test_non_default_dft_grid():
 
+    pytest.importorskip("qcfractal")
+
     with pytest.raises(NotImplementedError):
 
         from_qcarchive(

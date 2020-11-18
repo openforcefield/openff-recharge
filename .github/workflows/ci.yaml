@@ -101,7 +101,7 @@ jobs:
         shell: bash -l {0}
         run: |
 
-          conda install --yes -c conda-forge -c psi4/label/dev qcfractal "psi4 >1.4a2.dev700,<1.4a2" qcengine >=0.15.0 cmiles
+          conda install --yes -c conda-forge -c psi4/label/dev qcportal qcfractal "psi4 >1.4a2.dev700,<1.4a2" qcengine >=0.15.0 cmiles
 
       - name: Install Package
         shell: bash -l {0}

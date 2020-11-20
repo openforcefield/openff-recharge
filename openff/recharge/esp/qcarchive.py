@@ -1,10 +1,14 @@
-from typing import TYPE_CHECKING, Iterable, List, Optional, Tuple
+import json
+import logging
+import re
+from typing import TYPE_CHECKING, Dict, Iterable, List, Optional, Tuple
 
 import numpy
+from pydantic import ValidationError
 
-from openff.recharge.esp import DFTGridSettings, ESPSettings
+from openff.recharge.esp import ESPSettings, PCMSettings
 from openff.recharge.esp.storage import MoleculeESPRecord
-from openff.recharge.grids import GridGenerator
+from openff.recharge.grids import GridGenerator, GridSettings
 from openff.recharge.utilities import requires_package
 from openff.recharge.utilities.exceptions import RechargeException
 from openff.recharge.utilities.openeye import molecule_to_conformers
@@ -13,6 +17,13 @@ if TYPE_CHECKING:
     import qcelemental.models
     import qcelemental.models.results
     import qcportal.models
+
+QCFractalResults = List[
+    Tuple["qcelemental.models.Molecule", "qcportal.models.ResultRecord"]
+]
+QCFractalKeywords = Dict[str, "qcportal.models.KeywordSet"]
+
+logger = logging.getLogger(__name__)
 
 
 class MissingQCMoleculesError(RechargeException):
@@ -63,31 +74,119 @@ class MissingQCWaveFunctionError(RechargeException):
         self.result_id = result_id
 
 
-def _retrieve_qca_results(
+class InvalidPCMKeywordError(RechargeException):
+    """An exception raised when the PCM settings found in the 'pcm__input' entry of
+    an entries keywords cannot be safely parsed."""
+
+    def __init__(self, input_string: str):
+
+        super(InvalidPCMKeywordError, self).__init__(
+            f"The PCM settings could not be safely parsed: {input_string}"
+        )
+
+
+def _parse_pcm_input(input_string: str) -> PCMSettings:
+    """Attempts to parse a set of PCM settings from a PSI4 keyword string."""
+
+    # Convert the string to a JSON like string.
+    value = input_string.replace(" ", "").replace("=", ":").replace("{", ":{")
+    value = re.sub(r"(\d*[a-z][a-z\d]*)", r'"\1"', value)
+    value = re.sub(r'(["\d}])"', r'\1,"', value.replace("\n", ""))
+    value = value.replace('"true"', "true")
+    value = value.replace('"false"', "false")
+
+    solvent_map = {"H2O": "Water"}
+    radii_map = {"BONDI": "Bondi", "UFF": "UFF", "ALLINGER": "Allinger"}
+
+    # Load the string into a dictionary.
+    pcm_dict = json.loads(f"{{{value}}}")
+
+    try:
+        # Validate some of the settings which we do not store in the settings
+        # object yet.
+        assert pcm_dict["cavity"]["type"].upper() == "GEPOL"
+        assert pcm_dict["cavity"]["mode"].upper() == "IMPLICIT"
+        assert numpy.isclose(pcm_dict["cavity"]["minradius"], 52.917721067)
+        assert pcm_dict["units"].upper() == "ANGSTROM"
+        assert pcm_dict["codata"] == 2010
+        assert pcm_dict["medium"]["nonequilibrium"] is False
+        assert pcm_dict["medium"]["matrixsymm"] is True
+        assert numpy.isclose(pcm_dict["medium"]["diagonalscaling"], 1.07)
+        assert numpy.isclose(pcm_dict["medium"]["proberadius"], 0.52917721067)
+        assert numpy.isclose(pcm_dict["medium"]["correction"], 0.0)
+
+        # noinspection PyTypeChecker
+        pcm_settings = PCMSettings(
+            solver=pcm_dict["medium"]["solvertype"].upper(),
+            solvent=solvent_map[pcm_dict["medium"]["solvent"].upper()],
+            radii_model=radii_map[pcm_dict["cavity"]["radiiset"].upper()],
+            radii_scaling=pcm_dict["cavity"]["scaling"],
+            cavity_area=pcm_dict["cavity"]["area"],
+        )
+
+    except (AssertionError, ValidationError):
+        raise InvalidPCMKeywordError(input_string)
+    except Exception as e:
+        raise e
+
+    return pcm_settings
+
+
+def _compare_pcm_settings(settings_a: PCMSettings, settings_b: PCMSettings) -> bool:
+    """Compares if two PCM settings are identical."""
+
+    for field in PCMSettings.__fields__:
+
+        value_a = getattr(settings_a, field)
+        value_b = getattr(settings_b, field)
+
+        if isinstance(value_a, float) and not numpy.isclose(value_a, value_b):
+            return False
+        elif not isinstance(value_a, float) and value_a != value_b:
+            return False
+
+    return True
+
+
+@requires_package("cmiles")
+@requires_package("qcportal")
+def retrieve_qcfractal_results(
     data_set_name: str,
     subset: Optional[Iterable[str]],
-    esp_settings: ESPSettings,
+    method: str,
+    basis: str,
+    pcm_settings: Optional[PCMSettings],
     qcfractal_address: Optional[str] = None,
-) -> List[Tuple["qcelemental.models.Molecule", "qcportal.models.ResultRecord"]]:
+    error_on_missing: bool = True,
+) -> Tuple[QCFractalResults, QCFractalKeywords]:
     """Attempt to retrieve the results for the requested data set from a QCFractal
     server.
 
     Parameters
     ----------
     data_set_name
-        The name of the data set to retrive the results from.
+        The name of the data set to retrieve the results from.
     subset
         The SMILES representations of the subset of molecules to retrieve from the data
         set.
-    esp_settings
-        The settings which define the method and basis which the results should have
-        been computed using.
+    method
+        The method which the results should have been computed using.
+    basis
+        The basis which the results should have been computed using.
+    pcm_settings
+        The PCM settings which the results should have been computed using.
+        Use ``None`` to specify that PCM should not have been enabled.
     qcfractal_address
         An optional address to the QCFractal server instance which stores the data set.
+    error_on_missing
+        Whether to raise an exception when either a molecule listed in the subset
+        cannot be found in the data set, or when a result record could not be found
+        for one of the requested molecule in the data set.
 
     Returns
     -------
-        A list of the retrieved results alongside their corresponding molecule records.
+        A list of the retrieved results (alongside their corresponding molecule records)
+        and a dictionary of the keywords referenced by the results entries.
     """
 
     import cmiles
@@ -150,41 +249,84 @@ def _retrieve_qca_results(
     missing_smiles = (set() if subset is None else {*subset}) - found_smiles
 
     if len(missing_smiles) > 0:
-        raise MissingQCMoleculesError(data_set_name, missing_smiles)
+
+        if error_on_missing:
+            raise MissingQCMoleculesError(data_set_name, missing_smiles)
+        else:
+            logger.warning(
+                f"The following smiles count not be found in the {data_set_name} "
+                f"data set: {missing_smiles}"
+            )
 
     # Retrieve the data sets results records
-    all_results = []
+    results = []
 
     paginating = True
     page_index = 0
 
     while paginating:
 
-        results = client.query_results(
+        page_results = client.query_results(
             molecule=molecule_ids,
-            method=esp_settings.method,
-            basis=esp_settings.basis,
+            method=method,
+            basis=basis,
             limit=client.server_info["query_limit"],
             skip=page_index,
         )
 
-        all_results.extend(results)
+        results.extend(page_results)
 
-        paginating = len(results) > 0
+        paginating = len(page_results) > 0
         page_index += client.server_info["query_limit"]
 
+    # Filter based on the PCM settings.
+    keyword_ids = list({result.keywords for result in results})
+    keywords: Dict[
+        str,
+    ] = {keyword_id: client.query_keywords(keyword_id)[0] for keyword_id in keyword_ids}
+
+    if pcm_settings is None:
+        matching_keywords = [
+            keyword_id
+            for keyword_id, keyword in keywords.items()
+            if "pcm" not in keyword.values or keyword.values["pcm"] is False
+        ]
+    else:
+        matching_keywords = [
+            keyword_id
+            for keyword_id, keyword in keywords.items()
+            if "pcm" in keyword.values
+            and keyword.values["pcm"] is True
+            and "pcm__input" in keyword.values
+            and _compare_pcm_settings(
+                pcm_settings, _parse_pcm_input(keyword.values["pcm__input"])
+            )
+        ]
+
+    results = list(filter(lambda x: x.keywords in matching_keywords, results))
+
     # Make sure none of the records are missing.
-    result_ids = {result.molecule for result in all_results}
+    result_ids = {result.molecule for result in results}
 
     missing_result_ids = {*molecule_ids} - {*result_ids}
 
     if len(missing_result_ids) > 0:
-        raise MissingQCResultsError(data_set_name, missing_result_ids)
 
-    return [(molecules[result.molecule], result) for result in all_results]
+        if error_on_missing:
+            raise MissingQCResultsError(data_set_name, missing_result_ids)
+        else:
+            logger.warning(
+                f"Result records could not be found for the following molecules in the "
+                f"{data_set_name}: {missing_result_ids}"
+            )
+
+    return (
+        [(molecules[result.molecule], result) for result in results],
+        {keyword_id: keywords[keyword_id] for keyword_id in matching_keywords},
+    )
 
 
-def _reconstruct_density(
+def reconstruct_density(
     wavefunction: "qcelemental.models.results.WavefunctionProperties", n_alpha: int
 ) -> numpy.ndarray:
     """Reconstructs a density matrix from a QCFractal wavefunction, making sure to
@@ -249,7 +391,7 @@ def _reconstruct_density(
 
 
 @requires_package("psi4")
-def _compute_esp(
+def compute_esp(
     qc_molecule, density, esp_settings, grid
 ) -> Tuple[numpy.ndarray, numpy.ndarray]:
     """Computes the ESP and electric field for a particular molecule on
@@ -297,57 +439,42 @@ def _compute_esp(
     return esp, field
 
 
-@requires_package("qcportal")
 @requires_package("cmiles")
-def from_qcarchive(
-    data_set_name: str,
-    subset: Optional[Iterable[str]],
-    esp_settings: ESPSettings,
-    qcfractal_address: Optional[str] = None,
+@requires_package("qcportal")
+def from_qcfractal(
+    qcfractal_results: QCFractalResults,
+    qcfractal_keywords: QCFractalKeywords,
+    grid_settings: GridSettings,
 ) -> List[MoleculeESPRecord]:
-    """A function to compute the ESP and electric field from a set of precomputed
-    wavefunctions stored in a particular ``Dataset`` in the MOLSSI `QCArchive
-    <https://qcarchive.molssi.org/>`_ repository.
-
-    The ESP and electric fields are currently constructed from the stored wavefunctions
-    using the Psi4 package.
+    """A function which will evaluate the the ESP and electric field from a set of
+    wavefunctions which have been computed by a QCFractal instance using the Psi4
+    package.
 
     Parameters
     ----------
-    data_set_name
-        The name of the data set to compute the ESP and field for.
-    subset
-        The SMILES representations of the subset of molecules to compute the
-        ESP and field for.
-    esp_settings
-        The settings which define how to compute the ESP and field.
-    qcfractal_address
-        An optional address to the QCFractal server instance which stores the data set.
+    qcfractal_results
+        A list of the QCFractal results records which encode the wavefunction, along
+        with the molecule record which the result record corresponds to.
+    qcfractal_keywords
+        The keywords referenced by the results.
+    grid_settings
+        The settings which define the grid to evaluate the electronic properties on.
 
     Returns
     -------
-        The computed records.
+        The values of the ESP and electric field stored in storable records.
     """
 
     import cmiles.utils
     from qcelemental.models.results import WavefunctionProperties
 
-    if esp_settings.psi4_dft_grid_settings != DFTGridSettings.Default:
-
-        raise NotImplementedError(
-            "The `psi4_dft_grid_settings` are `openff-recharge` specific and hence "
-            "cannot be used in combination with QCFractal computations."
-        )
-
-    # Pull down the appropriate results from the QCA.
-    qca_results = _retrieve_qca_results(
-        data_set_name, subset, esp_settings, qcfractal_address
-    )
-
     # Compute and store the ESP and electric field for each result.
     records = []
 
-    for (qc_molecule, result) in qca_results:
+    qc_molecule: "qcelemental.models.Molecule"
+    result: "qcportal.models.ResultRecord"
+
+    for (qc_molecule, result) in qcfractal_results:
 
         if result.wavefunction is None:
             raise MissingQCWaveFunctionError(result.id)
@@ -360,7 +487,7 @@ def from_qcarchive(
             **result.wavefunction["return_map"],
         )
 
-        density = _reconstruct_density(wavefunction, result.properties.calcinfo_nalpha)
+        density = reconstruct_density(wavefunction, result.properties.calcinfo_nalpha)
 
         # Convert the OE molecule to a QC molecule and extract the conformer of
         # interest.
@@ -380,13 +507,26 @@ def from_qcarchive(
 
         conformer = conformers[0]
 
-        # Contruct the grid to evaluate the ESP / electric field on.
-        grid = GridGenerator.generate(
-            oe_molecule, conformer, esp_settings.grid_settings
+        # Construct the grid to evaluate the ESP / electric field on.
+        grid = GridGenerator.generate(oe_molecule, conformer, grid_settings)
+
+        # Retrieve the ESP settings from the record.
+        keyword = qcfractal_keywords[result.keywords]
+        enable_pcm = "pcm" in keyword.values
+
+        esp_settings = ESPSettings(
+            basis=result.basis,
+            method=result.method,
+            grid_settings=grid_settings,
+            pcm_settings=(
+                None
+                if not enable_pcm
+                else _parse_pcm_input(keyword.values["pcm__input"])
+            ),
         )
 
         # Reconstruct the ESP and field from the density.
-        esp, electric_field = _compute_esp(qc_molecule, density, esp_settings, grid)
+        esp, electric_field = compute_esp(qc_molecule, density, esp_settings, grid)
 
         records.append(
             MoleculeESPRecord.from_oe_molecule(

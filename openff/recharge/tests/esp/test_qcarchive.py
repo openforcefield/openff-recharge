@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING
 import numpy
 import pytest
 
-from openff.recharge.esp import DFTGridSettings, ESPSettings, PCMSettings
+from openff.recharge.esp import PCMSettings
 from openff.recharge.esp.qcarchive import (
     InvalidPCMKeywordError,
     MissingQCMoleculesError,
@@ -12,14 +12,42 @@ from openff.recharge.esp.qcarchive import (
     MissingQCWaveFunctionError,
     _compare_pcm_settings,
     _parse_pcm_input,
-    from_qcfractal,
+    from_qcfractal_result,
+    retrieve_qcfractal_results,
 )
 from openff.recharge.grids import GridSettings
+from openff.recharge.tests import does_not_raise
 
 if TYPE_CHECKING:
 
     from qcfractal import FractalSnowflake
     from qcfractal.interface.collections import Dataset
+
+
+@pytest.fixture(scope="module")
+def pcm_input_string() -> str:
+
+    return "\n".join(
+        [
+            "units = angstrom",
+            "codata = 2010",
+            "medium {",
+            "solvertype = cpcm",
+            "nonequilibrium = false",
+            "solvent = h2o",
+            "matrixsymm = true",
+            "correction = 0.0",
+            "diagonalscaling = 1.07",
+            "proberadius = 0.52917721067}",
+            "cavity {",
+            "type = gepol",
+            "area = 0.3",
+            "scaling = true",
+            "radiiset = bondi",
+            "minradius = 52.917721067",
+            "mode = implicit}",
+        ]
+    )
 
 
 @pytest.fixture(scope="module")
@@ -34,7 +62,7 @@ def qc_server() -> "FractalSnowflake":
 
 
 @pytest.fixture(scope="module")
-def qc_data_set(qc_server: "FractalSnowflake") -> "Dataset":
+def qc_data_set(qc_server: "FractalSnowflake", pcm_input_string: str) -> "Dataset":
 
     import qcfractal.interface as qcportal
 
@@ -42,6 +70,18 @@ def qc_data_set(qc_server: "FractalSnowflake") -> "Dataset":
 
     # Mock a data set.
     data_set = qcportal.collections.Dataset("test-set", client=client)
+    data_set.add_keywords(
+        "vacuum",
+        "psi4",
+        qcportal.models.KeywordSet(values={}),
+    )
+    data_set.add_keywords(
+        "pcm",
+        "psi4",
+        qcportal.models.KeywordSet(
+            values={"pcm": True, "pcm__input": pcm_input_string}
+        ),
+    )
     data_set.add_entry(
         "water",
         qcportal.Molecule.from_data(
@@ -56,39 +96,113 @@ def qc_data_set(qc_server: "FractalSnowflake") -> "Dataset":
                 connectivity=[(0, 1, 1.0), (0, 2, 1.0)],
                 fix_com=True,
                 fix_orientation=True,
+                fix_symmetry="c1",
                 extras=dict(
                     canonical_isomeric_explicit_hydrogen_mapped_smiles="[H:2][O:1][H:3]"
                 ),
             )
         ),
     )
+
     data_set.save()
 
     # Compute the set.
-    data_set.compute(
+    x = data_set.compute(
         program="psi4",
         method="scf",
         basis="sto-3g",
         protocols={"wavefunction": "orbitals_and_eigenvalues"},
+        keywords="vacuum",
     )
+    y = data_set.compute(
+        program="psi4",
+        method="scf",
+        basis="sto-3g",
+        protocols={"wavefunction": "orbitals_and_eigenvalues"},
+        keywords="pcm",
+    )
+
+    print(x, y)
 
     qc_server.await_results()
     return data_set
 
 
-def test_from_qcfractal(qc_server: "FractalSnowflake", qc_data_set: "Dataset"):
+@pytest.mark.parametrize("pcm_settings", [None, PCMSettings()])
+def test_retrieve_results(
+    pcm_settings,
+    qc_server: "FractalSnowflake",
+    qc_data_set: "Dataset",
+    pcm_input_string: str,
+):
 
-    esp_records = from_qcfractal(
-        qc_data_set.name,
-        ["O"],
-        ESPSettings(
-            method="scf", basis="sto-3g", grid_settings=GridSettings(spacing=2.0)
-        ),
-        qc_server.get_address(),
+    qc_results, qc_keywords = retrieve_qcfractal_results(
+        qc_data_set.name, ["O"], "scf", "sto-3g", pcm_settings, qc_server.get_address()
     )
 
-    assert len(esp_records) == 1
-    esp_record = esp_records[0]
+    assert len(qc_results) == 1
+    assert len(qc_keywords) == 1
+
+    assert ("1" if pcm_settings is None else "2") in qc_keywords
+
+    if pcm_settings:
+        assert qc_keywords["2"].values["pcm__input"] == pcm_input_string
+
+
+@pytest.mark.parametrize(
+    "raise_error, expected_raises",
+    [(True, pytest.raises(MissingQCMoleculesError)), (False, does_not_raise())],
+)
+def test_missing_smiles(
+    raise_error, expected_raises, qc_server: "FractalSnowflake", qc_data_set: "Dataset"
+):
+
+    with expected_raises:
+
+        retrieve_qcfractal_results(
+            qc_data_set.name,
+            ["CO"],
+            "scf",
+            "sto-3g",
+            None,
+            qc_server.get_address(),
+            error_on_missing=raise_error,
+        )
+
+
+@pytest.mark.parametrize(
+    "raise_error, expected_raises",
+    [(True, pytest.raises(MissingQCResultsError)), (False, does_not_raise())],
+)
+def test_missing_result(
+    raise_error, expected_raises, qc_server: "FractalSnowflake", qc_data_set: "Dataset"
+):
+
+    with expected_raises:
+
+        retrieve_qcfractal_results(
+            qc_data_set.name,
+            ["O"],
+            "scf",
+            "6-31g",
+            None,
+            qc_server.get_address(),
+            error_on_missing=raise_error,
+        )
+
+
+def test_from_qcfractal_result(qc_server: "FractalSnowflake", qc_data_set: "Dataset"):
+
+    qc_result = qc_server.client().query_results(id="1")[0]
+    qc_molecule = qc_result.get_molecule()
+    qc_keyword_set = qc_server.client().query_keywords(id="1")[0]
+
+    esp_record = from_qcfractal_result(
+        qc_result=qc_result,
+        qc_molecule=qc_molecule,
+        qc_keyword_set=qc_keyword_set,
+        grid_settings=GridSettings(spacing=2.0),
+    )
 
     # Generated using psi4=1.4a2.dev1091+d1fb616 on OSX
     expected_esp = numpy.array(
@@ -131,81 +245,22 @@ def test_from_qcfractal(qc_server: "FractalSnowflake", qc_data_set: "Dataset"):
     assert numpy.allclose(esp_record.esp, expected_esp, rtol=1.0e-9)
 
 
-def test_missing_smiles(qc_server: "FractalSnowflake", qc_data_set: "Dataset"):
+def test_missing_wavefunction(qc_server: "FractalSnowflake", qc_data_set: "Dataset"):
 
-    with pytest.raises(MissingQCMoleculesError):
-
-        from_qcfractal(
-            qc_data_set.name,
-            ["CO"],
-            ESPSettings(
-                method="scf", basis="sto-3g", grid_settings=GridSettings(spacing=2.0)
-            ),
-            qc_server.get_address(),
-        )
-
-
-def test_missing_result(qc_server: "FractalSnowflake", qc_data_set: "Dataset"):
-
-    with pytest.raises(MissingQCResultsError):
-
-        from_qcfractal(
-            qc_data_set.name,
-            ["O"],
-            ESPSettings(
-                method="scf", basis="6-31G", grid_settings=GridSettings(spacing=2.0)
-            ),
-            qc_server.get_address(),
-        )
-
-
-def test_missing_wavefunction(
-    qc_server: "FractalSnowflake", qc_data_set: "Dataset", monkeypatch
-):
-
-    import qcportal
     from qcportal.models import ResultRecord
 
-    old_query = qcportal.FractalClient.query_results
+    qc_result = qc_server.client().query_results(id="1")[0]
+    qc_molecule = qc_result.get_molecule()
+    qc_keyword_set = qc_server.client().query_keywords(id="1")[0]
 
-    def remove_wavefunction(self, *args, **kwargs):
-
-        return [
-            ResultRecord(**result.dict(exclude={"wavefunction"}), wavefunction=None)
-            for result in old_query(self, *args, **kwargs)
-        ]
-
-    monkeypatch.setattr(qcportal.FractalClient, "query_results", remove_wavefunction)
+    # Delete the wavefunction
+    qc_result = ResultRecord(
+        **qc_result.dict(exclude={"wavefunction"}), wavefunction=None
+    )
 
     with pytest.raises(MissingQCWaveFunctionError):
 
-        from_qcfractal(
-            qc_data_set.name,
-            ["O"],
-            ESPSettings(
-                method="scf", basis="sto-3g", grid_settings=GridSettings(spacing=2.0)
-            ),
-            qc_server.get_address(),
-        )
-
-
-def test_non_default_dft_grid():
-
-    pytest.importorskip("qcfractal")
-
-    with pytest.raises(NotImplementedError):
-
-        from_qcfractal(
-            "",
-            None,
-            ESPSettings(
-                method="scf",
-                basis="sto-3g",
-                grid_settings=GridSettings(),
-                psi4_dft_grid_settings=DFTGridSettings.Fine,
-            ),
-            "",
-        )
+        from_qcfractal_result(qc_result, qc_molecule, qc_keyword_set, GridSettings())
 
 
 def test_parse_pcm_input():
@@ -274,12 +329,13 @@ def test_parse_invalid_pcm_input():
         _parse_pcm_input(value)
 
 
-def test_compare_pcm_settings():
-
-    settings_a = PCMSettings()
-    settings_b = PCMSettings()
-
-    assert _compare_pcm_settings(settings_a, settings_b)
-
-    settings_b.cavity_area *= 2.0
-    assert not _compare_pcm_settings(settings_a, settings_b)
+@pytest.mark.parametrize(
+    "settings, expectation",
+    [
+        (PCMSettings(), True),
+        (PCMSettings(cavity_area=0.6), False),
+        (PCMSettings(solver="IEFPCM"), False),
+    ],
+)
+def test_compare_pcm_settings(settings, expectation):
+    assert _compare_pcm_settings(settings, PCMSettings()) == expectation

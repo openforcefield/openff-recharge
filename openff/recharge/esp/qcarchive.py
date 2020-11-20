@@ -98,10 +98,10 @@ def _parse_pcm_input(input_string: str) -> PCMSettings:
     solvent_map = {"H2O": "Water"}
     radii_map = {"BONDI": "Bondi", "UFF": "UFF", "ALLINGER": "Allinger"}
 
-    # Load the string into a dictionary.
-    pcm_dict = json.loads(f"{{{value}}}")
-
     try:
+        # Load the string into a dictionary.
+        pcm_dict = json.loads(f"{{{value}}}")
+
         # Validate some of the settings which we do not store in the settings
         # object yet.
         assert pcm_dict["cavity"]["type"].upper() == "GEPOL"
@@ -303,7 +303,9 @@ def retrieve_qcfractal_results(
             )
         ]
 
-    results = list(filter(lambda x: x.keywords in matching_keywords, results))
+    results = list(
+        filter(lambda x: x.keywords is None or x.keywords in matching_keywords, results)
+    )
 
     # Make sure none of the records are missing.
     result_ids = {result.molecule for result in results}
@@ -415,6 +417,8 @@ def compute_esp(
     """
     import psi4
 
+    psi4.core.be_quiet()
+
     psi4_molecule = psi4.geometry(qc_molecule.to_string("psi4", "angstrom"))
     psi4_molecule.reset_point_group("c1")
 
@@ -434,29 +438,31 @@ def compute_esp(
     # TODO: enable this once an updated psi4 is released.
     # field = numpy.array(psi4_calculator.compute_field_over_grid_in_memory(psi4_grid))
 
-    field = numpy.zeros((len(esp), 3))
+    field = numpy.zeros((len(grid), 3))
 
     return esp, field
 
 
 @requires_package("cmiles")
 @requires_package("qcportal")
-def from_qcfractal(
-    qcfractal_results: QCFractalResults,
-    qcfractal_keywords: QCFractalKeywords,
+def from_qcfractal_result(
+    qc_result: "qcportal.models.ResultRecord",
+    qc_molecule: "qcelemental.models.Molecule",
+    qc_keyword_set: "qcportal.models.KeywordSet",
     grid_settings: GridSettings,
-) -> List[MoleculeESPRecord]:
+) -> MoleculeESPRecord:
     """A function which will evaluate the the ESP and electric field from a set of
     wavefunctions which have been computed by a QCFractal instance using the Psi4
     package.
 
     Parameters
     ----------
-    qcfractal_results
-        A list of the QCFractal results records which encode the wavefunction, along
-        with the molecule record which the result record corresponds to.
-    qcfractal_keywords
-        The keywords referenced by the results.
+    qc_result
+        The QCFractal result record which encodes the wavefunction
+    qc_molecule
+        The QC molecule corresponding to the result record.
+    qc_keyword_set
+        The keyword set used when computing the result record.
     grid_settings
         The settings which define the grid to evaluate the electronic properties on.
 
@@ -469,74 +475,62 @@ def from_qcfractal(
     from qcelemental.models.results import WavefunctionProperties
 
     # Compute and store the ESP and electric field for each result.
-    records = []
+    if qc_result.wavefunction is None:
+        raise MissingQCWaveFunctionError(qc_result.id)
 
-    qc_molecule: "qcelemental.models.Molecule"
-    result: "qcportal.models.ResultRecord"
+    # Retrieve the wavefunction and use it to reconstruct the electron density.
+    wavefunction = WavefunctionProperties(
+        **qc_result.get_wavefunction(
+            ["scf_eigenvalues_a", "scf_orbitals_a", "basis", "restricted"]
+        ),
+        **qc_result.wavefunction["return_map"],
+    )
 
-    for (qc_molecule, result) in qcfractal_results:
+    density = reconstruct_density(wavefunction, qc_result.properties.calcinfo_nalpha)
 
-        if result.wavefunction is None:
-            raise MissingQCWaveFunctionError(result.id)
+    # Convert the OE molecule to a QC molecule and extract the conformer of
+    # interest.
+    oe_molecule = cmiles.utils.load_molecule(
+        {
+            "symbols": qc_molecule.symbols,
+            "connectivity": qc_molecule.connectivity,
+            "geometry": qc_molecule.geometry.flatten(),
+            "molecular_charge": qc_molecule.molecular_charge,
+            "molecular_multiplicity": qc_molecule.molecular_multiplicity,
+        },
+        toolkit="openeye",
+    )
 
-        # Retrieve the wavefunction and use it to reconstruct the electron density.
-        wavefunction = WavefunctionProperties(
-            **result.get_wavefunction(
-                ["scf_eigenvalues_a", "scf_orbitals_a", "basis", "restricted"]
-            ),
-            **result.wavefunction["return_map"],
-        )
+    conformers = molecule_to_conformers(oe_molecule)
+    assert len(conformers) == 1
 
-        density = reconstruct_density(wavefunction, result.properties.calcinfo_nalpha)
+    conformer = conformers[0]
 
-        # Convert the OE molecule to a QC molecule and extract the conformer of
-        # interest.
-        oe_molecule = cmiles.utils.load_molecule(
-            {
-                "symbols": qc_molecule.symbols,
-                "connectivity": qc_molecule.connectivity,
-                "geometry": qc_molecule.geometry.flatten(),
-                "molecular_charge": qc_molecule.molecular_charge,
-                "molecular_multiplicity": qc_molecule.molecular_multiplicity,
-            },
-            toolkit="openeye",
-        )
+    # Construct the grid to evaluate the ESP / electric field on.
+    grid = GridGenerator.generate(oe_molecule, conformer, grid_settings)
 
-        conformers = molecule_to_conformers(oe_molecule)
-        assert len(conformers) == 1
+    # Retrieve the ESP settings from the record.
+    enable_pcm = "pcm" in qc_keyword_set.values
 
-        conformer = conformers[0]
+    esp_settings = ESPSettings(
+        basis=qc_result.basis,
+        method=qc_result.method,
+        grid_settings=grid_settings,
+        pcm_settings=(
+            None
+            if not enable_pcm
+            else _parse_pcm_input(qc_keyword_set.values["pcm__input"])
+        ),
+    )
 
-        # Construct the grid to evaluate the ESP / electric field on.
-        grid = GridGenerator.generate(oe_molecule, conformer, grid_settings)
+    # Reconstruct the ESP and field from the density.
+    esp, electric_field = compute_esp(qc_molecule, density, esp_settings, grid)
 
-        # Retrieve the ESP settings from the record.
-        keyword = qcfractal_keywords[result.keywords]
-        enable_pcm = "pcm" in keyword.values
-
-        esp_settings = ESPSettings(
-            basis=result.basis,
-            method=result.method,
-            grid_settings=grid_settings,
-            pcm_settings=(
-                None
-                if not enable_pcm
-                else _parse_pcm_input(keyword.values["pcm__input"])
-            ),
-        )
-
-        # Reconstruct the ESP and field from the density.
-        esp, electric_field = compute_esp(qc_molecule, density, esp_settings, grid)
-
-        records.append(
-            MoleculeESPRecord.from_oe_molecule(
-                oe_molecule,
-                conformer=conformer,
-                grid_coordinates=grid,
-                esp=esp,
-                electric_field=electric_field,
-                esp_settings=esp_settings,
-            )
-        )
-
-    return records
+    return MoleculeESPRecord.from_oe_molecule(
+        oe_molecule,
+        conformer=conformer,
+        grid_coordinates=grid,
+        esp=esp,
+        electric_field=electric_field,
+        esp_settings=esp_settings,
+    )

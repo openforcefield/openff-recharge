@@ -238,7 +238,7 @@ def test_parse_pcm_input():
     assert pcm_settings.cavity_area == 0.4
 
     assert pcm_settings.radii_model == "UFF"
-    assert pcm_settings.radii_scaling == False
+    assert pcm_settings.radii_scaling is False
 
 
 def test_parse_invalid_pcm_input():

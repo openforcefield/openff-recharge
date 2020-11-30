@@ -435,10 +435,7 @@ def compute_esp(
         psi4_calculator.compute_esp_over_grid_in_memory(psi4_grid)
     ).reshape(-1, 1)
 
-    # TODO: enable this once an updated psi4 is released.
-    # field = numpy.array(psi4_calculator.compute_field_over_grid_in_memory(psi4_grid))
-
-    field = numpy.zeros((len(grid), 3))
+    field = numpy.array(psi4_calculator.compute_field_over_grid_in_memory(psi4_grid))
 
     return esp, field
 

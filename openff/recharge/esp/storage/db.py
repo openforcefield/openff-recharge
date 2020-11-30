@@ -309,6 +309,26 @@ class DBMoleculeRecord(DBBase):
     conformers = relationship("DBConformerRecord")
 
 
+class DBGeneralProvenance(DBBase):
+
+    __tablename__ = "general_provenance"
+
+    key = Column(String, primary_key=True, index=True, unique=True)
+    value = Column(String, nullable=False)
+
+    parent_id = Column(Integer, ForeignKey("db_info.version"))
+
+
+class DBSoftwareProvenance(DBBase):
+
+    __tablename__ = "software_provenance"
+
+    key = Column(String, primary_key=True, index=True, unique=True)
+    value = Column(String, nullable=False)
+
+    parent_id = Column(Integer, ForeignKey("db_info.version"))
+
+
 class DBInformation(DBBase):
     """A class which keeps track of the current database
     settings.
@@ -317,3 +337,6 @@ class DBInformation(DBBase):
     __tablename__ = "db_info"
 
     version = Column(Integer, primary_key=True)
+
+    general_provenance = relationship("DBGeneralProvenance")
+    software_provenance = relationship("DBSoftwareProvenance")

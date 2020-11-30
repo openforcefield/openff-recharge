@@ -18,11 +18,13 @@ from openff.recharge.esp.storage.db import (
     DBConformerRecord,
     DBCoordinate,
     DBESPSettings,
+    DBGeneralProvenance,
     DBGridESP,
     DBGridSettings,
     DBInformation,
     DBMoleculeRecord,
     DBPCMSettings,
+    DBSoftwareProvenance,
 )
 from openff.recharge.esp.storage.exceptions import IncompatibleDBVersion
 from openff.recharge.utilities.openeye import import_oechem, smiles_to_molecule
@@ -142,6 +144,36 @@ class MoleculeESPStore:
     This class currently can only store the data in a SQLite data base.
     """
 
+    @property
+    def db_version(self) -> int:
+
+        with self._get_session() as db:
+            db_info = db.query(DBInformation).first()
+
+            return db_info.version
+
+    @property
+    def general_provenance(self) -> Dict[str, str]:
+        with self._get_session() as db:
+
+            db_info = db.query(DBInformation).first()
+
+            return {
+                provenance.key: provenance.value
+                for provenance in db_info.general_provenance
+            }
+
+    @property
+    def software_provenance(self) -> Dict[str, str]:
+        with self._get_session() as db:
+
+            db_info = db.query(DBInformation).first()
+
+            return {
+                provenance.key: provenance.value
+                for provenance in db_info.software_provenance
+            }
+
     def __init__(self, database_path: str = "esp-store.sqlite"):
         """
 
@@ -169,6 +201,36 @@ class MoleculeESPStore:
 
             if db_info.version != DB_VERSION:
                 raise IncompatibleDBVersion(db_info.version, DB_VERSION)
+
+    def set_provenance(
+        self,
+        general_provenance: Dict[str, str],
+        software_provenance: Dict[str, str],
+    ):
+        """Set the stores provenance information.
+
+        Parameters
+        ----------
+        general_provenance
+            A dictionary storing provenance about the store such as the author,
+            which QCArchive data set it was generated from, when it was generated
+            etc.
+        software_provenance
+            A dictionary storing the provenance of the software and packages used
+            to generate the data in the store.
+        """
+
+        with self._get_session() as db:
+
+            db_info: DBInformation = db.query(DBInformation).first()
+            db_info.general_provenance = [
+                DBGeneralProvenance(key=key, value=value)
+                for key, value in general_provenance.items()
+            ]
+            db_info.software_provenance = [
+                DBSoftwareProvenance(key=key, value=value)
+                for key, value in software_provenance.items()
+            ]
 
     @contextmanager
     def _get_session(self) -> ContextManager[Session]:

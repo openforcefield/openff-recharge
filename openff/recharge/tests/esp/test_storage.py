@@ -27,6 +27,25 @@ def test_db_version(tmp_path):
         assert db_info is not None
         assert db_info.version == DB_VERSION
 
+    assert esp_store.db_version == DB_VERSION
+
+
+def test_provenance(tmp_path):
+    """Tests that a stores provenance can be set / retrieved."""
+
+    esp_store = MoleculeESPStore(f"{tmp_path}.sqlite")
+
+    assert esp_store.general_provenance == {}
+    assert esp_store.software_provenance == {}
+
+    general_provenance = {"author": "Author 1"}
+    software_provenance = {"psi4": "0.1.0"}
+
+    esp_store.set_provenance(general_provenance, software_provenance)
+
+    assert esp_store.general_provenance == general_provenance
+    assert esp_store.software_provenance == software_provenance
+
 
 def test_db_invalid_version(tmp_path):
     """Tests that the correct exception is raised when loading a store

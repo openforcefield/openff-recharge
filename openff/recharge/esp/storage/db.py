@@ -338,5 +338,9 @@ class DBInformation(DBBase):
 
     version = Column(Integer, primary_key=True)
 
-    general_provenance = relationship("DBGeneralProvenance")
-    software_provenance = relationship("DBSoftwareProvenance")
+    general_provenance = relationship(
+        "DBGeneralProvenance", cascade="all, delete-orphan"
+    )
+    software_provenance = relationship(
+        "DBSoftwareProvenance", cascade="all, delete-orphan"
+    )

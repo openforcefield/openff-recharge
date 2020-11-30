@@ -1,11 +1,13 @@
 import numpy
 import torch
 import torch.optim
+from matplotlib import pyplot
 
 from openff.recharge.charges.bcc import (
     BCCCollection,
     BCCGenerator,
     original_am1bcc_corrections,
+    AromaticityModels,
 )
 from openff.recharge.charges.charges import ChargeSettings
 from openff.recharge.esp.storage import MoleculeESPStore
@@ -37,7 +39,10 @@ def main():
         == bcc_parameters[index].provenance["code"][-2:]
     ]
 
-    bcc_collection = BCCCollection(parameters=bcc_parameters)
+    bcc_collection = BCCCollection(
+        parameters=bcc_parameters,
+        aromaticity_model=AromaticityModels.MDL
+    )
     charge_settings = ChargeSettings()
 
     # Define the starting parameters
@@ -70,16 +75,16 @@ def main():
 
     # Optimize the parameters.
     lr = 1e-2
-    n_epochs = 250
+    n_epochs = 100
 
     # Defines an Adam optimizer to update the parameters
     optimizer = torch.optim.Adam([current_parameters], lr=lr)
 
     for epoch in range(n_epochs):
 
-        if isinstance(optimization_class, ElectricFieldOptimization):
+        if issubclass(optimization_class, ElectricFieldOptimization):
             delta = target_residuals - design_matrix @ current_parameters.flatten()
-        elif isinstance(optimization_class, ESPOptimization):
+        elif issubclass(optimization_class, ESPOptimization):
             delta = target_residuals - design_matrix @ current_parameters
         else:
             raise NotImplementedError()
@@ -95,6 +100,32 @@ def main():
 
     print(f"Initial parameters: {initial_parameters.detach().numpy()}")
     print(f"Final parameters: {current_parameters.detach().numpy()}")
+
+    # Save out the new parameters.
+    final_bcc_collection = bcc_collection.copy(deep=True)
+
+    parameter_index = 0
+
+    for index in range(len(final_bcc_collection.parameters)):
+
+        if index in fixed_parameter_indices:
+            continue
+
+        final_bcc_collection.parameters[index].value = float(
+            current_parameters.detach().numpy()[parameter_index]
+        )
+
+        parameter_index += 1
+
+    for index, parameter in reversed(list(enumerate(final_bcc_collection.parameters))):
+
+        if index in fixed_parameter_indices:
+            continue
+
+        print(parameter.smirks, parameter.value)
+
+    with open("final-parameters.json", "w") as file:
+        file.write(final_bcc_collection.json())
 
 
 if __name__ == "__main__":

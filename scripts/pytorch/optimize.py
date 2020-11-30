@@ -1,13 +1,12 @@
 import numpy
 import torch
 import torch.optim
-from matplotlib import pyplot
 
 from openff.recharge.charges.bcc import (
+    AromaticityModels,
     BCCCollection,
     BCCGenerator,
     original_am1bcc_corrections,
-    AromaticityModels,
 )
 from openff.recharge.charges.charges import ChargeSettings
 from openff.recharge.esp.storage import MoleculeESPStore
@@ -40,8 +39,7 @@ def main():
     ]
 
     bcc_collection = BCCCollection(
-        parameters=bcc_parameters,
-        aromaticity_model=AromaticityModels.MDL
+        parameters=bcc_parameters, aromaticity_model=AromaticityModels.MDL
     )
     charge_settings = ChargeSettings()
 

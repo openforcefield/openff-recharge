@@ -4,6 +4,7 @@ from multiprocessing.pool import Pool
 from typing import TYPE_CHECKING
 
 import numpy
+import pytest
 
 from openff.recharge.cli.reconstruct import _retrieve_result_records
 from openff.recharge.cli.reconstruct import reconstruct as reconstruct_cli
@@ -27,6 +28,8 @@ def test_retrieve_result_records(qc_server: "FractalSnowflake"):
 
 
 def test_reconstruct(runner, monkeypatch):
+
+    pytest.importorskip("psi4")
 
     # Mock the multiprocessing call to return a dummy ESP record for a faster test.
     def mock_imap(_, func, iterable):

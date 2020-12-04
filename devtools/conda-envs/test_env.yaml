@@ -15,6 +15,7 @@ dependencies:
     ### Core dependencies.
 
   - click
+  - tqdm
   - numpy
   - pydantic
   - openeye-toolkits

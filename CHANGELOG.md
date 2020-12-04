@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.0.1-alpha.6](https://github.com/openforcefield/openff-recharge/tree/0.0.1-alpha.6) (2020-12-04)
+
+[Full Changelog](https://github.com/openforcefield/openff-recharge/compare/0.0.1-alpha.5...0.0.1-alpha.6)
+
+**Implemented enhancements:**
+
+- Add CLI to Reconstruct the ESP / EF from QCA Results [\#55](https://github.com/openforcefield/openff-recharge/pull/55) ([SimonBoothroyd](https://github.com/SimonBoothroyd))
+
 ## [0.0.1-alpha.5](https://github.com/openforcefield/openff-recharge/tree/0.0.1-alpha.5) (2020-11-30)
 
 [Full Changelog](https://github.com/openforcefield/openff-recharge/compare/0.0.1-alpha.4...0.0.1-alpha.5)

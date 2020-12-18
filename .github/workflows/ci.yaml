@@ -17,6 +17,7 @@ jobs:
     runs-on: ${{ matrix.cfg.os }}
 
     strategy:
+      fail-fast: false
       matrix:
         cfg:
           - os: ubuntu-latest

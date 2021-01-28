@@ -1,8 +1,9 @@
 name: test
 channels:
   - conda-forge
-  - openeye
   - psi4/label/dev
+  - openeye
+  - defaults
 dependencies:
     # Base depends
   - python
@@ -30,9 +31,9 @@ dependencies:
   - sqlite
 
     # QCFractal integration.
-  - qcfractal  # - for testing only. Users only need qcportal.
+  - qcfractal >=0.14.0  # - for testing only. Users only need qcportal.
   - qcportal
-  - cmiles
+  - cmiles-base
 
     # SMIRNOFF support
   - openff-toolkit-base

@@ -102,15 +102,19 @@ def from_smirnoff(
 
         smirks = off_parameter.smirks
 
-        if len(off_parameter.charge_increment) != 2:
+        if len(off_parameter.charge_increment) not in [1, 2]:
             raise UnsupportedBCCSmirksError(smirks, len(off_parameter.charge_increment))
 
         forward_value = off_parameter.charge_increment[0].value_in_unit(
             unit.elementary_charge
         )
-        reverse_value = off_parameter.charge_increment[1].value_in_unit(
-            unit.elementary_charge
-        )
+        reverse_value = -forward_value
+
+        if len(off_parameter.charge_increment) > 1:
+
+            reverse_value = off_parameter.charge_increment[1].value_in_unit(
+                unit.elementary_charge
+            )
 
         if not numpy.isclose(forward_value, -reverse_value):
 

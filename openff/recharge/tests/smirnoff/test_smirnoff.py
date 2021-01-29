@@ -75,7 +75,7 @@ def test_collection_from_smirnoff():
         {"smirks": "[#6:1]-[#6:2]", "charge_increment": [-bcc_value, bcc_value]}
     )
     parameter_handler.add_parameter(
-        {"smirks": "[#1:1]-[#1:2]", "charge_increment": [bcc_value, -bcc_value]}
+        {"smirks": "[#1:1]-[#1:2]", "charge_increment": [bcc_value]}
     )
 
     bcc_collection = from_smirnoff(parameter_handler)

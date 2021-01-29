@@ -74,12 +74,6 @@ jobs:
           auto-activate-base: false
           show-channel-urls: true
 
-      - name: Conda Environment Information
-        shell: bash -l {0}
-        run: |
-          conda info
-          conda list
-
       - name: License OpenEye
         shell: bash -l {0}
         run: |
@@ -102,12 +96,18 @@ jobs:
         shell: bash -l {0}
         run: |
 
-          conda install --yes -c conda-forge -c psi4/label/dev qcportal qcfractal "psi4 >=1.4a3.dev1" qcengine >=0.15.0 cmiles
+          conda install --yes -c conda-forge -c psi4/label/dev "gau2grid =2.0.3" qcportal qcfractal "psi4 >=1.4a3.dev1" qcengine >=0.15.0 cmiles
 
       - name: Install Package
         shell: bash -l {0}
         run: |
           python setup.py develop --no-deps
+
+      - name: Conda Environment Information
+        shell: bash -l {0}
+        run: |
+          conda info
+          conda list
 
       - name: Run Tests
         shell: bash -l {0}

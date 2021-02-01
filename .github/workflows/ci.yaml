@@ -17,6 +17,7 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     strategy:
+      fail-fast: false
       matrix:
         os: [macOS-latest, ubuntu-latest]
         python-version: [3.8, 3.9]
@@ -40,12 +41,6 @@ jobs:
           auto-activate-base: false
           show-channel-urls: true
 
-      - name: Conda Environment Information
-        shell: bash -l {0}
-        run: |
-          conda info
-          conda list
-
       - name: License OpenEye
         shell: bash -l {0}
         run: |
@@ -60,6 +55,12 @@ jobs:
         shell: bash -l {0}
         run: |
           python setup.py develop --no-deps
+
+      - name: Conda Environment Information
+        shell: bash -l {0}
+        run: |
+          conda info
+          conda list
 
       - name: Run Tests
         shell: bash -l {0}

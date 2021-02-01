@@ -32,6 +32,7 @@ dependencies:
 
     # QCFractal integration.
   - qcfractal >=0.14.0  # - for testing only. Users only need qcportal.
+  - gau2grid ==2.0.3  # - for testing only with qcfractal.
   - qcportal
   - cmiles-base
 

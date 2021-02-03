@@ -12,12 +12,12 @@ from openff.recharge.smirnoff.exceptions import (
 from openff.recharge.utilities import requires_package
 
 if TYPE_CHECKING:
-    from openforcefield.typing.engines.smirnoff.parameters import (
+    from openff.toolkit.typing.engines.smirnoff.parameters import (
         ChargeIncrementModelHandler,
     )
 
 
-@requires_package("openforcefield")
+@requires_package("openff.toolkit")
 @requires_package("simtk")
 def to_smirnoff(bcc_collection: BCCCollection) -> "ChargeIncrementModelHandler":
     """Converts a collection of bond charge correction parameters to
@@ -44,7 +44,7 @@ def to_smirnoff(bcc_collection: BCCCollection) -> "ChargeIncrementModelHandler":
     -------
         The constructed parameter handler.
     """
-    from openforcefield.typing.engines.smirnoff.parameters import (
+    from openff.toolkit.typing.engines.smirnoff.parameters import (
         ChargeIncrementModelHandler,
     )
     from simtk import unit

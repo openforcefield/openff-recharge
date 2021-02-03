@@ -1,3 +1,5 @@
+import sys
+
 import numpy
 import pytest
 
@@ -13,10 +15,10 @@ def test_collection_to_smirnoff():
     """Test that a collection of bcc parameters can be mapped to
     a SMIRNOFF `ChargeIncrementModelHandler` in a way that yields
     the same partial charges on a molecule."""
-    pytest.importorskip("openforcefield")
+    pytest.importorskip("openff.toolkit")
 
-    from openforcefield.topology import Molecule
-    from openforcefield.typing.engines.smirnoff.parameters import ElectrostaticsHandler
+    from openff.toolkit.topology import Molecule
+    from openff.toolkit.typing.engines.smirnoff.parameters import ElectrostaticsHandler
     from simtk import unit
     from simtk.openmm import System
 
@@ -60,9 +62,9 @@ def test_collection_from_smirnoff():
     """Test that a SMIRNOFF `ChargeIncrementModelHandler` can be mapped to
     a collection of bcc parameters
     """
-    pytest.importorskip("openforcefield")
+    pytest.importorskip("openff.toolkit")
 
-    from openforcefield.typing.engines.smirnoff.parameters import (
+    from openff.toolkit.typing.engines.smirnoff.parameters import (
         ChargeIncrementModelHandler,
     )
     from simtk import unit
@@ -87,19 +89,11 @@ def test_collection_from_smirnoff():
     assert numpy.isclose(bcc_collection.parameters[1].value, -0.1)
 
 
-def test_missing_dependency():
+def test_missing_dependency(monkeypatch):
     """Test that the correct custom exception is raised when the
     OpenFF toolkit cannot be imported."""
 
-    try:
-        import openforcefield  # noqa F401
-    except ImportError:
-        pass
-    else:
-        pytest.skip(
-            "This test should only be run in cases where the OpenFF Toolkit is not "
-            "installed."
-        )
+    monkeypatch.setitem(sys.modules, "openff.toolkit", None)
 
     with pytest.raises(MissingOptionalDependency):
         to_smirnoff(original_am1bcc_corrections())

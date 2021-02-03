@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.0.1-alpha.7](https://github.com/openforcefield/openff-recharge/tree/0.0.1-alpha.7) (2021-01-29)
+
+[Full Changelog](https://github.com/openforcefield/openff-recharge/compare/0.0.1-alpha.6...0.0.1-alpha.7)
+
+**Implemented enhancements:**
+
+- Support SMIRNOFF BCCs with Implicit Reverse Value [\#59](https://github.com/openforcefield/openff-recharge/pull/59) ([SimonBoothroyd](https://github.com/SimonBoothroyd))
+
 ## [0.0.1-alpha.6](https://github.com/openforcefield/openff-recharge/tree/0.0.1-alpha.6) (2020-12-04)
 
 [Full Changelog](https://github.com/openforcefield/openff-recharge/compare/0.0.1-alpha.5...0.0.1-alpha.6)
@@ -57,7 +65,7 @@
 
 ## [0.0.1-alpha.1](https://github.com/openforcefield/openff-recharge/tree/0.0.1-alpha.1) (2020-08-10)
 
-[Full Changelog](https://github.com/openforcefield/openff-recharge/compare/0.0.0...0.0.1-alpha.1)
+[Full Changelog](https://github.com/openforcefield/openff-recharge/compare/c7edc7d782c1f24204c7d665e892c6f7e3579dc0...0.0.1-alpha.1)
 
 **Implemented enhancements:**
 

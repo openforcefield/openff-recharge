@@ -1,7 +1,9 @@
 name: test
 channels:
   - conda-forge
+  - psi4/label/dev
   - openeye
+  - defaults
 dependencies:
     # Base depends
   - python
@@ -22,10 +24,20 @@ dependencies:
 
     # ESP calculations
   - jinja2
+  - psi4 >=1.4a3.dev1
 
     # ESP storage
   - sqlalchemy
   - sqlite
+
+    # QCFractal integration.
+  - qcfractal >=0.14.0  # - for testing only. Users only need qcportal.
+  - gau2grid ==2.0.3  # - for testing only with qcfractal.
+  - qcportal
+  - cmiles-base
+
+    # SMIRNOFF support
+  - openff-toolkit-base
 
     # Python < 3.8
   - typing-extensions

@@ -12,48 +12,15 @@ on:
 
 jobs:
   test:
-    name: Test on ${{ matrix.cfg.os }}, Python ${{ matrix.cfg.python-version }}
+    name: Test on ${{ matrix.os }}, Python ${{ matrix.python-version }}
 
-    runs-on: ${{ matrix.cfg.os }}
+    runs-on: ${{ matrix.os }}
 
     strategy:
       fail-fast: false
       matrix:
-        cfg:
-          - os: ubuntu-latest
-            python-version: 3.6
-            openff-toolkit: false
-            psi4: false
-
-          - os: ubuntu-latest
-            python-version: 3.7
-            openff-toolkit: true
-            psi4: true
-
-          - os: ubuntu-latest
-            python-version: 3.8
-            openff-toolkit: false
-            psi4: false
-
-          - os: macOS-latest
-            python-version: 3.6
-            openff-toolkit: false
-            psi4: false
-
-          - os: macOS-latest
-            python-version: 3.7
-            openff-toolkit: false
-            psi4: true
-
-          - os: macOS-latest
-            python-version: 3.7
-            openff-toolkit: true
-            psi4: false
-
-          - os: macOS-latest
-            python-version: 3.8
-            openff-toolkit: false
-            psi4: false
+        os: [macOS-latest, ubuntu-latest]
+        python-version: [3.8, 3.9]
 
     env:
       OE_LICENSE: ${{ github.workspace }}/oe_license.txt
@@ -64,7 +31,7 @@ jobs:
       - name: Setup Conda Environment
         uses: conda-incubator/setup-miniconda@v2
         with:
-          python-version: ${{ matrix.cfg.python-version }}
+          python-version: ${{ matrix.python-version }}
           environment-file: devtools/conda-envs/test_env.yaml
 
           channels: conda-forge,defaults
@@ -83,20 +50,6 @@ jobs:
 
         env:
           SECRET_OE_LICENSE: ${{ secrets.OE_LICENSE }}
-
-      - name: Install the OpenFF Toolkit
-        if: matrix.cfg.openff-toolkit
-        shell: bash -l {0}
-        run: |
-
-          conda install --yes -c conda-forge -c omnia "openforcefield >= 0.7.0"
-
-      - name: Install PSI4
-        if: matrix.cfg.psi4
-        shell: bash -l {0}
-        run: |
-
-          conda install --yes -c conda-forge -c psi4/label/dev "gau2grid =2.0.3" qcportal qcfractal "psi4 >=1.4a3.dev1" qcengine >=0.15.0 cmiles
 
       - name: Install Package
         shell: bash -l {0}

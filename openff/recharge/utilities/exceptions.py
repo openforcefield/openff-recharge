@@ -1,6 +1,6 @@
 """A module containing general exceptions raised by the framework."""
 _CONDA_INSTALLATION_COMMANDS = {
-    "openforcefield": "conda install -c conda-forge -c omnia openforcefield",
+    "openff.toolkit": "conda install -c conda-forge openff-toolkit",
     "openeye": "conda install -c openeye openeye-toolkits",
     "qcportal": "conda install -c conda-forge qcportal",
     "cmiles": "conda install -c conda-forge cmiles",

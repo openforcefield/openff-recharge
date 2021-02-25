@@ -37,11 +37,11 @@ conda install -c openeye openeye-toolkits
 To make the full use of the framework, including the computation of ESP / electric field data and exporting parameters
 to the OpenFF SMIRNOFF format, it is recommended to install the following 
 
-#### [OpenFF Toolkit](https://github.com/openforcefield/openforcefield):
+#### [OpenFF Toolkit](https://github.com/openforcefield/openff-toolkit):
 
 ```
 # (OPTIONAL) Enable SMIRNOFF support.
-conda install -c conda-forge -c omnia openforcefield
+conda install -c conda-forge openff-toolkit
 ```
 
 #### [Psi4](http://www.psicode.org/)

@@ -41,6 +41,12 @@ jobs:
           auto-activate-base: false
           show-channel-urls: true
 
+      - name: Pin gau2grid
+        shell: bash -l {0}
+        if: startsWith(matrix.os, 'ubuntu')
+        run: |
+          conda install --yes -c defaults -c psi4/label/dev "gau2grid==2.0.3"
+
       - name: License OpenEye
         shell: bash -l {0}
         run: |

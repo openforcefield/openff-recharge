@@ -78,6 +78,7 @@ class ChargeGenerator:
         oe_molecule.DeleteConfs()
 
         for conformer in conformers:
+            conformer = conformer[:oe_molecule.NumAtoms()]
             oe_molecule.NewConf(oechem.OEFloatArray(conformer.flatten()))
 
         # Compute the partial charges.
@@ -110,5 +111,9 @@ class ChargeGenerator:
                 for index in range(oe_molecule.NumAtoms())
             ]
         )
+
+        n_vsites = len(conformers[0]) - oe_molecule.NumAtoms() 
+        if n_vsites:
+            charges = numpy.vstack((charges, numpy.zeros((n_vsites,1))))
 
         return charges

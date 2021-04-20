@@ -7,6 +7,8 @@ from enum import Enum
 from typing import TYPE_CHECKING, Any, Dict, List
 
 import numpy
+from openff.toolkit.topology import Molecule
+from openff.toolkit.typing.engines.smirnoff.parameters import VirtualSiteHandler
 from pydantic import BaseModel, Field, constr
 
 from openff.recharge.charges.charges import ChargeGenerator, ChargeSettings
@@ -291,6 +293,22 @@ class BCCCollection(BaseModel):
     )
 
 
+class VSiteSMIRNOFFCollection(BaseModel):
+    """
+    Just a wrapped VSite Handler from the SMIRNOFF spec
+    """
+
+    class Config:
+        arbitrary_types_allowed = True
+
+    parameter_handler: "VirtualSiteHandler" = Field(..., description="")
+
+    aromaticity_model: AromaticityModels = Field(
+        AromaticityModels.AM1BCC,
+        description="The model to use when assigning aromaticity.",
+    )
+
+
 class BCCGenerator:
     """A class for generating the bond charge corrections which should
     be applied to a molecule."""
@@ -322,7 +340,9 @@ class BCCGenerator:
         """
 
         # Check for unassigned atoms
-        unassigned_atoms = numpy.where(~bcc_counts_matrix.any(axis=1))[0]
+        n_atoms = len(list(oe_molecule.GetAtoms()))
+
+        unassigned_atoms = numpy.where(~bcc_counts_matrix[:n_atoms].any(axis=1))[0]
 
         if len(unassigned_atoms) > 0:
             unassigned_atom_string = ", ".join(map(str, unassigned_atoms))
@@ -563,6 +583,166 @@ class BCCGenerator:
         return generated_corrections
 
 
+class VSiteSMIRNOFFGenerator:
+    @classmethod
+    def _validate_assignment_matrix(
+        cls,
+        off_molecule: Molecule,
+        assignment_matrix: numpy.ndarray,
+    ):
+        """Validates the assignment matrix.
+
+        Parameters
+        ----------
+        off_molecule
+            The molecule which the assignment matrix was generated
+            for.
+        assignment_matrix
+            The assignment matrix to validate with
+            shape=(n_atoms, n_bond_charge_corrections)
+        bcc_counts_matrix
+            A matrix which contains the number of times that a bond charge
+            correction is applied to a given atom with
+            shape=(n_atoms, n_bond_charge_corrections).
+        vsite_ph
+            The OpenFF virtual site handler responsible
+        """
+
+        # Check for non-zero contributions from charge corrections
+        atoms_offset = off_molecule.n_atoms
+        vsite_offset = 0
+        non_zero_assignments = assignment_matrix.sum(axis=0).astype(bool)
+
+        for index, vsite in enumerate(off_molecule.virtual_sites):
+            if non_zero_assignments[index]:
+                raise UnableToAssignChargeError(
+                    f"An internal error occurred. The bond charge corrections"
+                    f"alter the total charge of the molecule"
+                )
+
+    @classmethod
+    def build_smirnoff_virtual_sites(
+        self, oe_molecule: "oechem.OEMol", parameter_handler: VirtualSiteHandler
+    ) -> Molecule:
+        """
+        Parameters
+        ----------
+        oe_molecule
+            The molecule to assign the bond charge corrections to.
+        parameter_handler
+            The OpenFF parameter handler that will create the virtual sites
+
+        Returns
+        -------
+            An OpenFF molecule with virtual sites
+        """
+
+        off_mol = Molecule.from_openeye(oe_molecule)
+        off_top = off_mol.to_topology()
+        topology = parameter_handler._create_openff_virtual_sites(off_top)
+
+        off_mol_vsites = next(topology.reference_molecules)
+
+        return off_mol_vsites
+
+    @classmethod
+    def build_assignment_matrix(
+        cls,
+        oe_molecule: "oechem.OEMol",
+        vsite_collection: VSiteSMIRNOFFCollection,
+    ) -> numpy.ndarray:
+        """Generated a matrix which indicates which bond charge
+        corrections have been applied to each atom in the molecule.
+
+        The matrix takes the form `[atom_index, bcc_index]` where
+        `atom_index` is the index of an atom in the molecule and
+        `bcc_index` is the index of a bond charge correction. Each
+        value in the matrix can either be positive or negative
+        depending on the direction the BCC was applied in.
+
+        Parameters
+        ----------
+        oe_molecule
+            The molecule to assign the bond charge corrections to.
+        bcc_collection
+            The bond charge correction parameters which may be assigned.
+
+        Returns
+        -------
+            The assignment matrix with shape=(n_atoms, n_bond_charge_corrections)
+            where `n_atoms` is the number of atoms in the molecule and
+            `n_bond_charge_corrections` is the number of bond charges corrections
+            to apply.
+        """
+
+        oechem = import_oechem()
+
+        # Make a copy of the molecule to assign the aromatic flags to.
+        oe_molecule = oechem.OEMol(oe_molecule)
+        # Assign aromaticity flags to ensure correct smirks matches.
+        AromaticityModel.assign(oe_molecule, vsite_collection.aromaticity_model)
+
+        # atoms = {atom.GetIdx(): atom for atom in oe_molecule.GetAtoms()}
+
+        off_mol_vsites = cls.build_smirnoff_virtual_sites(
+            oe_molecule, vsite_collection.parameter_handler
+        )
+
+        n_particles = off_mol_vsites.n_particles
+        n_corrections = len(off_mol_vsites.virtual_sites)
+
+        assignment_matrix = numpy.zeros((n_particles, n_corrections))
+        # bcc_counts_matrix = numpy.zeros((n_particles, n_corrections))
+
+        atoms_offset = off_mol_vsites.n_atoms
+        vsite_offset = 0
+
+        for index, vsite in enumerate(off_mol_vsites.virtual_sites):
+
+            for vp in vsite.particles:
+
+                v_index = atoms_offset + vsite_offset
+
+                contrib = 1.0 / len(vsite.atoms)
+
+                for atom in vsite.atoms:
+
+                    a_index = atom.molecule_atom_index
+                    matched_indices = (a_index, v_index)
+
+                    assignment_matrix[matched_indices[0], index] += contrib
+                    assignment_matrix[matched_indices[1], index] -= contrib
+
+                    # bcc_counts_matrix[matched_indices[0], index] += 1
+                    # bcc_counts_matrix[matched_indices[1], index] += 1
+
+                vsite_offset += 1
+
+        # Validate the assignments
+        cls._validate_assignment_matrix(off_mol_vsites, assignment_matrix)
+
+        return assignment_matrix
+
+    @classmethod
+    def compute_virtual_site_positions(
+        cls,
+        oe_molecule: "oechem.OEMol",
+        vsite_parameter_handler: VirtualSiteHandler,
+        conformer_positions: numpy.ndarray,
+    ):
+
+        off_mol_vsites = cls.build_smirnoff_virtual_sites(
+            oe_molecule, vsite_parameter_handler
+        )
+
+        vsite_positions = (
+            off_mol_vsites.compute_virtual_site_positions_from_atom_positions(
+                conformer_positions
+            )
+        )
+        return vsite_positions
+
+
 def original_am1bcc_corrections() -> BCCCollection:
     """Returns the bond charge corrections originally reported
     in the literture [1]_.
@@ -647,3 +827,6 @@ def compare_openeye_parity(oe_molecule: "oechem.OEMol") -> bool:
     return numpy.allclose(reference_charges, implementation_charges) and numpy.allclose(
         charge_corrections, reference_charge_corrections
     )
+
+
+VSiteSMIRNOFFCollection.update_forward_refs()

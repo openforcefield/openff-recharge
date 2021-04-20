@@ -108,6 +108,25 @@ def compute_vector_field(
     return field_tensor
 
 
+def combine_assignments(atoms, *virtuals):
+
+    n_atoms = atoms.shape[0]
+    n_atom_bccs = atoms.shape[1]
+
+    assert all(virt.shape[0] == virtuals[0].shape[0] for virt in virtuals)
+
+    n_particles = virtuals[0].shape[0]
+    n_params = atoms.shape[1] + sum(virt.shape[1] for virt in virtuals)
+
+    assn = numpy.zeros((n_particles, n_params))
+
+    assn[:n_atoms, :n_atom_bccs] += atoms
+    for virt in virtuals:
+        assn[:, n_atom_bccs:] += virt
+
+    return assn
+
+
 def reorder_conformer(
     oe_molecule: "oechem.OEMol", conformer: numpy.ndarray
 ) -> numpy.ndarray:

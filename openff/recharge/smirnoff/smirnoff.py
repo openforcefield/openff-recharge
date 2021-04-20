@@ -1,10 +1,10 @@
 """An optional module which integrates this library with the OpenFF
 SMIRNOFF force field data models and specification."""
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Dict, Union, List
 
 import numpy
 
-from openff.recharge.charges.bcc import AromaticityModels, BCCCollection, BCCParameter
+from openff.recharge.charges.bcc import AromaticityModels, BCCCollection, BCCParameter, VSiteSMIRNOFFCollection
 from openff.recharge.smirnoff.exceptions import (
     UnsupportedBCCSmirksError,
     UnsupportedBCCValueError,
@@ -14,6 +14,7 @@ from openff.recharge.utilities import requires_package
 if TYPE_CHECKING:
     from openff.toolkit.typing.engines.smirnoff.parameters import (
         ChargeIncrementModelHandler,
+        VirtualSiteHandler,
     )
 
 

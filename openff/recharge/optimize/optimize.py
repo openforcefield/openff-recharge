@@ -1,19 +1,27 @@
 import abc
-from typing import Generator, List
+from typing import Generator, List, Union, Optional
 
 import numpy
+from openff.toolkit.topology import Molecule, TopologyMolecule
 
-from openff.recharge.charges.bcc import BCCCollection, BCCGenerator
+from openff.recharge.charges.bcc import (
+    BCCCollection,
+    BCCGenerator,
+    VSiteSMIRNOFFCollection,
+    VSiteSMIRNOFFGenerator,
+)
 from openff.recharge.charges.charges import ChargeGenerator, ChargeSettings
 from openff.recharge.esp.storage import MoleculeESPRecord, MoleculeESPStore
 from openff.recharge.utilities.geometry import (
     ANGSTROM_TO_BOHR,
     INVERSE_ANGSTROM_TO_BOHR,
+    combine_assignments,
     compute_inverse_distance_matrix,
     compute_vector_field,
     reorder_conformer,
 )
 from openff.recharge.utilities.openeye import import_oechem
+from openff.recharge.utilities.utilities import requires_package
 
 
 class ObjectiveTerm(abc.ABC):
@@ -145,8 +153,9 @@ class _Optimization(abc.ABC):
         smiles: List[str],
         esp_store: MoleculeESPStore,
         bcc_collection: BCCCollection,
-        fixed_parameter_indices: List[int],
+        fixed_parameter_indices: Union[numpy.ndarray, List[int]],
         charge_settings: ChargeSettings,
+        vsite_collection: Optional[VSiteSMIRNOFFCollection],
     ) -> Generator[ObjectiveTerm, None, None]:
         """Pre-calculates those terms which appear in the objective function.
 
@@ -215,6 +224,28 @@ class _Optimization(abc.ABC):
                     :, trainable_parameter_indices
                 ]
 
+                if vsite_collection:
+
+                    vsite_assignments = VSiteSMIRNOFFGenerator.build_assignment_matrix(
+                        oe_molecule, vsite_collection
+                    )
+
+                    vsite_positions = (
+                        VSiteSMIRNOFFGenerator.compute_virtual_site_positions(
+                            oe_molecule, vsite_collection.parameter_handler, ordered_conformer
+                        )
+                    )
+
+                    vsite_positions /= vsite_positions.unit
+
+                    ordered_conformer = numpy.vstack(
+                        (ordered_conformer, vsite_positions)
+                    )
+
+                    trainable_assignment_matrix = combine_assignments(
+                        trainable_assignment_matrix, vsite_assignments
+                    )
+
                 # Pre-compute the design matrix for this molecule.
                 design_matrix_precursor = cls._compute_design_matrix_precursor(
                     esp_record.grid_coordinates, ordered_conformer
@@ -226,6 +257,7 @@ class _Optimization(abc.ABC):
                     oe_molecule, [ordered_conformer], charge_settings
                 )
 
+
                 target_residuals = cls.compute_residuals(
                     design_matrix_precursor,
                     uncorrected_charges,
@@ -234,6 +266,10 @@ class _Optimization(abc.ABC):
 
                 if len(fixed_parameter_indices) > 0:
 
+                    if vsite_collection:
+                        assignment_matrix = combine_assignments(
+                            assignment_matrix, vsite_assignments
+                        )
                     # Compute the contribution of the fixed BCC parameters.
                     fixed_assignment_matrix = assignment_matrix[
                         :, fixed_parameter_indices

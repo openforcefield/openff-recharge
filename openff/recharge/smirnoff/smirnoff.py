@@ -4,7 +4,13 @@ from typing import TYPE_CHECKING, Dict, Union, List
 
 import numpy
 
-from openff.recharge.charges.bcc import AromaticityModels, BCCCollection, BCCParameter, VSiteSMIRNOFFCollection
+from openff.recharge.charges.bcc import (
+    AromaticityModels,
+    BCCCollection,
+    BCCParameter,
+    VSiteSMIRNOFFCollection,
+    VirtualSiteParameterTerm,
+)
 from openff.recharge.smirnoff.exceptions import (
     UnsupportedBCCSmirksError,
     UnsupportedBCCValueError,
@@ -130,3 +136,50 @@ def from_smirnoff(
         )
 
     return BCCCollection(parameters=bcc_parameters, aromaticity_model=aromaticity_model)
+
+
+# @requires_package("simtk")
+def from_smirnoff_virtual_sites(
+    parameter_handler: "VirtualSiteHandler",
+    parameter_handler_name: str ="VirtualSites",
+    aromaticity_model=AromaticityModels.MDL,
+) -> VSiteSMIRNOFFCollection:
+    """Attempts to convert a SMIRNOFF virtual site parameter handler
+    to a virtual site parameter collection.
+
+    Parameters
+    ----------
+    parameter_handler
+        The parameter handler to convert.
+    aromaticity_model
+        The model which describes how aromaticity should be assigned
+        when applying the virtual site correction parameters.
+
+    Returns
+    -------
+        The converted virtual site collection.
+    """
+
+    parameters = []
+
+    # the default name; the handler does not seem to keep this name anywhere
+    # so we just assume it. This means we don't support custom handlers yet.
+    handler_name = "VirtualSites"
+
+    # term_list = ["charge_increment", "distance", "outOfPlaneAngle", "inPlaneAngle"]
+
+    parameter_handler._terms_set_active("charge_increment")
+    for term in parameter_handler._terms():
+
+            vspt = VirtualSiteParameterTerm(
+                handler=handler_name,
+                term=term,
+                value=parameter_handler._term_select(term),
+            )
+            parameters.append(vspt)
+
+    return VSiteSMIRNOFFCollection(
+        parameter_handler=parameter_handler,
+        parameters=parameters,
+        aromaticity_model=aromaticity_model,
+    )

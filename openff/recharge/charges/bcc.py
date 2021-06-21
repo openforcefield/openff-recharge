@@ -4,7 +4,8 @@ of a cheaper QM method and a set of bond charge corrections.
 import json
 import os
 from enum import Enum
-from typing import TYPE_CHECKING, Any, Dict, List
+from typing import TYPE_CHECKING, Any, Dict, List, Tuple
+import itertools
 
 import numpy
 from openff.toolkit.topology import Molecule
@@ -292,6 +293,18 @@ class BCCCollection(BaseModel):
         description="The model to use when assigning aromaticity.",
     )
 
+class VirtualSiteParameterTerm(BaseModel):
+    handler: str  = Field(..., description="The name of the parameter handler tag e.g. VirtualSites")
+    # virtual_site_type: str = Field(..., description="The type of the virtual site, e.g. BondCharge")
+    # name: str = Field(..., description="The name of the virtual site e.g. EP1")
+    term: Tuple = Field(..., description="The name of the parameter term, e.g. charge_increment1")
+    value: Any = Field(..., description="The value of this term")
+    # unit: str = Field(..., description="The units of the value")
+    # smirks: constr(min_length=1) = Field(
+    #     ...,
+    #     description="A SMIRKS pattern which encodes the chemical environment that "
+    #     "this correction should be applied to.",
+    # )
 
 class VSiteSMIRNOFFCollection(BaseModel):
     """
@@ -301,7 +314,9 @@ class VSiteSMIRNOFFCollection(BaseModel):
     class Config:
         arbitrary_types_allowed = True
 
-    parameter_handler: "VirtualSiteHandler" = Field(..., description="")
+    parameter_handler: "VirtualSiteHandler" = Field(..., description="The parameter handler responsible for managing the virtual site definitions")
+
+    parameters: List[VirtualSiteParameterTerm] = Field(..., description="The flattened parameters contained in the virtual site handler")
 
     aromaticity_model: AromaticityModels = Field(
         AromaticityModels.AM1BCC,
@@ -623,7 +638,7 @@ class VSiteSMIRNOFFGenerator:
     @classmethod
     def build_smirnoff_virtual_sites(
         self, oe_molecule: "oechem.OEMol", parameter_handler: VirtualSiteHandler
-    ) -> Molecule:
+    ) -> Tuple[Molecule, Dict]:
         """
         Parameters
         ----------
@@ -639,11 +654,12 @@ class VSiteSMIRNOFFGenerator:
 
         off_mol = Molecule.from_openeye(oe_molecule)
         off_top = off_mol.to_topology()
-        topology = parameter_handler._create_openff_virtual_sites(off_top)
+        topology = parameter_handler.create_openff_virtual_sites(off_top)
 
         off_mol_vsites = next(topology.reference_molecules)
+        term_topo = parameter_handler._term_map_topology(topology)
 
-        return off_mol_vsites
+        return off_mol_vsites, term_topo
 
     @classmethod
     def build_assignment_matrix(
@@ -684,12 +700,21 @@ class VSiteSMIRNOFFGenerator:
 
         # atoms = {atom.GetIdx(): atom for atom in oe_molecule.GetAtoms()}
 
-        off_mol_vsites = cls.build_smirnoff_virtual_sites(
+        off_mol_vsites, term_topology = cls.build_smirnoff_virtual_sites(
             oe_molecule, vsite_collection.parameter_handler
         )
 
+        # strip the topology from the mapping since we are only working
+        # with one molecule here
+
+        term_topology = {atoms : term for (top, atoms), term in term_topology.items()}
+            
+
         n_particles = off_mol_vsites.n_particles
-        n_corrections = len(off_mol_vsites.virtual_sites)
+        # n_corrections = len(off_mol_vsites.virtual_sites)
+
+        # This will contain all parameters in the handler
+        n_corrections = len(vsite_collection.parameters)
 
         assignment_matrix = numpy.zeros((n_particles, n_corrections))
         # bcc_counts_matrix = numpy.zeros((n_particles, n_corrections))
@@ -697,26 +722,33 @@ class VSiteSMIRNOFFGenerator:
         atoms_offset = off_mol_vsites.n_atoms
         vsite_offset = 0
 
+        # global index
+        term_index = {x.term : i for i, x in enumerate(vsite_collection.parameters)}
+
+        # for ptl_index, ((topo, parent_atoms), terms) in enumerate(term_topology.items()):
         for index, vsite in enumerate(off_mol_vsites.virtual_sites):
 
+            # print(ptl_index, parent_atoms, terms)
             for vp in vsite.particles:
 
-                v_index = atoms_offset + vsite_offset
+                # v_index = atoms_offset + vsite_offset
+                ptl = vp.molecule_particle_index
 
-                contrib = 1.0 / len(vsite.atoms)
+                contrib = 1.0
 
-                for atom in vsite.atoms:
+                vsite_terms = term_topology[vp.orientation]
+                for atom, term in zip(vp.orientation, vsite_terms):
 
-                    a_index = atom.molecule_atom_index
-                    matched_indices = (a_index, v_index)
+                    # pull off the handler-level name since we mapped
+                    # directly from the handler
+                    term = term[1]
 
-                    assignment_matrix[matched_indices[0], index] += contrib
-                    assignment_matrix[matched_indices[1], index] -= contrib
+                    term_i = term_index[term]
+                    assignment_matrix[atom, term_i] -= contrib
+                    assignment_matrix[ptl, term_i] += contrib
 
                     # bcc_counts_matrix[matched_indices[0], index] += 1
                     # bcc_counts_matrix[matched_indices[1], index] += 1
-
-                vsite_offset += 1
 
         # Validate the assignments
         cls._validate_assignment_matrix(off_mol_vsites, assignment_matrix)
@@ -731,7 +763,7 @@ class VSiteSMIRNOFFGenerator:
         conformer_positions: numpy.ndarray,
     ):
 
-        off_mol_vsites = cls.build_smirnoff_virtual_sites(
+        off_mol_vsites, topo = cls.build_smirnoff_virtual_sites(
             oe_molecule, vsite_parameter_handler
         )
 

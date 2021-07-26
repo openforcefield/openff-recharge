@@ -1,3 +1,4 @@
+import sys
 from json import JSONDecodeError
 from typing import TYPE_CHECKING
 
@@ -24,6 +25,7 @@ if TYPE_CHECKING:
     from qcfractal.interface.collections import Dataset
 
 
+@pytest.mark.skipif(sys.platform == "linux", reason="psi4 broken on GHA linux")
 @pytest.mark.parametrize("pcm_settings", [None, PCMSettings()])
 def test_retrieve_results(
     pcm_settings,
@@ -87,6 +89,7 @@ def test_missing_result(
         )
 
 
+@pytest.mark.skipif(sys.platform == "linux", reason="psi4 broken on GHA linux")
 def test_from_qcfractal_result(qc_server: "FractalSnowflake", qc_data_set: "Dataset"):
 
     qc_result = qc_server.client().query_results(id="1")[0]

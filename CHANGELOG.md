@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.0.1](https://github.com/openforcefield/openff-recharge/tree/0.0.1) (2021-02-25)
+
+[Full Changelog](https://github.com/openforcefield/openff-recharge/compare/0.0.1-alpha.7...0.0.1)
+
+**Implemented enhancements:**
+
+- Migrate to OpenFF Toolkit [\#58](https://github.com/openforcefield/openff-recharge/pull/58) ([SimonBoothroyd](https://github.com/SimonBoothroyd))
+
 ## [0.0.1-alpha.7](https://github.com/openforcefield/openff-recharge/tree/0.0.1-alpha.7) (2021-01-29)
 
 [Full Changelog](https://github.com/openforcefield/openff-recharge/compare/0.0.1-alpha.6...0.0.1-alpha.7)

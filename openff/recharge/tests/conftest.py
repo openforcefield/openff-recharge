@@ -50,13 +50,8 @@ def qc_server() -> "FractalSnowflake":
 def qc_data_set(qc_server: "FractalSnowflake", pcm_input_string: str) -> "Dataset":
 
     import qcfractal.interface as qcportal
-    from qcengine.programs.psi4 import Psi4Harness
 
     client = qc_server.client()
-
-    # Patch QCEngine because it cannot detect the psi4 version on linux.
-    old_version_function = Psi4Harness.get_version
-    Psi4Harness.get_version = lambda self: "1.4a3.dev1"
 
     # Mock a data set.
     data_set = qcportal.collections.Dataset("test-set", client=client)
@@ -115,7 +110,4 @@ def qc_data_set(qc_server: "FractalSnowflake", pcm_input_string: str) -> "Datase
     print(x, y)
 
     qc_server.await_results()
-
-    Psi4Harness.get_version = old_version_function
-
     return data_set

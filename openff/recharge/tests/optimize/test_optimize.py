@@ -10,11 +10,15 @@ from openff.recharge.charges.vsite import (
     VirtualSiteCollection,
 )
 from openff.recharge.esp import ESPSettings
-from openff.recharge.esp.storage import MoleculeESPRecord, MoleculeESPStore
+from openff.recharge.esp.storage import MoleculeESPRecord
 from openff.recharge.grids import GridSettings
 from openff.recharge.optimize import ESPOptimization
 from openff.recharge.optimize.optimize import ElectricFieldOptimization, _Optimization
-from openff.recharge.utilities.geometry import INVERSE_ANGSTROM_TO_BOHR
+from openff.recharge.utilities.geometry import (
+    ANGSTROM_TO_BOHR,
+    INVERSE_ANGSTROM_TO_BOHR,
+    compute_vector_field,
+)
 from openff.recharge.utilities.openeye import smiles_to_molecule
 
 
@@ -36,32 +40,6 @@ def mock_esp_record(
         electric_field=numpy.array([ef_value] * len(grid)),
         esp_settings=ESPSettings(grid_settings=GridSettings()),
     )
-
-
-class MockMoleculeESPStore(MoleculeESPStore):
-    def retrieve(
-        self,
-        smiles: Optional[str] = None,
-        basis: Optional[str] = None,
-        method: Optional[str] = None,
-        implicit_solvent: Optional[bool] = None,
-    ) -> List[MoleculeESPRecord]:
-
-        oe_molecule = smiles_to_molecule("C#C")
-        conformer = numpy.array(
-            [[-1.0, 0.0, 0.0], [1.0, 0.0, 0.0], [-2.0, 0.0, 0.0], [2.0, 0.0, 0.0]]
-        )
-
-        return [
-            MoleculeESPRecord.from_oe_molecule(
-                oe_molecule,
-                conformer=conformer,
-                grid_coordinates=numpy.zeros((1, 3)),
-                esp=numpy.zeros((1, 1)),
-                electric_field=numpy.zeros((1, 3)),
-                esp_settings=ESPSettings(grid_settings=GridSettings()),
-            )
-        ]
 
 
 def test_compute_esp_residuals():
@@ -227,8 +205,8 @@ def test_compute_esp_objective_terms(
 
 
 @pytest.mark.parametrize(
-    "bcc_collection, bcc_keys, vsite_collection, vsite_keys, expected_design_matrix, "
-    "expected_residuals",
+    "bcc_collection, bcc_keys, vsite_collection, vsite_keys, "
+    "expected_assignment_matrix, expected_residuals",
     [
         (
             BCCCollection(
@@ -239,8 +217,28 @@ def test_compute_esp_objective_terms(
             ["[#17:1]-[#1:2]"],
             None,
             [],
-            numpy.array([[0.0, 0.0, 0.0], [0.0, 0.0, 0.0]]).reshape((2, 3, 1)),
+            numpy.array([[-1.0], [1.0]]),
             numpy.array([[1.0, 2.0, 3.0], [1.0, 2.0, 3.0]]),
+        ),
+        (
+            None,
+            [],
+            VirtualSiteCollection(
+                parameters=[
+                    BondChargeSiteParameter(
+                        smirks="[#1:1]-[#17:2]",
+                        name="EP",
+                        distance=-4.0,
+                        match="once",
+                        charge_increments=(0.0, 1.0),
+                        sigma=1.0,
+                        epsilon=0.0,
+                    ),
+                ]
+            ),
+            [("[#1:1]-[#17:2]", "BondCharge", "EP", i) for i in [0, 1]],
+            numpy.array([[-1, 0], [0, -1], [1, 1]]),
+            numpy.array([[2.0], [2.0]]),
         ),
     ],
 )
@@ -249,7 +247,7 @@ def test_compute_electric_field_objective_terms(
     bcc_keys: List[str],
     vsite_collection: Optional[VirtualSiteCollection],
     vsite_keys: List[VirtualSiteChargeKey],
-    expected_design_matrix: numpy.ndarray,
+    expected_assignment_matrix: numpy.ndarray,
     expected_residuals: numpy.ndarray,
 ):
 
@@ -274,12 +272,23 @@ def test_compute_electric_field_objective_terms(
     assert len(objective_terms) == 1
     objective_term = objective_terms[0]
 
+    expected_vector_field = compute_vector_field(
+        (
+            esp_record.conformer
+            if vsite_collection is None
+            else (numpy.vstack([esp_record.conformer, numpy.array([[2, 0, 0]])]))
+        )
+        * ANGSTROM_TO_BOHR,
+        esp_record.grid_coordinates * ANGSTROM_TO_BOHR,
+    )
+    expected_design_matrix = expected_vector_field @ expected_assignment_matrix[:, :]
+
     assert objective_term.design_matrix.shape == expected_design_matrix.shape
 
-    # assert numpy.allclose(
-    #     objective_term.design_matrix / INVERSE_ANGSTROM_TO_BOHR,
-    #     expected_design_matrix,
-    # )
+    assert numpy.allclose(
+        objective_term.design_matrix,
+        expected_design_matrix,
+    )
 
     assert objective_term.target_residuals.shape == expected_residuals.shape
     assert numpy.allclose(objective_term.target_residuals, expected_residuals)

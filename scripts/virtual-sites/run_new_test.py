@@ -2,7 +2,7 @@
 import numpy as np
 import scipy.spatial.distance
 import scipy.optimize
-# from openff.recharge.charges.bcc import VSiteSMIRNOFFGenerator, VSiteSMIRNOFFCollection
+# from openff.recharge.charges.bcc import VSiteSMIRNOFFGenerator, VirtualSiteCollection
 from openff.recharge.charges.bcc import (
     SMIRNOFFModel,
     SMIRNOFFMasterAssignmentModel,
@@ -92,7 +92,7 @@ def epot(grid, ptls, q):
     for l, g in enumerate(grid):
         for j, ptl in enumerate(ptls):
             v[l] += q[j]/distance(g, ptl)
-    return v  
+    return v
 
 def objective(ref_esp, train_esp):
     return np.sum((ref_esp-train_esp)**2)

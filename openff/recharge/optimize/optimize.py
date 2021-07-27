@@ -1,16 +1,11 @@
 import abc
-from typing import Generator, List, Union, Optional
+from typing import Generator, List, Optional, Union
 
 import numpy
-from openff.toolkit.topology import Molecule, TopologyMolecule
 
-from openff.recharge.charges.bcc import (
-    BCCCollection,
-    BCCGenerator,
-    VSiteSMIRNOFFCollection,
-    VSiteSMIRNOFFGenerator,
-)
+from openff.recharge.charges.bcc import BCCCollection, BCCGenerator
 from openff.recharge.charges.charges import ChargeGenerator, ChargeSettings
+from openff.recharge.charges.vsite import VirtualSiteCollection, VirtualSiteGenerator
 from openff.recharge.esp.storage import MoleculeESPRecord, MoleculeESPStore
 from openff.recharge.utilities.geometry import (
     ANGSTROM_TO_BOHR,
@@ -21,7 +16,6 @@ from openff.recharge.utilities.geometry import (
     reorder_conformer,
 )
 from openff.recharge.utilities.openeye import import_oechem
-from openff.recharge.utilities.utilities import requires_package
 
 
 class ObjectiveTerm(abc.ABC):
@@ -155,7 +149,7 @@ class _Optimization(abc.ABC):
         bcc_collection: BCCCollection,
         fixed_parameter_indices: Union[numpy.ndarray, List[int]],
         charge_settings: ChargeSettings,
-        vsite_collection: Optional[VSiteSMIRNOFFCollection],
+        vsite_collection: Optional[VirtualSiteCollection],
     ) -> Generator[ObjectiveTerm, None, None]:
         """Pre-calculates those terms which appear in the objective function.
 
@@ -226,14 +220,16 @@ class _Optimization(abc.ABC):
 
                 if vsite_collection:
 
-                    vsite_assignments = VSiteSMIRNOFFGenerator.build_assignment_matrix(
-                        oe_molecule, vsite_collection
+                    vsite_assignments = (
+                        VirtualSiteGenerator.build_charge_assignment_matrix(
+                            oe_molecule, vsite_collection
+                        )
                     )
 
-                    vsite_positions = (
-                        VSiteSMIRNOFFGenerator.compute_virtual_site_positions(
-                            oe_molecule, vsite_collection.parameter_handler, ordered_conformer
-                        )
+                    vsite_positions = VirtualSiteGenerator.generate_positions(
+                        oe_molecule,
+                        vsite_collection,
+                        ordered_conformer,
                     )
 
                     vsite_positions /= vsite_positions.unit
@@ -256,7 +252,6 @@ class _Optimization(abc.ABC):
                 uncorrected_charges = ChargeGenerator.generate(
                     oe_molecule, [ordered_conformer], charge_settings
                 )
-
 
                 target_residuals = cls.compute_residuals(
                     design_matrix_precursor,

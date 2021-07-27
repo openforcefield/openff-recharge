@@ -1,17 +1,19 @@
+import sys
+
 import numpy
 import pytest
-from openeye import oechem
 
 from openff.recharge.charges.bcc import (
-    AromaticityModel,
-    AromaticityModels,
     BCCCollection,
     BCCGenerator,
     BCCParameter,
     compare_openeye_parity,
     original_am1bcc_corrections,
 )
+from openff.recharge.charges.charges import ChargeGenerator, ChargeSettings
 from openff.recharge.charges.exceptions import UnableToAssignChargeError
+from openff.recharge.conformers import ConformerGenerator, ConformerSettings
+from openff.recharge.utilities.exceptions import MissingOptionalDependency
 from openff.recharge.utilities.openeye import smiles_to_molecule
 
 
@@ -19,6 +21,96 @@ def test_load_original_am1_bcc():
     """Tests that the original BCC values can be parsed from the
     data directory."""
     assert len(original_am1bcc_corrections().parameters) > 0
+
+
+def test_to_smirnoff():
+    """Test that a collection of bcc parameters can be mapped to a SMIRNOFF
+    `ChargeIncrementModelHandler` in a way that yields the same partial charges on a
+    molecule.
+    """
+
+    pytest.importorskip("openff.toolkit")
+
+    from openff.toolkit.topology import Molecule
+    from openff.toolkit.typing.engines.smirnoff.parameters import ElectrostaticsHandler
+    from simtk import unit
+    from simtk.openmm import System
+
+    smirnoff_handler = original_am1bcc_corrections().to_smirnoff()
+    assert smirnoff_handler is not None
+
+    off_molecule = Molecule.from_smiles("C(H)(H)(H)(H)")
+
+    off_topology = off_molecule.to_topology()
+    off_topology._ref_mol_to_charge_method = {off_molecule: None}
+
+    omm_system = System()
+
+    # noinspection PyTypeChecker
+    ElectrostaticsHandler(method="PME", version="0.3").create_force(
+        omm_system, off_topology
+    )
+    smirnoff_handler.create_force(omm_system, off_topology)
+
+    off_charges = [
+        omm_system.getForce(0)
+        .getParticleParameters(i)[0]
+        .value_in_unit(unit.elementary_charge)
+        for i in range(5)
+    ]
+
+    oe_molecule = smiles_to_molecule("C")
+
+    conformers = ConformerGenerator.generate(
+        oe_molecule,
+        ConformerSettings(method="omega", sampling_mode="sparse", max_conformers=1),
+    )
+
+    expected_charges = ChargeGenerator.generate(
+        oe_molecule, conformers, ChargeSettings()
+    ) + BCCGenerator.generate(smiles_to_molecule("C"), original_am1bcc_corrections())
+    numpy.allclose(numpy.round(expected_charges[:, 0], 3), numpy.round(off_charges, 3))
+
+
+def test_to_smirnoff_missing_dependency(monkeypatch):
+    """Test that the correct custom exception is raised when the
+    OpenFF toolkit cannot be imported."""
+
+    monkeypatch.setitem(sys.modules, "openff.toolkit", None)
+
+    with pytest.raises(MissingOptionalDependency):
+        original_am1bcc_corrections().to_smirnoff()
+
+
+def test_from_smirnoff():
+    """Test that a SMIRNOFF `ChargeIncrementModelHandler` can be mapped to
+    a collection of bcc parameters
+    """
+    pytest.importorskip("openff.toolkit")
+
+    from openff.toolkit.typing.engines.smirnoff.parameters import (
+        ChargeIncrementModelHandler,
+    )
+    from simtk import unit
+
+    bcc_value = 0.1 * unit.elementary_charge
+
+    # noinspection PyTypeChecker
+    parameter_handler = ChargeIncrementModelHandler(version="0.3")
+    parameter_handler.add_parameter(
+        {"smirks": "[#6:1]-[#6:2]", "charge_increment": [-bcc_value, bcc_value]}
+    )
+    parameter_handler.add_parameter(
+        {"smirks": "[#1:1]-[#1:2]", "charge_increment": [bcc_value]}
+    )
+
+    bcc_collection = BCCCollection.from_smirnoff(parameter_handler)
+    assert len(bcc_collection.parameters) == 2
+
+    assert bcc_collection.parameters[0].smirks == "[#1:1]-[#1:2]"
+    assert numpy.isclose(bcc_collection.parameters[0].value, 0.1)
+    assert bcc_collection.parameters[1].smirks == "[#6:1]-[#6:2]"
+    assert numpy.isclose(bcc_collection.parameters[1].value, -0.1)
 
 
 def test_build_assignment_matrix():
@@ -120,64 +212,6 @@ def test_am1_bcc_missing_parameters():
     assert "could not be assigned a bond charge correction atom type" in str(
         error_info.value
     )
-
-
-@pytest.mark.parametrize(
-    "smiles",
-    [
-        "c1ccccc1",  # benzene
-        "c1ccc2ccccc2c1",  # napthelene
-        "c1ccc2c(c1)ccc3ccccc23",  # phenanthrene
-        "c1ccc2c(c1)ccc3c4ccccc4ccc23",  # chrysene
-        "c1cc2ccc3cccc4ccc(c1)c2c34",  # pyrene
-        "c1cc2ccc3ccc4ccc5ccc6ccc1c7c2c3c4c5c67",  # coronene
-        "Cc1ccc2cc3ccc(C)cc3cc2c1",  # 2,7-Dimethylanthracene
-    ],
-)
-def test_am1_bcc_aromaticity_simple(smiles):
-    """Checks that the custom AM1BCC aromaticity model behaves as
-    expected for simple fused hydrocarbons.
-    """
-
-    oe_molecule = smiles_to_molecule(smiles)
-    AromaticityModel.assign(oe_molecule, AromaticityModels.AM1BCC)
-
-    ring_carbons = [
-        atom
-        for atom in oe_molecule.GetAtoms()
-        if atom.GetAtomicNum() == 6 and oechem.OEAtomIsInRingSize(atom, 6)
-    ]
-    ring_indices = {atom.GetIdx() for atom in ring_carbons}
-
-    assert all(atom.IsAromatic() for atom in ring_carbons)
-    assert all(
-        bond.IsAromatic()
-        for bond in oe_molecule.GetBonds()
-        if bond.GetBgnIdx() in ring_indices and bond.GetEndIdx() in ring_indices
-    )
-
-
-def test_am1_bcc_aromaticity_ring_size():
-    """Checks that the custom AM1BCC aromaticity model behaves as
-    expected fused hydrocarbons with varying ring sizes"""
-
-    oe_molecule = smiles_to_molecule("C1CC2=CC=CC3=C2C1=CC=C3")
-    AromaticityModel.assign(oe_molecule, AromaticityModels.AM1BCC)
-
-    atoms = {atom.GetIdx(): atom for atom in oe_molecule.GetAtoms()}
-
-    assert [not atoms[index].IsAromatic() for index in range(2)]
-    assert [atoms[index].IsAromatic() for index in range(2, 12)]
-
-
-@pytest.mark.parametrize(
-    "aromaticity_model",
-    [AromaticityModels.AM1BCC, AromaticityModels.MDL],
-)
-def test_aromaticity_models(aromaticity_model):
-
-    oe_molecule = smiles_to_molecule("C")
-    AromaticityModel.assign(oe_molecule, aromaticity_model)
 
 
 def test_generate():

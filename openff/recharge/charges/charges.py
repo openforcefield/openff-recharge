@@ -50,8 +50,12 @@ class ChargeGenerator:
         conformers: List[numpy.ndarray],
         settings: ChargeSettings,
     ) -> numpy.ndarray:
-        """Generates the averaged partial charges from multiple conformers
-        of a specified molecule.
+        """Generates the averaged partial charges from multiple conformers of a specified
+        molecule.
+
+        Notes
+        -----
+        * Virtual sites will be assigned a partial charge of 0.0 e.
 
         Parameters
         ----------
@@ -59,7 +63,7 @@ class ChargeGenerator:
             The molecule to compute the partial charges for.
         conformers
             The conformers to use in the partial charge calculations
-            where each conformer should have a shape=(n_atoms, 3).
+            where each conformer should have a shape=(n_atoms + n_vsites, 3).
         settings
             The settings to use in the charge generation.
 
@@ -78,7 +82,7 @@ class ChargeGenerator:
         oe_molecule.DeleteConfs()
 
         for conformer in conformers:
-            conformer = conformer[:oe_molecule.NumAtoms()]
+            conformer = conformer[: oe_molecule.NumAtoms()]
             oe_molecule.NewConf(oechem.OEFloatArray(conformer.flatten()))
 
         # Compute the partial charges.
@@ -112,8 +116,9 @@ class ChargeGenerator:
             ]
         )
 
-        n_vsites = len(conformers[0]) - oe_molecule.NumAtoms() 
+        n_vsites = len(conformers[0]) - oe_molecule.NumAtoms()
+
         if n_vsites:
-            charges = numpy.vstack((charges, numpy.zeros((n_vsites,1))))
+            charges = numpy.vstack((charges, numpy.zeros((n_vsites, 1))))
 
         return charges

@@ -3,265 +3,27 @@ of a cheaper QM method and a set of bond charge corrections.
 """
 import json
 import os
-from enum import Enum
-from typing import TYPE_CHECKING, Any, Dict, List, Tuple
-import itertools
+from typing import TYPE_CHECKING, Any, Dict, List
 
 import numpy
-from openff.toolkit.topology import Molecule
-from openff.toolkit.typing.engines.smirnoff.parameters import VirtualSiteHandler
 from pydantic import BaseModel, Field, constr
 
+from openff.recharge.aromaticity import AromaticityModel, AromaticityModels
 from openff.recharge.charges.charges import ChargeGenerator, ChargeSettings
 from openff.recharge.charges.exceptions import UnableToAssignChargeError
 from openff.recharge.conformers import ConformerGenerator, ConformerSettings
-from openff.recharge.utilities import get_data_file_path
+from openff.recharge.utilities import get_data_file_path, requires_package
+from openff.recharge.utilities.exceptions import (
+    UnsupportedBCCSmirksError,
+    UnsupportedBCCValueError,
+)
 from openff.recharge.utilities.openeye import import_oechem, match_smirks
 
 if TYPE_CHECKING:
     from openeye import oechem
-
-
-class AromaticityModels(Enum):
-    """An enumeration of the available aromaticity models.
-
-    These include
-
-    * AM1BCC - the aromaticity model defined in the original AM1BCC publications _[1].
-    * MDL - The MDL aromaticity model.
-
-    References
-    ----------
-    [1] Jakalian, A., Jack, D. B., & Bayly, C. I. (2002). Fast, efficient generation
-        of high-quality atomic charges. AM1-BCC model: II. Parameterization and
-        validation. Journal of computational chemistry, 23(16), 1623–1641.
-    """
-
-    AM1BCC = "AM1BCC"
-    MDL = "MDL"
-
-
-class AromaticityModel:
-    """A class which will assign aromatic flags to a molecule based upon
-    a specified aromatic model."""
-
-    @classmethod
-    def _set_aromatic(
-        cls, ring_matches: List[Dict[int, int]], oe_molecule: "oechem.OEMol"
-    ):
-        """Flag all specified ring atoms and all ring bonds between those atoms
-        as being aromatic.
-
-        Parameters
-        ----------
-        ring_matches
-            The indices of the atoms in each of the rings to flag as aromatic.
-        oe_molecule
-            The molecule to assign the aromatic flags to.
-        """
-
-        atoms = {atom.GetIdx(): atom for atom in oe_molecule.GetAtoms()}
-        bonds = {
-            tuple(sorted((bond.GetBgnIdx(), bond.GetEndIdx()))): bond
-            for bond in oe_molecule.GetBonds()
-        }
-
-        for ring_match in ring_matches:
-
-            ring_atom_indices = {match for match in ring_match.values()}
-
-            for matched_atom_index in ring_atom_indices:
-                atoms[matched_atom_index].SetAromatic(True)
-
-            for (index_a, index_b), bond in bonds.items():
-
-                if index_a not in ring_atom_indices or index_b not in ring_atom_indices:
-                    continue
-
-                if not bond.IsInRing():
-                    continue
-
-                bond.SetAromatic(True)
-
-    @classmethod
-    def _assign_am1bcc(cls, oe_molecule: "oechem.OEMol"):
-        """Applies aromaticity flags based upon the aromaticity model
-        outlined in the original AM1BCC publications _[1].
-
-        Parameters
-        ----------
-        oe_molecule
-            The molecule to assign aromatic flags to.
-
-        References
-        ----------
-        [1] Jakalian, A., Jack, D. B., & Bayly, C. I. (2002). Fast, efficient generation
-            of high-quality atomic charges. AM1-BCC model: II. Parameterization and
-            validation. Journal of computational chemistry, 23(16), 1623–1641.
-        """
-
-        x_type = "[#6X3,#7X2,#15X2,#7X3+1,#15X3+1,#8X2+1,#16X2+1:N]"
-        y_type = "[#6X2-1,#7X2-1,#8X2,#16X2,#7X3,#15X3:N]"
-        z_type = x_type
-
-        # Case 1)
-        case_1_smirks = (
-            f"{x_type.replace('N', '1')}1"
-            f"=@{x_type.replace('N', '2')}"
-            f"-@{x_type.replace('N', '3')}"
-            f"=@{x_type.replace('N', '4')}"
-            f"-@{x_type.replace('N', '5')}"
-            f"=@{x_type.replace('N', '6')}-@1"
-        )
-
-        case_1_matches = match_smirks(case_1_smirks, oe_molecule, unique=True)
-        case_1_atoms = {
-            match for matches in case_1_matches for match in matches.values()
-        }
-
-        cls._set_aromatic(case_1_matches, oe_molecule)
-
-        # Track the ar6 assignments as there is no atom attribute to
-        # safely determine if an atom is in a six member ring when
-        # that same atom is also in a five member ring.
-        ar6_assignments = {*case_1_atoms}
-
-        # Case 2)
-        case_2_smirks = (
-            f"{x_type.replace('N', '1')}1"
-            f"=@{x_type.replace('N', '2')}"
-            f"-@{x_type.replace('N', '3')}"
-            f"=@{x_type.replace('N', '4')}"
-            f"-@{x_type.replace('N', '5')}"
-            f":@{x_type.replace('N', '6')}-@1"
-        )
-
-        previous_case_2_atoms = None
-        case_2_atoms = {}
-
-        while previous_case_2_atoms != case_2_atoms:
-
-            case_2_matches = match_smirks(case_2_smirks, oe_molecule, unique=True)
-
-            # Enforce the ar6 condition
-            case_2_matches = [
-                case_2_match
-                for case_2_match in case_2_matches
-                if case_2_match[4] in ar6_assignments
-                and case_2_match[5] in ar6_assignments
-            ]
-
-            previous_case_2_atoms = case_2_atoms
-            case_2_atoms = {
-                match for matches in case_2_matches for match in matches.values()
-            }
-
-            ar6_assignments.update(case_2_atoms)
-            cls._set_aromatic(case_2_matches, oe_molecule)
-
-        # Case 3)
-        case_3_smirks = (
-            f"{x_type.replace('N', '1')}1"
-            f"=@{x_type.replace('N', '2')}"
-            f"-@{x_type.replace('N', '3')}"
-            f":@{x_type.replace('N', '4')}"
-            f"~@{x_type.replace('N', '5')}"
-            f":@{x_type.replace('N', '6')}-@1"
-        )
-
-        previous_case_3_atoms = None
-        case_3_atoms = {}
-
-        while previous_case_3_atoms != case_3_atoms:
-
-            case_3_matches = match_smirks(case_3_smirks, oe_molecule, unique=True)
-
-            # Enforce the ar6 condition
-            case_3_matches = [
-                case_3_match
-                for case_3_match in case_3_matches
-                if case_3_match[2] in ar6_assignments
-                and case_3_match[3] in ar6_assignments
-                and case_3_match[4] in ar6_assignments
-                and case_3_match[5] in ar6_assignments
-            ]
-
-            previous_case_3_atoms = case_3_atoms
-            case_3_atoms = {
-                match for matches in case_3_matches for match in matches.values()
-            }
-
-            ar6_assignments.update(case_3_atoms)
-
-            cls._set_aromatic(case_3_matches, oe_molecule)
-
-        # Case 4)
-        case_4_smirks = (
-            "[#6+1:1]1"
-            f"-@{x_type.replace('N', '2')}"
-            f"=@{x_type.replace('N', '3')}"
-            f"-@{x_type.replace('N', '4')}"
-            f"=@{x_type.replace('N', '5')}"
-            f"-@{x_type.replace('N', '6')}"
-            f"=@{x_type.replace('N', '7')}-@1"
-        )
-
-        case_4_matches = match_smirks(case_4_smirks, oe_molecule, unique=True)
-        case_4_atoms = {
-            match for matches in case_4_matches for match in matches.values()
-        }
-
-        cls._set_aromatic(case_4_matches, oe_molecule)
-
-        # Case 5)
-        case_5_smirks = (
-            f"{y_type.replace('N', '1')}1"
-            f"-@{z_type.replace('N', '2')}"
-            f"=@{z_type.replace('N', '3')}"
-            f"-@{x_type.replace('N', '4')}"
-            f"=@{x_type.replace('N', '5')}-@1"
-        )
-
-        ar_6_ar_7_matches = {
-            *case_1_atoms,
-            *case_2_atoms,
-            *case_3_atoms,
-            *case_4_atoms,
-        }
-
-        case_5_matches = match_smirks(case_5_smirks, oe_molecule, unique=True)
-        case_5_matches = [
-            matches
-            for matches in case_5_matches
-            if matches[1] not in ar_6_ar_7_matches
-            and matches[2] not in ar_6_ar_7_matches
-        ]
-
-        cls._set_aromatic(case_5_matches, oe_molecule)
-
-    @classmethod
-    def assign(cls, oe_molecule: "oechem.OEMol", model: AromaticityModels):
-        """Clears the current aromaticity flags on a molecule and assigns
-        new ones based on the specified aromaticity model.
-
-        Parameters
-        ----------
-        oe_molecule
-            The molecule to assign aromatic flags to.
-        model
-            The aromaticity model to apply.
-        """
-
-        oechem = import_oechem()
-
-        oechem.OEClearAromaticFlags(oe_molecule)
-
-        if model == AromaticityModels.AM1BCC:
-            cls._assign_am1bcc(oe_molecule)
-        elif model == AromaticityModels.MDL:
-            oechem.OEAssignAromaticFlags(oe_molecule, oechem.OEAroModel_MDL)
-        else:
-            raise NotImplementedError()
+    from openff.toolkit.typing.engines.smirnoff.parameters import (
+        ChargeIncrementModelHandler,
+    )
 
 
 class BCCParameter(BaseModel):
@@ -271,10 +33,10 @@ class BCCParameter(BaseModel):
 
     smirks: constr(min_length=1) = Field(
         ...,
-        description="A SMIRKS pattern which encodes the chemical environment that "
+        description="A SMIRKS pattern that encodes the chemical environment that "
         "this correction should be applied to.",
     )
-    value: float = Field(..., description="The value of this correction.")
+    value: float = Field(..., description="The value [e] of this correction.")
 
     provenance: Dict[str, Any] = Field(
         ..., description="Provenance information about this bond charge correction."
@@ -293,35 +55,114 @@ class BCCCollection(BaseModel):
         description="The model to use when assigning aromaticity.",
     )
 
-class VirtualSiteParameterTerm(BaseModel):
-    handler: str  = Field(..., description="The name of the parameter handler tag e.g. VirtualSites")
-    # virtual_site_type: str = Field(..., description="The type of the virtual site, e.g. BondCharge")
-    # name: str = Field(..., description="The name of the virtual site e.g. EP1")
-    term: Tuple = Field(..., description="The name of the parameter term, e.g. charge_increment1")
-    value: Any = Field(..., description="The value of this term")
-    # unit: str = Field(..., description="The units of the value")
-    # smirks: constr(min_length=1) = Field(
-    #     ...,
-    #     description="A SMIRKS pattern which encodes the chemical environment that "
-    #     "this correction should be applied to.",
-    # )
+    @requires_package("openff.toolkit")
+    @requires_package("simtk")
+    def to_smirnoff(self) -> "ChargeIncrementModelHandler":
+        """Converts this collection of bond charge correction parameters to
+        a SMIRNOFF bond charge increment parameter handler.
 
-class VSiteSMIRNOFFCollection(BaseModel):
-    """
-    Just a wrapped VSite Handler from the SMIRNOFF spec
-    """
+        Notes
+        -----
+        * The AM1BCC charges applied by this handler will likely not match
+          those computed using the built-in OpenEye implementation as that
+          implementation uses a custom aromaticity model not supported by
+          SMIRNOFF. This is in addition to potential conversion errors of the
+          parameters into the SMIRKS language.
 
-    class Config:
-        arbitrary_types_allowed = True
+        * The aromaticity model defined by the collection will be ignored as
+          this handler will parse the aromaticity model directly from the
+          top level aromaticity node of the the SMIRNOFF specification.
 
-    parameter_handler: "VirtualSiteHandler" = Field(..., description="The parameter handler responsible for managing the virtual site definitions")
+        Returns
+        -------
+            The constructed parameter handler.
+        """
+        from openff.toolkit.typing.engines.smirnoff.parameters import (
+            ChargeIncrementModelHandler,
+        )
+        from simtk import unit
 
-    parameters: List[VirtualSiteParameterTerm] = Field(..., description="The flattened parameters contained in the virtual site handler")
+        # noinspection PyTypeChecker
+        bcc_parameter_handler = ChargeIncrementModelHandler(version="0.3")
 
-    aromaticity_model: AromaticityModels = Field(
-        AromaticityModels.AM1BCC,
-        description="The model to use when assigning aromaticity.",
-    )
+        bcc_parameter_handler.number_of_conformers = 500
+        bcc_parameter_handler.partial_charge_method = "am1elf10"
+
+        for bcc_parameter in reversed(self.parameters):
+            bcc_parameter_handler.add_parameter(
+                {
+                    "smirks": bcc_parameter.smirks,
+                    "charge_increment": [
+                        bcc_parameter.value * unit.elementary_charge,
+                        -bcc_parameter.value * unit.elementary_charge,
+                    ],
+                }
+            )
+
+        return bcc_parameter_handler
+
+    @classmethod
+    @requires_package("simtk")
+    def from_smirnoff(
+        cls,
+        parameter_handler: "ChargeIncrementModelHandler",
+        aromaticity_model=AromaticityModels.MDL,
+    ) -> "BCCCollection":
+        """Attempts to convert a SMIRNOFF bond charge increment parameter handler
+        to a bond charge parameter collection.
+
+        Notes
+        -----
+        * Only bond charge corrections (i.e. corrections whose SMIRKS only involve
+          two tagged atoms) are supported currently.
+
+        Parameters
+        ----------
+        parameter_handler
+            The parameter handler to convert.
+        aromaticity_model
+            The model which describes how aromaticity should be assigned
+            when applying the bond charge correction parameters.
+
+        Returns
+        -------
+            The converted bond charge correction collection.
+        """
+        from simtk import unit
+
+        bcc_parameters = []
+
+        for off_parameter in reversed(parameter_handler.parameters):
+
+            smirks = off_parameter.smirks
+
+            if len(off_parameter.charge_increment) not in [1, 2]:
+                raise UnsupportedBCCSmirksError(
+                    smirks, len(off_parameter.charge_increment)
+                )
+
+            forward_value = off_parameter.charge_increment[0].value_in_unit(
+                unit.elementary_charge
+            )
+            reverse_value = -forward_value
+
+            if len(off_parameter.charge_increment) > 1:
+                reverse_value = off_parameter.charge_increment[1].value_in_unit(
+                    unit.elementary_charge
+                )
+
+            if not numpy.isclose(forward_value, -reverse_value):
+                raise UnsupportedBCCValueError(
+                    smirks,
+                    forward_value,
+                    reverse_value,
+                )
+
+            bcc_parameters.append(
+                BCCParameter(smirks=smirks, value=forward_value, provenance={})
+            )
+
+        return cls(parameters=bcc_parameters, aromaticity_model=aromaticity_model)
 
 
 class BCCGenerator:
@@ -413,13 +254,12 @@ class BCCGenerator:
         oe_molecule: "oechem.OEMol",
         bcc_collection: BCCCollection,
     ) -> numpy.ndarray:
-        """Generated a matrix which indicates which bond charge
-        corrections have been applied to each atom in the molecule.
+        """Generates a matrix that specifies which bond charge corrections have been
+        applied to which atoms in the molecule.
 
-        The matrix takes the form `[atom_index, bcc_index]` where
-        `atom_index` is the index of an atom in the molecule and
-        `bcc_index` is the index of a bond charge correction. Each
-        value in the matrix can either be positive or negative
+        The matrix takes the form `[atom_index, bcc_index]` where `atom_index` is the
+        index of an atom in the molecule and `bcc_index` is the index of a bond charge
+        correction. Each value in the matrix can either be positive or negative
         depending on the direction the BCC was applied in.
 
         Parameters
@@ -427,7 +267,7 @@ class BCCGenerator:
         oe_molecule
             The molecule to assign the bond charge corrections to.
         bcc_collection
-            The bond charge correction parameters which may be assigned.
+            The bond charge correction parameters that may be assigned.
 
         Returns
         -------
@@ -569,10 +409,7 @@ class BCCGenerator:
         oe_molecule: "oechem.OEMol",
         bcc_collection: BCCCollection,
     ) -> numpy.ndarray:
-        """Generate the partial charges for a molecule. If no conformer
-        generator is provided those conformers on the provided molecule
-        will be used, otherwise, new conformers will be generated using the
-        generator.
+        """Generate a set of charge increments for a molecule.
 
         Parameters
         ----------
@@ -587,192 +424,13 @@ class BCCGenerator:
             molecule.
         """
 
-        # Build the assignment matrix
         assignment_matrix = cls.build_assignment_matrix(oe_molecule, bcc_collection)
 
-        # Determine which bond charge corrections have actually been applied to the
-        # molecule
         generated_corrections = cls.apply_assignment_matrix(
             assignment_matrix, bcc_collection
         )
+
         return generated_corrections
-
-
-class VSiteSMIRNOFFGenerator:
-    @classmethod
-    def _validate_assignment_matrix(
-        cls,
-        off_molecule: Molecule,
-        assignment_matrix: numpy.ndarray,
-    ):
-        """Validates the assignment matrix.
-
-        Parameters
-        ----------
-        off_molecule
-            The molecule which the assignment matrix was generated
-            for.
-        assignment_matrix
-            The assignment matrix to validate with
-            shape=(n_atoms, n_bond_charge_corrections)
-        bcc_counts_matrix
-            A matrix which contains the number of times that a bond charge
-            correction is applied to a given atom with
-            shape=(n_atoms, n_bond_charge_corrections).
-        vsite_ph
-            The OpenFF virtual site handler responsible
-        """
-
-        # Check for non-zero contributions from charge corrections
-        atoms_offset = off_molecule.n_atoms
-        vsite_offset = 0
-        non_zero_assignments = assignment_matrix.sum(axis=0).astype(bool)
-
-        for index, vsite in enumerate(off_molecule.virtual_sites):
-            if non_zero_assignments[index]:
-                raise UnableToAssignChargeError(
-                    f"An internal error occurred. The bond charge corrections"
-                    f"alter the total charge of the molecule"
-                )
-
-    @classmethod
-    def build_smirnoff_virtual_sites(
-        self, oe_molecule: "oechem.OEMol", parameter_handler: VirtualSiteHandler
-    ) -> Tuple[Molecule, Dict]:
-        """
-        Parameters
-        ----------
-        oe_molecule
-            The molecule to assign the bond charge corrections to.
-        parameter_handler
-            The OpenFF parameter handler that will create the virtual sites
-
-        Returns
-        -------
-            An OpenFF molecule with virtual sites
-        """
-
-        off_mol = Molecule.from_openeye(oe_molecule)
-        off_top = off_mol.to_topology()
-        topology = parameter_handler.create_openff_virtual_sites(off_top)
-
-        off_mol_vsites = next(topology.reference_molecules)
-        term_topo = parameter_handler._term_map_topology(topology)
-
-        return off_mol_vsites, term_topo
-
-    @classmethod
-    def build_assignment_matrix(
-        cls,
-        oe_molecule: "oechem.OEMol",
-        vsite_collection: VSiteSMIRNOFFCollection,
-    ) -> numpy.ndarray:
-        """Generated a matrix which indicates which bond charge
-        corrections have been applied to each atom in the molecule.
-
-        The matrix takes the form `[atom_index, bcc_index]` where
-        `atom_index` is the index of an atom in the molecule and
-        `bcc_index` is the index of a bond charge correction. Each
-        value in the matrix can either be positive or negative
-        depending on the direction the BCC was applied in.
-
-        Parameters
-        ----------
-        oe_molecule
-            The molecule to assign the bond charge corrections to.
-        bcc_collection
-            The bond charge correction parameters which may be assigned.
-
-        Returns
-        -------
-            The assignment matrix with shape=(n_atoms, n_bond_charge_corrections)
-            where `n_atoms` is the number of atoms in the molecule and
-            `n_bond_charge_corrections` is the number of bond charges corrections
-            to apply.
-        """
-
-        oechem = import_oechem()
-
-        # Make a copy of the molecule to assign the aromatic flags to.
-        oe_molecule = oechem.OEMol(oe_molecule)
-        # Assign aromaticity flags to ensure correct smirks matches.
-        AromaticityModel.assign(oe_molecule, vsite_collection.aromaticity_model)
-
-        # atoms = {atom.GetIdx(): atom for atom in oe_molecule.GetAtoms()}
-
-        off_mol_vsites, term_topology = cls.build_smirnoff_virtual_sites(
-            oe_molecule, vsite_collection.parameter_handler
-        )
-
-        # strip the topology from the mapping since we are only working
-        # with one molecule here
-
-        term_topology = {atoms : term for (top, atoms), term in term_topology.items()}
-            
-
-        n_particles = off_mol_vsites.n_particles
-        # n_corrections = len(off_mol_vsites.virtual_sites)
-
-        # This will contain all parameters in the handler
-        n_corrections = len(vsite_collection.parameters)
-
-        assignment_matrix = numpy.zeros((n_particles, n_corrections))
-        # bcc_counts_matrix = numpy.zeros((n_particles, n_corrections))
-
-        atoms_offset = off_mol_vsites.n_atoms
-        vsite_offset = 0
-
-        # global index
-        term_index = {x.term : i for i, x in enumerate(vsite_collection.parameters)}
-
-        # for ptl_index, ((topo, parent_atoms), terms) in enumerate(term_topology.items()):
-        for index, vsite in enumerate(off_mol_vsites.virtual_sites):
-
-            # print(ptl_index, parent_atoms, terms)
-            for vp in vsite.particles:
-
-                # v_index = atoms_offset + vsite_offset
-                ptl = vp.molecule_particle_index
-
-                contrib = 1.0
-
-                vsite_terms = term_topology[vp.orientation]
-                for atom, term in zip(vp.orientation, vsite_terms):
-
-                    # pull off the handler-level name since we mapped
-                    # directly from the handler
-                    term = term[1]
-
-                    term_i = term_index[term]
-                    assignment_matrix[atom, term_i] -= contrib
-                    assignment_matrix[ptl, term_i] += contrib
-
-                    # bcc_counts_matrix[matched_indices[0], index] += 1
-                    # bcc_counts_matrix[matched_indices[1], index] += 1
-
-        # Validate the assignments
-        cls._validate_assignment_matrix(off_mol_vsites, assignment_matrix)
-
-        return assignment_matrix
-
-    @classmethod
-    def compute_virtual_site_positions(
-        cls,
-        oe_molecule: "oechem.OEMol",
-        vsite_parameter_handler: VirtualSiteHandler,
-        conformer_positions: numpy.ndarray,
-    ):
-
-        off_mol_vsites, topo = cls.build_smirnoff_virtual_sites(
-            oe_molecule, vsite_parameter_handler
-        )
-
-        vsite_positions = (
-            off_mol_vsites.compute_virtual_site_positions_from_atom_positions(
-                conformer_positions
-            )
-        )
-        return vsite_positions
 
 
 def original_am1bcc_corrections() -> BCCCollection:
@@ -859,6 +517,3 @@ def compare_openeye_parity(oe_molecule: "oechem.OEMol") -> bool:
     return numpy.allclose(reference_charges, implementation_charges) and numpy.allclose(
         charge_corrections, reference_charge_corrections
     )
-
-
-VSiteSMIRNOFFCollection.update_forward_refs()

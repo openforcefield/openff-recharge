@@ -1,6 +1,6 @@
 import pprint
 import numpy as np
-from openff.recharge.charges.bcc import VSiteSMIRNOFFGenerator, VSiteSMIRNOFFCollection
+from openff.recharge.charges.bcc import VSiteSMIRNOFFGenerator, VirtualSiteCollection
 import openff.recharge.smirnoff
 from openff.toolkit.typing.engines.smirnoff import ForceField
 from openff.toolkit.topology import Molecule
@@ -91,7 +91,7 @@ for i, row in enumerate(assign):
 
 # test when we have term PR active
 if 1:
-    vsc : VSiteSMIRNOFFCollection = openff.recharge.smirnoff.from_smirnoff_virtual_sites(vs, "VirtualSites")
+    vsc : VirtualSiteCollection = openff.recharge.smirnoff.from_smirnoff_virtual_sites(vs, "VirtualSites")
 
     from openff.toolkit.topology import Molecule
 

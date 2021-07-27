@@ -1,18 +1,41 @@
-from typing import List, Optional
+from typing import List, Optional, Tuple
 
 import numpy
 import pytest
-from openff.toolkit.typing.engines.smirnoff import ForceField
 
 from openff.recharge.charges.bcc import BCCCollection, BCCParameter
-from openff.recharge.charges.charges import ChargeSettings
-from openff.recharge.charges.vsite import VirtualSiteCollection
+from openff.recharge.charges.vsite import (
+    BondChargeSiteParameter,
+    VirtualSiteChargeKey,
+    VirtualSiteCollection,
+)
 from openff.recharge.esp import ESPSettings
 from openff.recharge.esp.storage import MoleculeESPRecord, MoleculeESPStore
-from openff.recharge.grids import GridGenerator, GridSettings
+from openff.recharge.grids import GridSettings
 from openff.recharge.optimize import ESPOptimization
-from openff.recharge.optimize.optimize import ElectricFieldOptimization
+from openff.recharge.optimize.optimize import ElectricFieldOptimization, _Optimization
+from openff.recharge.utilities.geometry import INVERSE_ANGSTROM_TO_BOHR
 from openff.recharge.utilities.openeye import smiles_to_molecule
+
+
+def mock_esp_record(
+    smiles: str,
+    conformer: numpy.ndarray,
+    grid: numpy.ndarray,
+    esp_value: float,
+    ef_value: Tuple[float, float, float],
+) -> MoleculeESPRecord:
+
+    oe_molecule = smiles_to_molecule(smiles)
+
+    return MoleculeESPRecord.from_oe_molecule(
+        oe_molecule,
+        conformer=conformer,
+        grid_coordinates=grid,
+        esp=numpy.array([[esp_value]] * len(grid)),
+        electric_field=numpy.array([ef_value] * len(grid)),
+        esp_settings=ESPSettings(grid_settings=GridSettings()),
+    )
 
 
 class MockMoleculeESPStore(MoleculeESPStore):
@@ -41,33 +64,6 @@ class MockMoleculeESPStore(MoleculeESPStore):
         ]
 
 
-class MockMoleculeESPStoreWater(MoleculeESPStore):
-    def retrieve(
-        self,
-        smiles: Optional[str] = None,
-        basis: Optional[str] = None,
-        method: Optional[str] = None,
-        implicit_solvent: Optional[bool] = None,
-    ) -> List[MoleculeESPRecord]:
-
-        oe_molecule = smiles_to_molecule("O")
-        conformer = numpy.array([[1.0, 1.0, 0.0], [1.0, 0.0, 0.0], [0.0, 1.0, 0.0]])
-
-        grid = GridGenerator.generate(oe_molecule, conformer, GridSettings())
-        n_pts = grid.shape[0]
-
-        return [
-            MoleculeESPRecord.from_oe_molecule(
-                oe_molecule,
-                conformer=conformer,
-                grid_coordinates=grid,
-                esp=numpy.zeros((n_pts, 1)),
-                electric_field=numpy.zeros((n_pts, 3)),
-                esp_settings=ESPSettings(grid_settings=GridSettings()),
-            )
-        ]
-
-
 def test_compute_esp_residuals():
 
     v_difference = ESPOptimization.compute_residuals(
@@ -79,7 +75,9 @@ def test_compute_esp_residuals():
     assert numpy.allclose(v_difference, 0.0)
 
 
-def test_compute_esp_objective_terms(tmp_path):
+def test_compute_bcc_terms():
+
+    oe_molecule = smiles_to_molecule("C#C")
 
     bcc_collection = BCCCollection(
         parameters=[
@@ -88,187 +86,200 @@ def test_compute_esp_objective_terms(tmp_path):
         ]
     )
 
-    objective_terms_generator = ESPOptimization.compute_objective_terms(
-        ["C#C"],
-        MockMoleculeESPStore(f"{tmp_path}.sqlite"),
-        bcc_collection,
-        [1],
-        ChargeSettings(),
-        vsite_collection=None,
+    assignment_matrix, fixed_charges = _Optimization._compute_bcc_terms(
+        oe_molecule, bcc_collection, ["[#6:1]-[#1:2]"]
     )
 
-    objective_terms = [*objective_terms_generator]
+    assert assignment_matrix.shape == (4, 1)
+    assert numpy.allclose(
+        assignment_matrix, numpy.array([[1.0], [1.0], [-1.0], [-1.0]])
+    )
 
-    assert len(objective_terms) == 1
-    objective_term = objective_terms[0]
-
-    assert objective_term.design_matrix.shape == (1, 1)
-    assert objective_term.target_residuals.shape == (1, 1)
-
-
-def vsite_collection_from_smirnoff_xml(xml_filename: str) -> VirtualSiteCollection:
-    """
-    Generate a virtual site collection from a SMIRNOFF force field
-
-    Parameters
-    ----------
-    xml_filename : str
-        Name of the SMIRNOFF XML file
-
-    Returns
-    -------
-    VirtualSiteCollection:
-        The virtual site collection
-    """
-
-    FF = ForceField(xml_filename, allow_cosmetic_attributes=True)
-
-    name = "VirtualSites"
-    VSH = FF.get_parameter_handler(name)
-
-    vsite_collection = VirtualSiteCollection.from_smirnoff(parameter_handler=VSH)
-
-    return vsite_collection
+    assert fixed_charges.shape == (4, 1)
+    assert numpy.allclose(fixed_charges, numpy.array([[2], [-2], [0], [0]]))
 
 
-@pytest.mark.skip("to-fix")
-def test_compute_esp_objective_terms_with_vsites(tmp_path):
+def test_compute_vsite_terms():
 
-    bcc_collection = BCCCollection(
+    oe_molecule = smiles_to_molecule("C#C")
+
+    vsite_collection = VirtualSiteCollection(
         parameters=[
-            BCCParameter(smirks="[#6:1]-[#1:2]", value=1.0, provenance={}),
-            BCCParameter(smirks="[#6:1]#[#6:2]", value=2.0, provenance={}),
+            BondChargeSiteParameter(
+                smirks="[#6:1]-[#1:2]",
+                name="EP",
+                distance=-0.1,
+                match="once",
+                charge_increments=(0.0, 1.0),
+                sigma=1.0,
+                epsilon=0.0,
+            ),
+            BondChargeSiteParameter(
+                smirks="[#6:1]#[#6:2]",
+                name="EP",
+                distance=1.0,
+                match="once",
+                charge_increments=(-2.0, -2.0),
+                sigma=1.0,
+                epsilon=0.0,
+            ),
         ]
     )
 
-    # this adds 5 charge increments from two vsites, only one applies to C#C
-    vsite_collection = vsite_collection_from_smirnoff_xml(
-        "./smirnoff_with_vsite.offxml"
+    assignment_matrix, fixed_charges = _Optimization._compute_vsite_terms(
+        oe_molecule,
+        vsite_collection,
+        [
+            ("[#6:1]-[#1:2]", "BondCharge", "EP", 0),
+            ("[#6:1]#[#6:2]", "BondCharge", "EP", 1),
+        ],
+    )
+
+    assert assignment_matrix.shape == (7, 2)
+    assert numpy.allclose(
+        assignment_matrix,
+        numpy.array([[-1, 0], [-1, -1], [0, 0], [0, 0], [0, 1], [1, 0], [1, 0]]),
+    )
+
+    assert fixed_charges.shape == (7, 1)
+    assert numpy.allclose(
+        fixed_charges, numpy.array([[2.0], [0.0], [-1.0], [-1.0], [-2.0], [1.0], [1.0]])
+    )
+
+
+@pytest.mark.parametrize(
+    "bcc_collection, bcc_keys, vsite_collection, vsite_keys, expected_design_matrix, "
+    "expected_residuals",
+    [
+        (
+            BCCCollection(
+                parameters=[
+                    BCCParameter(smirks="[#17:1]-[#1:2]", value=1.0, provenance={}),
+                ]
+            ),
+            ["[#17:1]-[#1:2]"],
+            None,
+            [],
+            numpy.array([[-2.0 / 15.0], [2.0 / 15.0]]),
+            numpy.array([[2.0], [2.0]]),
+        ),
+        (
+            None,
+            [],
+            VirtualSiteCollection(
+                parameters=[
+                    BondChargeSiteParameter(
+                        smirks="[#1:1]-[#17:2]",
+                        name="EP",
+                        distance=-4.0,
+                        match="once",
+                        charge_increments=(0.0, 1.0),
+                        sigma=1.0,
+                        epsilon=0.0,
+                    ),
+                ]
+            ),
+            [("[#1:1]-[#17:2]", "BondCharge", "EP", i) for i in [0, 1]],
+            numpy.array([[-2.0 / 15.0, 0.0], [2.0 / 15.0, 0.0]]),
+            numpy.array([[2.0], [2.0]]),
+        ),
+    ],
+)
+def test_compute_esp_objective_terms(
+    bcc_collection: Optional[BCCCollection],
+    bcc_keys: List[str],
+    vsite_collection: Optional[VirtualSiteCollection],
+    vsite_keys: List[VirtualSiteChargeKey],
+    expected_design_matrix: numpy.ndarray,
+    expected_residuals: numpy.ndarray,
+):
+
+    esp_record = mock_esp_record(
+        "[H]Cl",
+        numpy.array([[-2, 0, 0], [2, 0, 0]]),
+        numpy.array([[-2, 3, 0], [2, 0, 3]]),
+        2.0,
+        (1.0, 1.0, 1.0),
     )
 
     objective_terms_generator = ESPOptimization.compute_objective_terms(
-        ["C#C"],
-        MockMoleculeESPStore(f"{tmp_path}.sqlite"),
-        bcc_collection,
-        [],
-        ChargeSettings(),
+        [esp_record],
+        None,
+        bcc_collection=bcc_collection,
+        trainable_bcc_parameters=bcc_keys,
         vsite_collection=vsite_collection,
+        trainable_vsite_parameters=vsite_keys,
     )
-
     objective_terms = [*objective_terms_generator]
 
     assert len(objective_terms) == 1
     objective_term = objective_terms[0]
 
-    # 2 from bcc collection, 5 (only 2 assigned) from vsite FF
-    # this contains A and b, solve for q
+    assert objective_term.design_matrix.shape == expected_design_matrix.shape
 
-    assert objective_term.design_matrix.shape == (1, 7)
-    assert objective_term.target_residuals.shape == (1, 1)
-
-
-@pytest.mark.skip("to-fix")
-def test_compute_esp_objective_terms_tip4(tmp_path):
-
-    bcc_collection = BCCCollection(
-        parameters=[
-            BCCParameter(smirks="[#8:1]-[#1:2]", value=0.0, provenance={}),
-        ]
+    assert numpy.allclose(
+        objective_term.design_matrix / INVERSE_ANGSTROM_TO_BOHR,
+        expected_design_matrix,
     )
 
-    # this adds 5 charge increments from two vsites, only one applies to C#C
-    vsite_collection = vsite_collection_from_smirnoff_xml("./tip4.offxml")
-
-    store = MockMoleculeESPStoreWater(f"{tmp_path}.sqlite")
-    objective_terms_generator = ESPOptimization.compute_objective_terms(
-        ["O"],
-        store,
-        bcc_collection,
-        [],
-        ChargeSettings(),
-        vsite_collection=vsite_collection,
-    )
-
-    objective_terms = [*objective_terms_generator]
-
-    assert len(objective_terms) == 1
-    objective_term = objective_terms[0]
-
-    # 1 from bcc collection, 3 from vsite FF
-    # this contains A and b, solve for q
-
-    import numpy as np
-    import scipy.optimize
-
-    def fun(x, A, b):
-        return ((np.dot(A, x.reshape(-1, 1)) - b) ** 2).sum()
-
-    x0 = np.zeros((objective_term.design_matrix.shape[1],))
-    ret = scipy.optimize.least_squares(
-        fun,
-        x0,
-        args=(objective_term.design_matrix, objective_term.target_residuals),
-        verbose=True,
-    )
-    print(ret.x)
-    # assert objective_term.design_matrix.shape == (1, 5)
-    # assert objective_term.target_residuals.shape == (1, 1)
+    assert objective_term.target_residuals.shape == expected_residuals.shape
+    assert numpy.allclose(objective_term.target_residuals, expected_residuals)
 
 
-def test_compute_electric_field_objective_terms(tmp_path):
+@pytest.mark.parametrize(
+    "bcc_collection, bcc_keys, vsite_collection, vsite_keys, expected_design_matrix, "
+    "expected_residuals",
+    [
+        (
+            BCCCollection(
+                parameters=[
+                    BCCParameter(smirks="[#17:1]-[#1:2]", value=1.0, provenance={}),
+                ]
+            ),
+            ["[#17:1]-[#1:2]"],
+            None,
+            [],
+            numpy.array([[0.0, 0.0, 0.0], [0.0, 0.0, 0.0]]).reshape((2, 3, 1)),
+            numpy.array([[1.0, 2.0, 3.0], [1.0, 2.0, 3.0]]),
+        ),
+    ],
+)
+def test_compute_electric_field_objective_terms(
+    bcc_collection: Optional[BCCCollection],
+    bcc_keys: List[str],
+    vsite_collection: Optional[VirtualSiteCollection],
+    vsite_keys: List[VirtualSiteChargeKey],
+    expected_design_matrix: numpy.ndarray,
+    expected_residuals: numpy.ndarray,
+):
 
-    bcc_collection = BCCCollection(
-        parameters=[
-            BCCParameter(smirks="[#6:1]-[#1:2]", value=1.0, provenance={}),
-            BCCParameter(smirks="[#6:1]#[#6:2]", value=2.0, provenance={}),
-        ]
+    esp_record = mock_esp_record(
+        "[H]Cl",
+        numpy.array([[-2, 0, 0], [2, 0, 0]]),
+        numpy.array([[-2, 3, 0], [2, 0, 3]]),
+        2.0,
+        (1.0, 2.0, 3.0),
     )
 
     objective_terms_generator = ElectricFieldOptimization.compute_objective_terms(
-        ["C#C"],
-        MockMoleculeESPStore(f"{tmp_path}.sqlite"),
-        bcc_collection,
-        [1],
-        ChargeSettings(),
-        vsite_collection=None,
-    )
-
-    objective_terms = [*objective_terms_generator]
-
-    assert len(objective_terms) == 1
-    objective_term = objective_terms[0]
-
-    assert objective_term.design_matrix.shape == (1, 3, 1)
-    assert objective_term.target_residuals.shape == (1, 3)
-
-
-@pytest.mark.skip("to-fix")
-def test_compute_electric_field_objective_terms_with_vsites(tmp_path):
-
-    bcc_collection = BCCCollection(
-        parameters=[
-            BCCParameter(smirks="[#6:1]-[#1:2]", value=1.0, provenance={}),
-            BCCParameter(smirks="[#6:1]#[#6:2]", value=2.0, provenance={}),
-        ]
-    )
-
-    vsite_collection = vsite_collection_from_smirnoff_xml(
-        "./smirnoff_with_vsite.offxml"
-    )
-
-    objective_terms_generator = ElectricFieldOptimization.compute_objective_terms(
-        ["C#C"],
-        MockMoleculeESPStore(f"{tmp_path}.sqlite"),
-        bcc_collection,
-        [1],
-        ChargeSettings(),
+        [esp_record],
+        None,
+        bcc_collection=bcc_collection,
+        trainable_bcc_parameters=bcc_keys,
         vsite_collection=vsite_collection,
+        trainable_vsite_parameters=vsite_keys,
     )
-
     objective_terms = [*objective_terms_generator]
 
     assert len(objective_terms) == 1
     objective_term = objective_terms[0]
 
-    assert objective_term.design_matrix.shape == (1, 3, 6)
-    assert objective_term.target_residuals.shape == (1, 3)
+    assert objective_term.design_matrix.shape == expected_design_matrix.shape
+
+    # assert numpy.allclose(
+    #     objective_term.design_matrix / INVERSE_ANGSTROM_TO_BOHR,
+    #     expected_design_matrix,
+    # )
+
+    assert objective_term.target_residuals.shape == expected_residuals.shape
+    assert numpy.allclose(objective_term.target_residuals, expected_residuals)

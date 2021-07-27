@@ -3,11 +3,8 @@ import numpy as np
 import scipy.optimize
 import scipy.spatial.distance
 from openff.toolkit.topology import Molecule
-
-# import openff.recharge.smirnoff
 from openff.toolkit.typing.engines.smirnoff import ForceField
 
-# from openff.recharge.charges.bcc import VSiteSMIRNOFFGenerator, VirtualSiteCollection
 from openff.recharge.charges.bcc import (
     SMIRNOFFModel,
     SMIRNOFFMoleculeAssignment,

@@ -19,6 +19,7 @@ if TYPE_CHECKING:
 ExclusionPolicy = Literal["none", "parents"]
 
 VirtualSiteKey = Tuple[str, str, str]
+VirtualSiteChargeKey = Tuple[str, str, str, int]
 
 
 class _VirtualSiteParameter(BaseModel, abc.ABC):
@@ -301,7 +302,7 @@ class VirtualSiteGenerator:
     @classmethod
     def _build_charge_increment_array(
         cls, vsite_collection: VirtualSiteCollection
-    ) -> Tuple[numpy.ndarray, List[Tuple[str, str, str, int]]]:
+    ) -> Tuple[numpy.ndarray, List[VirtualSiteChargeKey]]:
         """Returns a flat vector of the charge increments contained within a virtual site
         collection as well as a list of keys that map each value back to its original
         parameter.
@@ -489,7 +490,6 @@ class VirtualSiteGenerator:
         return generated_corrections
 
     @classmethod
-    @requires_package("simtk")
     def generate_positions(
         cls,
         oe_molecule: "OEMol",

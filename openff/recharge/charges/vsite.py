@@ -136,7 +136,7 @@ class VirtualSiteCollection(BaseModel):
             version="0.3", exclusion_policy=self.exclusion_policy
         )
 
-        for parameter in self.parameters:
+        for parameter in reversed(self.parameters):
 
             parameter_kwargs = dict(
                 smirks=parameter.smirks,
@@ -198,7 +198,7 @@ class VirtualSiteCollection(BaseModel):
 
         parameters = []
 
-        for smirnoff_parameter in parameter_handler.parameters:
+        for smirnoff_parameter in reversed(parameter_handler.parameters):
 
             base_kwargs = dict(
                 smirks=smirnoff_parameter.smirks,

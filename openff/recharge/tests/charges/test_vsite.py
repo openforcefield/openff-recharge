@@ -281,8 +281,8 @@ def test_generator_validate_charge_assignment_matrix(
             "C(=O)=O",
             numpy.hstack(
                 [
-                    numpy.array([[0, -2], [-1, 0], [-1, 0], [1, 1], [1, 1]]),
                     numpy.zeros((5, 10)),
+                    numpy.array([[0, -2], [-1, 0], [-1, 0], [1, 1], [1, 1]]),
                 ]
             ),
         ),
@@ -291,11 +291,11 @@ def test_generator_validate_charge_assignment_matrix(
             numpy.hstack(
                 [
                     # Two v-sites added because DivalentLonePair set to all permutations
-                    numpy.zeros((5, 5)),
+                    numpy.zeros((5, 4)),
                     numpy.array(
                         [[0, -2, 0], [-1, 0, -1], [-1, 0, -1], [1, 1, 1], [1, 1, 1]]
                     ),
-                    numpy.zeros((5, 4)),
+                    numpy.zeros((5, 5)),
                 ]
             ),
         ),
@@ -303,7 +303,6 @@ def test_generator_validate_charge_assignment_matrix(
             "N",
             numpy.hstack(
                 [
-                    numpy.zeros((5, 8)),
                     numpy.array(
                         [
                             [0, -1, 0, 0],
@@ -313,6 +312,7 @@ def test_generator_validate_charge_assignment_matrix(
                             [1, 1, 1, 1],
                         ]
                     ),
+                    numpy.zeros((5, 8)),
                 ]
             ),
         ),

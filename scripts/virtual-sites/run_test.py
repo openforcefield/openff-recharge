@@ -1,9 +1,11 @@
 import pprint
+
 import numpy as np
-from openff.recharge.charges.bcc import VSiteSMIRNOFFGenerator, VirtualSiteCollection
-import openff.recharge.smirnoff
-from openff.toolkit.typing.engines.smirnoff import ForceField
 from openff.toolkit.topology import Molecule
+from openff.toolkit.typing.engines.smirnoff import ForceField
+
+import openff.recharge.smirnoff
+from openff.recharge.charges.bcc import VirtualSiteCollection, VSiteSMIRNOFFGenerator
 
 ff = ForceField("../openff/recharge/tip4.offxml")
 
@@ -20,12 +22,11 @@ vs = ff.get_parameter_handler("VirtualSites")
 mol = Molecule.from_smiles("O")
 
 
-
 lbls = ff.label_molecules(mol.to_topology())[0]
 # pprint.pprint(lbls)
-pprint.pprint(lbls['ChargeIncrementModel'].store)
+pprint.pprint(lbls["ChargeIncrementModel"].store)
 
-pprint.pprint(lbls['VirtualSites'].store)
+pprint.pprint(lbls["VirtualSites"].store)
 
 mol_top_orig = mol.to_topology()
 
@@ -60,7 +61,9 @@ for vsite in molv.virtual_sites:
     for vp in vsite.particles:
         ptl = vp.molecule_particle_index
         print("****", ptl, vp.orientation)
-        vsite_terms = filter(lambda x: x[0] == "VirtualSites", terms[(mol_top_orig, vp.orientation)])
+        vsite_terms = filter(
+            lambda x: x[0] == "VirtualSites", terms[(mol_top_orig, vp.orientation)]
+        )
         for atom, term in zip(vp.orientation, vsite_terms):
             term_i = ff_terms.index(term)
             assign[ptl][term_i] += 1
@@ -69,21 +72,19 @@ for vsite in molv.virtual_sites:
             print("        {} {}".format(term_i, str(term)))
 
 
-
-
 print(f"ASSIGNMENT MATRIX ({mol.n_atoms} n_atoms, {len(ff_terms)} terms")
 
 space = ""
 print(f"{space:3s} ", end=" ")
 for i, _ in enumerate(ff_terms):
-    print(f"{i:5d}", end=' ')
+    print(f"{i:5d}", end=" ")
 print()
 
 
 for i, row in enumerate(assign):
     print(f"{i:3d} ", end=" ")
     for col in row:
-        print(f"{col:5.2f}", end=' ')
+        print(f"{col:5.2f}", end=" ")
     print()
 
 
@@ -91,11 +92,12 @@ for i, row in enumerate(assign):
 
 # test when we have term PR active
 if 1:
-    vsc : VirtualSiteCollection = openff.recharge.smirnoff.from_smirnoff_virtual_sites(vs, "VirtualSites")
+    vsc: VirtualSiteCollection = openff.recharge.smirnoff.from_smirnoff_virtual_sites(
+        vs, "VirtualSites"
+    )
 
     from openff.toolkit.topology import Molecule
 
     oe_mol = Molecule.from_smiles("O").to_openeye()
 
     VSiteSMIRNOFFGenerator.build_assignment_matrix(oe_mol, vsc)
-

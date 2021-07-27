@@ -1,19 +1,19 @@
 # import pprint
 import numpy as np
-import scipy.spatial.distance
 import scipy.optimize
-# from openff.recharge.charges.bcc import VSiteSMIRNOFFGenerator, VirtualSiteCollection
-from openff.recharge.charges.bcc import (
-    SMIRNOFFModel,
-    SMIRNOFFMasterAssignmentModel,
-    SMIRNOFFMoleculeAssignmentModel,
-    SMIRNOFFTermModel,
-    SMIRNOFFMoleculeAssignment,
-)
+import scipy.spatial.distance
+from openff.toolkit.topology import Molecule
 
 # import openff.recharge.smirnoff
 from openff.toolkit.typing.engines.smirnoff import ForceField
-from openff.toolkit.topology import Molecule
+
+# from openff.recharge.charges.bcc import VSiteSMIRNOFFGenerator, VirtualSiteCollection
+from openff.recharge.charges.bcc import (
+    SMIRNOFFModel,
+    SMIRNOFFMoleculeAssignment,
+    SMIRNOFFMoleculeAssignmentModel,
+    SMIRNOFFTermModel,
+)
 from openff.recharge.tests.optimize.test_optimize import MockMoleculeESPStoreDinitrogen
 
 #######################################################################################
@@ -77,25 +77,31 @@ print(f"{grid=}")
 molecule = assn.molecule()
 
 print(f"{record.conformer=}")
-vsite_xyz = molecule.compute_virtual_site_positions_from_atom_positions(record.conformer)
+vsite_xyz = molecule.compute_virtual_site_positions_from_atom_positions(
+    record.conformer
+)
 print(f"{vsite_xyz=}")
 xyz = np.vstack((record.conformer, vsite_xyz))
 
 R = 1.0 / scipy.spatial.distance.cdist(grid, xyz)
 T = assn.to_ndarray()
 
+
 def distance(A, B):
-    return np.linalg.norm(A-B)
+    return np.linalg.norm(A - B)
+
 
 def epot(grid, ptls, q):
     v = np.zeros(grid.shape[0])
-    for l, g in enumerate(grid):
+    for i, g in enumerate(grid):
         for j, ptl in enumerate(ptls):
-            v[l] += q[j]/distance(g, ptl)
+            v[i] += q[j] / distance(g, ptl)
     return v
 
+
 def objective(ref_esp, train_esp):
-    return np.sum((ref_esp-train_esp)**2)
+    return np.sum((ref_esp - train_esp) ** 2)
+
 
 ref_esp = record.esp
 q_vsite_init = np.array([0.0, 0.0, 0.0, 0.0])
@@ -105,7 +111,7 @@ A = T.T @ R.T @ R @ T
 B = T.T @ R.T @ v_diff
 
 n_cc = T.shape[1]
-p = np.zeros((n_cc,1)) + 0.5
+p = np.zeros((n_cc, 1)) + 0.5
 
 print("A")
 print(A)
@@ -113,25 +119,19 @@ print(A)
 print("B")
 print(B)
 
-import scipy.optimize
-import numpy as np
 
 def fun(x, A, b):
-    return ((np.dot(A, x.reshape(-1, 1)) - b.reshape(-1,1)) ** 2).flat
+    return ((np.dot(A, x.reshape(-1, 1)) - b.reshape(-1, 1)) ** 2).flat
+
 
 x0 = np.zeros((n_cc,))
 ret = scipy.optimize.least_squares(
-    fun,
-    x0,
-    args=(A, B),
-    verbose=2,
-    max_nfev=300,
-    method='lm'
+    fun, x0, args=(A, B), verbose=2, max_nfev=300, method="lm"
 )
 
 print("Final parameters:", ret.x)
 
-q_train = q_vsite_init + np.dot(T,ret.x)
+q_train = q_vsite_init + np.dot(T, ret.x)
 print(f"{q_train=}")
 
 v_train = epot(grid, xyz, q_train)

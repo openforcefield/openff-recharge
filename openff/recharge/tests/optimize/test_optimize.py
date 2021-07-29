@@ -274,7 +274,7 @@ def test_compute_esp_objective_terms(
             ),
             [("[#1:1]-[#17:2]", "BondCharge", "EP", i) for i in [0, 1]],
             numpy.array([[-1, 0], [0, -1], [1, 1]]),
-            numpy.array([[2.0], [2.0]]),
+            numpy.array([[1.0, 2.0, 3.0], [1.0, 2.0, 3.0]]),
         ),
     ],
 )

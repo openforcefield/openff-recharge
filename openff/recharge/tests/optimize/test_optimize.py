@@ -125,6 +125,42 @@ def test_compute_vsite_terms():
     )
 
 
+def test_vectorize_collections():
+
+    bcc_collection = BCCCollection(
+        parameters=[
+            BCCParameter(smirks=f"[#{element}:1]-[#1:2]", value=value, provenance={})
+            for element, value in [(9, 1.0), (17, 2.0), (35, 3.0)]
+        ]
+    )
+    vsite_collection = VirtualSiteCollection(
+        parameters=[
+            BondChargeSiteParameter(
+                smirks=f"[#1:1]-[#{element}:2]",
+                name="EP",
+                distance=-4.0,
+                match="once",
+                charge_increments=values,
+                sigma=1.0,
+                epsilon=0.0,
+            )
+            for element, values in [(9, (4.0, 5.0)), (17, (6.0, 7.0)), (35, (8.0, 9.0))]
+        ]
+    )
+
+    parameter_vector = _Optimization.vectorize_collections(
+        bcc_collection=bcc_collection,
+        trainable_bcc_parameters=["[#17:1]-[#1:2]"],
+        vsite_collection=vsite_collection,
+        trainable_vsite_parameters=[
+            ("[#1:1]-[#9:2]", "BondCharge", "EP", 1),
+            ("[#1:1]-[#35:2]", "BondCharge", "EP", 0),
+        ],
+    )
+    assert parameter_vector.shape == (3, 1)
+    assert numpy.allclose(parameter_vector, numpy.array([[2.0], [5.0], [8.0]]))
+
+
 @pytest.mark.parametrize(
     "bcc_collection, bcc_keys, vsite_collection, vsite_keys, expected_design_matrix, "
     "expected_residuals",

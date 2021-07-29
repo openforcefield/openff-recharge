@@ -239,10 +239,10 @@ class _Optimization(abc.ABC):
         cls,
         esp_records: List[MoleculeESPRecord],
         charge_settings: Optional[ChargeSettings],
-        bcc_collection: Optional[BCCCollection],
-        trainable_bcc_parameters: Optional[List[str]],
-        vsite_collection: Optional[VirtualSiteCollection],
-        trainable_vsite_parameters: Optional[List[VirtualSiteChargeKey]],
+        bcc_collection: Optional[BCCCollection] = None,
+        trainable_bcc_parameters: Optional[List[str]] = None,
+        vsite_collection: Optional[VirtualSiteCollection] = None,
+        trainable_vsite_parameters: Optional[List[VirtualSiteChargeKey]] = None,
     ) -> Generator[ObjectiveTerm, None, None]:
         """Pre-calculates the terms that contribute to the objective function in the
         form ``chi_i = y_i - X_i @ beta`` where ``y_i`` and ``X_i`` are the target
@@ -334,6 +334,9 @@ class _Optimization(abc.ABC):
                 bcc_assignment_matrix, bcc_fixed_charges = cls._compute_bcc_terms(
                     oe_molecule, bcc_collection, trainable_bcc_parameters
                 )
+                bcc_fixed_charges = numpy.vstack(
+                    [bcc_fixed_charges, numpy.zeros((n_vsites, 1))]
+                )
 
                 fixed_charges += bcc_fixed_charges
 
@@ -363,6 +366,72 @@ class _Optimization(abc.ABC):
                 design_matrix_precursor @ trainable_assignment_matrix,
                 target_residuals,
             )
+
+    @classmethod
+    def vectorize_collections(
+        cls,
+        bcc_collection: Optional[BCCCollection] = None,
+        trainable_bcc_parameters: Optional[List[str]] = None,
+        vsite_collection: Optional[VirtualSiteCollection] = None,
+        trainable_vsite_parameters: Optional[List[VirtualSiteChargeKey]] = None,
+    ) -> numpy.ndarray:
+        """Returns a flat vector containing any bond charge correction and virtual
+        site charge increment parameters to be trained
+
+        The array is ordered to match the design matrices produced by
+        ``compute_objective_terms`` such that ``term.design_matrix @ charge_vector``
+        yield a vector of residuals.
+
+        Parameters
+        ----------
+        bcc_collection
+            A collection of bond charge correction parameters that should perturb the
+            base set of charges for each molecule in the ``esp_records`` list.
+        trainable_bcc_parameters
+            A list of SMIRKS patterns referencing those parameters in the
+            ``bcc_collection`` that should be trained.
+        vsite_collection
+            A collection of virtual site parameters that should create virtual sites
+            for each molecule in the ``esp_records`` list and perturb the base charges
+            on each atom.
+        trainable_vsite_parameters
+            A list of virtual site keys (tuples of the form ``(smirks, type, name)``)
+            referencing those parameters in the ``vsite_collection`` that should be
+            trained.
+
+        Returns
+        -------
+            An array of the form `[bcc_q_0, ..., bcc_q_n, vsite_q_0, ..., vsite_q_m`
+            containing the bond charge correction and virtual site charge increment
+            parameters
+        """
+
+        charge_increments = []
+
+        if bcc_collection is not None:
+
+            charge_increments.extend(
+                parameter.value
+                for parameter in bcc_collection.parameters
+                if parameter.smirks in trainable_bcc_parameters
+            )
+
+        if vsite_collection is not None:
+
+            charge_increments.extend(
+                parameter.charge_increments[charge_index]
+                for i, parameter in enumerate(vsite_collection.parameters)
+                for charge_index in range(len(parameter.charge_increments))
+                if (
+                    parameter.smirks,
+                    parameter.type,
+                    parameter.name,
+                    charge_index,
+                )
+                in trainable_vsite_parameters
+            )
+
+        return numpy.array(charge_increments).reshape((-1, 1))
 
 
 class ESPObjectiveTerm(ObjectiveTerm):

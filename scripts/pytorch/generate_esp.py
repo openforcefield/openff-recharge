@@ -139,9 +139,7 @@ def main():
     grid_settings = GridSettings(
         type="fcc", spacing=0.5, inner_vdw_scale=1.4, outer_vdw_scale=2.0
     )
-    esp_settings = ESPSettings(
-        basis="aug-cc-pV(D+d)Z", method="pw6b95", grid_settings=grid_settings
-    )
+    esp_settings = ESPSettings(basis="6-31G*", method="hf", grid_settings=grid_settings)
 
     with Pool(processes=N_PROCESSES) as pool:
 

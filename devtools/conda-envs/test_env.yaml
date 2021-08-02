@@ -36,7 +36,7 @@ dependencies:
   - qcportal
   - cmiles-base
 
-    # SMIRNOFF support
+    # SMIRNOFF + v-site support
   - openff-toolkit-base
 
     # Python < 3.8
@@ -48,3 +48,6 @@ dependencies:
   - black
   - isort
   - flake8
+
+  - pip:
+      - git+git://github.com/openforcefield/openff-toolkit.git@param-iter

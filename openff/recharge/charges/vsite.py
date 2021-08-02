@@ -416,8 +416,8 @@ class VirtualSiteGenerator:
                         (*vsite_parameter_key, i)
                     )
 
-                    assignment_matrix[atom_index, vsite_parameter_index] -= 1
-                    assignment_matrix[vsite_index, vsite_parameter_index] += 1
+                    assignment_matrix[atom_index, vsite_parameter_index] += 1
+                    assignment_matrix[vsite_index, vsite_parameter_index] -= 1
 
         cls._validate_charge_assignment_matrix(assignment_matrix)
         return assignment_matrix

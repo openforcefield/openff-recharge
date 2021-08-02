@@ -3,6 +3,7 @@ from typing import TYPE_CHECKING
 
 import numpy
 import pytest
+from openff.toolkit.topology import Molecule
 
 from openff.recharge.charges.exceptions import UnableToAssignChargeError
 from openff.recharge.charges.vsite import (
@@ -213,6 +214,40 @@ def test_from_smirnoff(vsite_force_field):
     assert numpy.isclose(trivalent.epsilon, 0.5)
 
 
+def test_smirnoff_parity(
+    vsite_force_field: "ForceField", vsite_collection: VirtualSiteCollection
+):
+
+    from simtk import openmm, unit
+
+    oe_molecule = smiles_to_molecule("N")
+
+    openmm_system = vsite_force_field.create_openmm_system(
+        Molecule.from_openeye(oe_molecule).to_topology()
+    )
+    openmm_force = [
+        force
+        for force in openmm_system.getForces()
+        if isinstance(force, openmm.NonbondedForce)
+    ][0]
+
+    openff_charges = numpy.array(
+        [
+            openmm_force.getParticleParameters(i)[0].value_in_unit(
+                unit.elementary_charge
+            )
+            for i in range(openmm_force.getNumParticles())
+        ]
+    ).reshape(-1, 1)
+
+    recharges = VirtualSiteGenerator.generate_charge_increments(
+        oe_molecule, vsite_collection
+    )
+
+    assert openff_charges.shape == recharges.shape
+    assert numpy.allclose(openff_charges, recharges)
+
+
 def test_generator_apply_virtual_sites(vsite_collection):
 
     oe_molecule = smiles_to_molecule("N")
@@ -282,7 +317,7 @@ def test_generator_validate_charge_assignment_matrix(
             numpy.hstack(
                 [
                     numpy.zeros((5, 10)),
-                    numpy.array([[0, -2], [-1, 0], [-1, 0], [1, 1], [1, 1]]),
+                    numpy.array([[0, 2], [1, 0], [1, 0], [-1, -1], [-1, -1]]),
                 ]
             ),
         ),
@@ -293,7 +328,7 @@ def test_generator_validate_charge_assignment_matrix(
                     # Two v-sites added because DivalentLonePair set to all permutations
                     numpy.zeros((5, 4)),
                     numpy.array(
-                        [[0, -2, 0], [-1, 0, -1], [-1, 0, -1], [1, 1, 1], [1, 1, 1]]
+                        [[0, 2, 0], [1, 0, 1], [1, 0, 1], [-1, -1, -1], [-1, -1, -1]]
                     ),
                     numpy.zeros((5, 5)),
                 ]
@@ -305,11 +340,11 @@ def test_generator_validate_charge_assignment_matrix(
                 [
                     numpy.array(
                         [
-                            [0, -1, 0, 0],
-                            [-1, 0, 0, 0],
-                            [0, 0, -1, 0],
-                            [0, 0, 0, -1],
-                            [1, 1, 1, 1],
+                            [0, 1, 0, 0],
+                            [1, 0, 0, 0],
+                            [0, 0, 1, 0],
+                            [0, 0, 0, 1],
+                            [-1, -1, -1, -1],
                         ]
                     ),
                     numpy.zeros((5, 8)),
@@ -333,9 +368,9 @@ def test_generator_charge_assignment_matrix(smiles, expected_matrix, vsite_colle
 @pytest.mark.parametrize(
     "smiles, expected_increments",
     [
-        ("C(=O)=O", numpy.array([[-0.2], [-0.2], [-0.2], [0.3], [0.3]])),
-        ("O", numpy.array([[0.0], [-1.0552], [-1.0552], [1.0552], [1.0552]])),
-        ("N", numpy.array([[-0.2], [0.0], [0.0], [0.0], [0.2]])),
+        ("C(=O)=O", numpy.array([[0.2], [0.2], [0.2], [-0.3], [-0.3]])),
+        ("O", numpy.array([[0.0], [1.0552], [1.0552], [-1.0552], [-1.0552]])),
+        ("N", numpy.array([[0.2], [0.0], [0.0], [0.0], [-0.2]])),
     ],
 )
 def test_generator_generate_charge_increments(

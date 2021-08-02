@@ -116,12 +116,12 @@ def test_compute_vsite_terms():
     assert assignment_matrix.shape == (7, 2)
     assert numpy.allclose(
         assignment_matrix,
-        numpy.array([[-1, 0], [-1, -1], [0, 0], [0, 0], [0, 1], [1, 0], [1, 0]]),
+        numpy.array([[1, 0], [1, 1], [0, 0], [0, 0], [0, -1], [-1, 0], [-1, 0]]),
     )
 
     assert fixed_charges.shape == (7, 1)
     assert numpy.allclose(
-        fixed_charges, numpy.array([[2.0], [0.0], [-1.0], [-1.0], [-2.0], [1.0], [1.0]])
+        fixed_charges, numpy.array([[-2.0], [0.0], [1.0], [1.0], [2.0], [-1.0], [-1.0]])
     )
 
 
@@ -194,7 +194,7 @@ def test_vectorize_collections():
                 ]
             ),
             [("[#1:1]-[#17:2]", "BondCharge", "EP", i) for i in [0, 1]],
-            numpy.array([[-2.0 / 15.0, 0.0], [2.0 / 15.0, 0.0]]),
+            numpy.array([[2.0 / 15.0, 0.0], [-2.0 / 15.0, 0.0]]),
             numpy.array([[2.0], [2.0]]),
         ),
     ],
@@ -273,7 +273,7 @@ def test_compute_esp_objective_terms(
                 ]
             ),
             [("[#1:1]-[#17:2]", "BondCharge", "EP", i) for i in [0, 1]],
-            numpy.array([[-1, 0], [0, -1], [1, 1]]),
+            numpy.array([[1, 0], [0, 1], [-1, -1]]),
             numpy.array([[1.0, 2.0, 3.0], [1.0, 2.0, 3.0]]),
         ),
     ],

@@ -3,10 +3,10 @@ import sys
 import numpy
 import pytest
 from openeye import oechem
+from openff.utilities.exceptions import MissingOptionalDependency
 
 from openff.recharge.utilities.exceptions import (
     InvalidSmirksError,
-    MissingOptionalDependency,
     MoleculeFromSmilesError,
 )
 from openff.recharge.utilities.openeye import (

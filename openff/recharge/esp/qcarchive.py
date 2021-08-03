@@ -4,12 +4,12 @@ import re
 from typing import TYPE_CHECKING, Dict, Iterable, List, Optional, Tuple
 
 import numpy
+from openff.utilities import requires_package
 from pydantic import ValidationError
 
 from openff.recharge.esp import ESPSettings, PCMSettings
 from openff.recharge.esp.storage import MoleculeESPRecord
 from openff.recharge.grids import GridGenerator, GridSettings
-from openff.recharge.utilities import requires_package
 from openff.recharge.utilities.exceptions import RechargeException
 from openff.recharge.utilities.openeye import molecule_to_conformers
 

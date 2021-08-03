@@ -2,6 +2,7 @@ import sys
 
 import numpy
 import pytest
+from openff.utilities.exceptions import MissingOptionalDependency
 
 from openff.recharge.charges.bcc import (
     BCCCollection,
@@ -13,7 +14,6 @@ from openff.recharge.charges.bcc import (
 from openff.recharge.charges.charges import ChargeGenerator, ChargeSettings
 from openff.recharge.charges.exceptions import UnableToAssignChargeError
 from openff.recharge.conformers import ConformerGenerator, ConformerSettings
-from openff.recharge.utilities.exceptions import MissingOptionalDependency
 from openff.recharge.utilities.openeye import smiles_to_molecule
 
 

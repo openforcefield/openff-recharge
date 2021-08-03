@@ -3,12 +3,12 @@ from collections import defaultdict
 from typing import TYPE_CHECKING, Dict, List, Optional, Tuple, Union
 
 import numpy
+from openff.utilities import requires_package
 from pydantic import BaseModel, Field, constr
 from typing_extensions import Literal
 
 from openff.recharge.aromaticity import AromaticityModel, AromaticityModels
 from openff.recharge.charges.exceptions import UnableToAssignChargeError
-from openff.recharge.utilities import requires_package
 from openff.recharge.utilities.openeye import import_oechem
 
 if TYPE_CHECKING:

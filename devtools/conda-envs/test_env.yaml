@@ -20,6 +20,7 @@ dependencies:
   - tqdm
   - numpy
   - pydantic
+  - openff-utilities
   - openeye-toolkits
 
     # ESP calculations

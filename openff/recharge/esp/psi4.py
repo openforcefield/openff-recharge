@@ -4,10 +4,10 @@ from typing import TYPE_CHECKING, Tuple
 
 import jinja2
 import numpy
+from openff.utilities import get_data_file_path, temporary_cd
 
 from openff.recharge.esp import ESPGenerator, ESPSettings
 from openff.recharge.esp.exceptions import Psi4Error
-from openff.recharge.utilities import get_data_file_path, temporary_cd
 from openff.recharge.utilities.openeye import import_oechem
 
 if TYPE_CHECKING:
@@ -66,7 +66,9 @@ class Psi4ESPGenerator(ESPGenerator):
         ]
 
         # Format the jinja template
-        template_path = get_data_file_path(os.path.join("psi4", "input.dat"))
+        template_path = get_data_file_path(
+            os.path.join("psi4", "input.dat"), "openff.recharge"
+        )
 
         with open(template_path) as file:
             template = jinja2.Template(file.read())

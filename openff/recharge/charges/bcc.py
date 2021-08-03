@@ -6,13 +6,13 @@ import os
 from typing import TYPE_CHECKING, Any, Dict, List
 
 import numpy
+from openff.utilities import get_data_file_path, requires_package
 from pydantic import BaseModel, Field, constr
 
 from openff.recharge.aromaticity import AromaticityModel, AromaticityModels
 from openff.recharge.charges.charges import ChargeGenerator, ChargeSettings
 from openff.recharge.charges.exceptions import UnableToAssignChargeError
 from openff.recharge.conformers import ConformerGenerator, ConformerSettings
-from openff.recharge.utilities import get_data_file_path, requires_package
 from openff.recharge.utilities.exceptions import (
     UnsupportedBCCSmirksError,
     UnsupportedBCCValueError,
@@ -444,7 +444,9 @@ def original_am1bcc_corrections() -> BCCCollection:
         Parameterization and validation. Journal of computational chemistry,
         23(16), 1623–1641.
     """
-    bcc_file_path = get_data_file_path(os.path.join("bcc", "original-am1-bcc.json"))
+    bcc_file_path = get_data_file_path(
+        os.path.join("bcc", "original-am1-bcc.json"), "openff.recharge"
+    )
 
     with open(bcc_file_path) as file:
         bcc_dictionaries = json.load(file)

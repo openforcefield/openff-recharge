@@ -5,11 +5,11 @@ import re
 from typing import TYPE_CHECKING, Any, Callable, Dict, List, Type, TypeVar
 
 import numpy
+from openff.utilities.exceptions import MissingOptionalDependency
 from typing_extensions import Literal
 
 from openff.recharge.utilities.exceptions import (
     InvalidSmirksError,
-    MissingOptionalDependency,
     MoleculeFromSmilesError,
     RechargeException,
 )

@@ -45,9 +45,6 @@ dependencies:
     # SMIRNOFF + v-site support
   - openff-toolkit-base
 
-    # Optimization
-  - pytorch-cpu
-
     # Linting
   - black
   - isort

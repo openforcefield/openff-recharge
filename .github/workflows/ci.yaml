@@ -21,11 +21,11 @@ jobs:
       matrix:
         cfg:
           - python-version: 3.8
-            os: ubuntu-latest
+            os: macos-latest
             env-file: "test-psi4"
 
           - python-version: 3.9
-            os: ubuntu-latest
+            os: macos-latest
             env-file: "test-psi4"
 
           - python-version: 3.8

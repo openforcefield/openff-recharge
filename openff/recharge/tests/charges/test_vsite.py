@@ -504,6 +504,7 @@ def test_generator_local_coordinate_frames():
 @pytest.mark.parametrize("backend", ["numpy", "torch"])
 def test_generator_convert_local_coordinates(backend):
 
+    pytest.importorskip("torch")
     import torch
 
     local_frame_coordinates = numpy.array([[1.0, 45.0, 45.0]])

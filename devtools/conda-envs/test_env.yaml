@@ -19,17 +19,22 @@ dependencies:
   - click
   - tqdm
   - numpy
+  - jinja2
   - pydantic
   - openff-utilities
   - openeye-toolkits
 
-    # ESP calculations
-  - jinja2
-  - psi4 >=1.4a3.dev1
-
     # ESP storage
   - sqlalchemy
   - sqlite
+
+    # Python < 3.8
+  - typing-extensions
+
+    ### Optional dependencies.
+
+    # ESP calculations
+  - psi4 >=1.4a3.dev1
 
     # QCFractal integration.
   - qcfractal >=0.15.6  # - for testing only. Users only need qcportal.
@@ -40,10 +45,8 @@ dependencies:
     # SMIRNOFF + v-site support
   - openff-toolkit-base
 
-    # Python < 3.8
-  - typing-extensions
-
-    ### Optional dependencies.
+    # Optimization
+  - pytorch-cpu
 
     # Linting
   - black

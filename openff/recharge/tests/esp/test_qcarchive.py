@@ -1,4 +1,3 @@
-import sys
 from json import JSONDecodeError
 from typing import TYPE_CHECKING
 

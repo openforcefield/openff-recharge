@@ -3,7 +3,6 @@ from typing import TYPE_CHECKING
 
 import numpy
 import pytest
-import torch
 from openff.toolkit.topology import Molecule
 
 from openff.recharge.charges.exceptions import UnableToAssignChargeError
@@ -504,6 +503,8 @@ def test_generator_local_coordinate_frames():
 
 @pytest.mark.parametrize("backend", ["numpy", "torch"])
 def test_generator_convert_local_coordinates(backend):
+
+    import torch
 
     local_frame_coordinates = numpy.array([[1.0, 45.0, 45.0]])
     local_coordinate_frames = numpy.array(

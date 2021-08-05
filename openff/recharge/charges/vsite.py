@@ -1,6 +1,6 @@
 import abc
 from collections import defaultdict
-from typing import TYPE_CHECKING, Dict, List, Optional, Tuple, Union
+from typing import TYPE_CHECKING, Dict, List, Optional, Tuple, Union, overload
 
 import numpy
 from openff.utilities import requires_package
@@ -13,6 +13,11 @@ from openff.recharge.utilities.openeye import import_oechem
 
 if TYPE_CHECKING:
 
+    try:
+        import torch
+    except ImportError:
+        torch = None
+
     from openeye.oechem import OEMol
     from openff.toolkit.topology import Molecule
     from openff.toolkit.typing.engines.smirnoff import VirtualSiteHandler
@@ -21,6 +26,7 @@ ExclusionPolicy = Literal["none", "parents"]
 
 VirtualSiteKey = Tuple[str, str, str]
 VirtualSiteChargeKey = Tuple[str, str, str, int]
+VirtualSiteGeometryKey = Tuple[str, str, str, str]
 
 
 class _VirtualSiteParameter(BaseModel, abc.ABC):
@@ -58,10 +64,35 @@ class _VirtualSiteParameter(BaseModel, abc.ABC):
 
     match: Literal["once", "all-permutations"] = Field(..., description="...")
 
+    @classmethod
+    @abc.abstractmethod
+    def local_frame_weights(cls) -> numpy.ndarray:
+        """Returns a matrix of the weights to apply to a matrix of the coordinates of
+        the virtual sites' parent atoms to yield the origin, x and y vectors of the
+        virtual sites local frame with shape=(3, n_parent_atoms)."""
+        raise NotImplementedError()
+
+    @property
+    @abc.abstractmethod
+    def local_frame_coordinates(cls) -> numpy.ndarray:
+        """Returns a 1 X 3 array of the spherical coordinates (``[d, theta, phi]``) of
+        this virtual site with respect to its local frame.
+        """
+        raise NotImplementedError()
+
 
 class BondChargeSiteParameter(_VirtualSiteParameter):
 
     type: Literal["BondCharge"] = "BondCharge"
+
+    @classmethod
+    def local_frame_weights(cls) -> numpy.ndarray:
+        return numpy.array([[1.0, 0.0], [-1.0, 1.0], [-1.0, 1.0]])
+
+    @property
+    def local_frame_coordinates(self) -> numpy.ndarray:
+        # distance, theta, phi
+        return numpy.array([[self.distance, 180.0, 0.0]])
 
 
 class MonovalentLonePairParameter(_VirtualSiteParameter):
@@ -79,6 +110,17 @@ class MonovalentLonePairParameter(_VirtualSiteParameter):
         "defined by the tagged atoms by.",
     )
 
+    @classmethod
+    def local_frame_weights(cls) -> numpy.ndarray:
+        return numpy.array([[1.0, 0.0, 0.0], [-1.0, 1.0, 0.0], [-1.0, 0.0, 1.0]])
+
+    @property
+    def local_frame_coordinates(self) -> numpy.ndarray:
+        # distance, theta, phi
+        return numpy.array(
+            [[self.distance, self.in_plane_angle, self.out_of_plane_angle]]
+        )
+
 
 class DivalentLonePairParameter(_VirtualSiteParameter):
 
@@ -90,10 +132,34 @@ class DivalentLonePairParameter(_VirtualSiteParameter):
         "defined by the tagged atoms by.",
     )
 
+    @classmethod
+    def local_frame_weights(cls) -> numpy.ndarray:
+        return numpy.array([[0.0, 1.0, 0.0], [0.5, -1.0, 0.5], [1.0, -1.0, 0.0]])
+
+    @property
+    def local_frame_coordinates(self) -> numpy.ndarray:
+        # distance, theta, phi
+        return numpy.array([[self.distance, 180.0, self.out_of_plane_angle]])
+
 
 class TrivalentLonePairParameter(_VirtualSiteParameter):
 
     type: Literal["TrivalentLonePair"] = "TrivalentLonePair"
+
+    @classmethod
+    def local_frame_weights(cls) -> numpy.ndarray:
+        return numpy.array(
+            [
+                [0.0, 1.0, 0.0, 0.0],
+                [1.0 / 3.0, -1.0, 1.0 / 3.0, 1.0 / 3.0],
+                [1.0, -1.0, 0.0, 0.0],
+            ]
+        )
+
+    @property
+    def local_frame_coordinates(self) -> numpy.ndarray:
+        # distance, theta, phi
+        return numpy.array([[self.distance, 180.0, 0.0]])
 
 
 VirtualSiteParameterType = Union[
@@ -491,6 +557,158 @@ class VirtualSiteGenerator:
         return generated_corrections
 
     @classmethod
+    def build_local_coordinate_frames(
+        cls,
+        conformer: numpy.ndarray,
+        assigned_parameters: Dict[Tuple[int, ...], List[VirtualSiteParameterType]],
+    ) -> numpy.ndarray:
+        """Builds an orthonormal coordinate frame for each virtual particle
+        based on the type of virtual site and the coordinates of the parent atoms.
+
+        Notes
+        -----
+        * See `the OpenMM documentation for further information
+          <http://docs.openmm.org/7.0.0/userguide/theory.html#virtual-sites>`_.
+
+        Parameters
+        ----------
+        conformer
+            The conformer of the molecule that the virtual sites are being added to
+            with shape=(n_atoms, 3) and units of [A].
+        assigned_parameters
+            A dictionary of the form ``assigned_parameters[atom_indices] = parameters``
+            where ``atom_indices`` is a tuple of indices corresponding to the atoms
+            that the virtual site is connected to, and ``parameters`` is a list of the
+            parameters that describe the virtual sites.
+
+        Returns
+        -------
+            An array storing the local frames of all virtual sites with
+            shape=(4, n_vsites, 3) whereby ``local_frames[0]`` is an array of the
+            origins of each frame, ``local_frames[1]`` the x-directions,
+            ``local_frames[2]`` the y-directions, and ``local_frames[2]`` the
+            z-directions.
+        """
+
+        stacked_frames = [[], [], [], []]
+
+        for parent_indices, vsite_parameter in (
+            (parent_indices, vsite_parameter)
+            for parent_indices, vsite_parameters in assigned_parameters.items()
+            for vsite_parameter in vsite_parameters
+        ):
+            parent_coordinates = conformer[parent_indices, :]
+
+            weighted_coordinates = (
+                vsite_parameter.local_frame_weights() @ parent_coordinates
+            )
+
+            origin = weighted_coordinates[0, :]
+
+            xy_plane = weighted_coordinates[1:, :]
+            xy_plane_norm = xy_plane / numpy.sqrt(
+                (xy_plane * xy_plane).sum(-1)
+            ).reshape(-1, 1)
+
+            x_hat = xy_plane_norm[0, :]
+            z_hat = numpy.cross(x_hat, xy_plane[1, :])
+            y_hat = numpy.cross(z_hat, x_hat)
+
+            stacked_frames[0].append(origin.reshape(1, -1))
+            stacked_frames[1].append(x_hat.reshape(1, -1))
+            stacked_frames[2].append(y_hat.reshape(1, -1))
+            stacked_frames[3].append(z_hat.reshape(1, -1))
+
+        local_frames = numpy.stack([numpy.vstack(frames) for frames in stacked_frames])
+        return local_frames
+
+    @classmethod
+    @overload
+    def convert_local_coordinates(
+        cls,
+        local_frame_coordinates: numpy.ndarray,
+        local_coordinate_frames: numpy.ndarray,
+        backend: Literal["numpy"],
+    ) -> numpy.ndarray:
+        ...
+
+    @classmethod
+    @overload
+    def convert_local_coordinates(
+        cls,
+        local_frame_coordinates: "torch.tensor",
+        local_coordinate_frames: "torch.tensor",
+        backend: Literal["torch"],
+    ) -> "torch.tensor":
+        ...
+
+    @classmethod
+    def convert_local_coordinates(
+        cls,
+        local_frame_coordinates,
+        local_coordinate_frames,
+        backend: Literal["numpy", "torch"] = "numpy",
+    ) -> numpy.ndarray:
+        """Converts a set of local virtual site coordinates defined in a spherical
+        coordinate system into a full set of cartesian coordinates.
+
+        Parameters
+        ----------
+        local_frame_coordinates
+            An array containing the local coordinates with shape=(n_vsites, 3) and with
+            columns of distance [A], 'in plane angle' [deg] and 'out of plane'
+            angle [deg].
+        local_coordinate_frames
+            The orthonormal basis associated with each of the virtual sites with
+            shape=(4, n_vsites, 3). See the ``build_local_coordinate_frames`` function
+            for more details.
+        backend
+            The framework to use when performing mathematical operations.
+
+        Returns
+        -------
+            An array of the cartesian coordinates of the virtual sites with
+            shape=(n_vsites, 3) and units of [A].
+        """
+
+        if backend == "numpy":
+            np = numpy
+        elif backend == "torch":
+            import torch
+
+            np = torch
+        else:
+            raise NotImplementedError()
+
+        d = local_frame_coordinates[:, 0].reshape(-1, 1)
+
+        cos_theta = np.cos(local_frame_coordinates[:, 1] * numpy.pi / 180.0).reshape(
+            -1, 1
+        )
+        sin_theta = np.sin(local_frame_coordinates[:, 1] * numpy.pi / 180.0).reshape(
+            -1, 1
+        )
+
+        cos_phi = np.cos(local_frame_coordinates[:, 2] * numpy.pi / 180.0).reshape(
+            -1, 1
+        )
+        sin_phi = np.sin(local_frame_coordinates[:, 2] * numpy.pi / 180.0).reshape(
+            -1, 1
+        )
+
+        # Here we use cos(phi) in place of sin(phi) and sin(phi) in place of cos(phi)
+        # this is because we want phi=0 to represent a 0 degree angle from the x-y plane
+        # rather than 0 degrees from the z-axis.
+        vsite_positions = (
+            local_coordinate_frames[0]
+            + d * cos_theta * cos_phi * local_coordinate_frames[1]
+            + d * sin_theta * cos_phi * local_coordinate_frames[2]
+            + d * sin_phi * local_coordinate_frames[3]
+        )
+
+        return vsite_positions
+
+    @classmethod
     def generate_positions(
         cls,
         oe_molecule: "OEMol",
@@ -515,15 +733,34 @@ class VirtualSiteGenerator:
             An array of virtual site positions [A] with shape=(n_vsites, 3).
         """
 
-        from simtk import unit
+        vsite_parameters_by_key = {
+            (parameter.smirks, parameter.type, parameter.name): parameter
+            for parameter in vsite_collection.parameters
+        }
 
-        off_molecule, _ = cls._apply_virtual_sites(oe_molecule, vsite_collection)
+        # Extract the values of the assigned parameters.
+        _, assigned_parameter_map = cls._apply_virtual_sites(
+            oe_molecule, vsite_collection
+        )
+        assigned_parameters = {
+            atom_indices: [vsite_parameters_by_key[key] for key in parameter_keys]
+            for atom_indices, parameter_keys in assigned_parameter_map.items()
+        }
 
-        vsite_positions = (
-            off_molecule.compute_virtual_site_positions_from_atom_positions(
-                conformer * unit.angstrom
-            )
+        local_frame_coordinates = numpy.vstack(
+            [
+                parameter.local_frame_coordinates
+                for parent_indices, parameters in assigned_parameters.items()
+                for parameter in parameters
+            ]
         )
 
-        # noinspection PyUnresolvedReferences
-        return vsite_positions.value_in_unit(unit.angstrom)
+        # Construct the global cartesian coordinates of the v-sites.
+        local_coordinate_frames = cls.build_local_coordinate_frames(
+            conformer, assigned_parameters
+        )
+        vsite_positions = VirtualSiteGenerator.convert_local_coordinates(
+            local_frame_coordinates, local_coordinate_frames, backend="numpy"
+        )
+
+        return vsite_positions

@@ -14,7 +14,6 @@ from openff.recharge.charges.vsite import (
     VirtualSiteCollection,
     VirtualSiteGenerator,
 )
-from openff.recharge.conformers import ConformerGenerator, ConformerSettings
 from openff.recharge.tests import does_not_raise
 from openff.recharge.utilities.openeye import smiles_to_molecule
 
@@ -129,6 +128,80 @@ def vsite_force_field() -> "ForceField":
     )
 
     return force_field
+
+
+@pytest.mark.parametrize(
+    "parameter_type, n_positions",
+    [
+        (BondChargeSiteParameter, 2),
+        (MonovalentLonePairParameter, 3),
+        (DivalentLonePairParameter, 3),
+        (TrivalentLonePairParameter, 4),
+    ],
+)
+def test_local_frame_weights(parameter_type, n_positions):
+    assert parameter_type.local_frame_weights().shape == (3, n_positions)
+
+
+@pytest.mark.parametrize(
+    "parameter, expected_value",
+    [
+        (
+            BondChargeSiteParameter(
+                smirks="[*:1]-[*:2]",
+                name="EP",
+                charge_increments=(0.0, 0.0),
+                sigma=0.0,
+                epsilon=0.0,
+                match="once",
+                distance=2.0,
+            ),
+            numpy.array([[2.0, 180.0, 0.0]]),
+        ),
+        (
+            MonovalentLonePairParameter(
+                smirks="[*:1]-[*:2]-[*:3]",
+                name="EP",
+                charge_increments=(0.0, 0.0, 0.0),
+                sigma=0.0,
+                epsilon=0.0,
+                match="once",
+                distance=2.0,
+                in_plane_angle=30.0,
+                out_of_plane_angle=60.0,
+            ),
+            numpy.array([[2.0, 30.0, 60.0]]),
+        ),
+        (
+            DivalentLonePairParameter(
+                smirks="[*:1]-[*:2]-[*:3]",
+                name="EP",
+                charge_increments=(0.0, 0.0, 0.0),
+                sigma=0.0,
+                epsilon=0.0,
+                match="once",
+                distance=2.0,
+                out_of_plane_angle=60.0,
+            ),
+            numpy.array([[2.0, 180.0, 60.0]]),
+        ),
+        (
+            TrivalentLonePairParameter(
+                smirks="[*:1](-[*:2])(-[*:3])(-[*:4])",
+                name="EP",
+                charge_increments=(0.0, 0.0, 0.0),
+                sigma=0.0,
+                epsilon=0.0,
+                match="once",
+                distance=2.0,
+            ),
+            numpy.array([[2.0, 180.0, 0.0]]),
+        ),
+    ],
+)
+def test_local_frame_coordinates(parameter, expected_value):
+    assert parameter.local_frame_coordinates.shape == expected_value.shape
+    assert numpy.allclose(parameter.local_frame_coordinates, expected_value)
 
 
 @pytest.fixture(scope="module")
@@ -387,18 +460,99 @@ def test_generator_generate_charge_increments(
     assert numpy.allclose(actual_increments, expected_increments)
 
 
+def test_generator_local_coordinate_frames():
+
+    # Build a dummy 'formaldehyde' conformer and associated v-site parameter.
+    conformer = numpy.array(
+        [
+            [+1.0, +0.0, +0.0],
+            [+0.0, +0.0, +0.0],
+            [-1.0, +0.0, +1.0],
+            [-1.0, +0.0, -1.0],
+        ]
+    )
+    parameter = MonovalentLonePairParameter(
+        smirks="[O:1]=[C:2]-[H:3]",
+        name="EP",
+        charge_increments=(0.0, 0.0, 0.0),
+        sigma=0.0,
+        match="once",
+        epsilon=0.0,
+        distance=1.0,
+        in_plane_angle=180.0,
+        out_of_plane_angle=45.0,
+    )
+
+    assigned_parameters = {(0, 1, 2): [parameter], (0, 1, 3): [parameter]}
+
+    actual_coordinate_frames = VirtualSiteGenerator.build_local_coordinate_frames(
+        conformer, assigned_parameters
+    )
+    expected_coordinate_frames = numpy.array(
+        [
+            [[+1.0, +0.0, +0.0], [+1.0, +0.0, +0.0]],
+            [[-1.0, +0.0, +0.0], [-1.0, +0.0, +0.0]],
+            [[+0.0, +0.0, +1.0], [+0.0, +0.0, -1.0]],
+            [[+0.0, +1.0, +0.0], [+0.0, -1.0, +0.0]],
+        ]
+    )
+
+    assert actual_coordinate_frames.shape == (4, 2, 3)
+    assert numpy.allclose(actual_coordinate_frames, expected_coordinate_frames)
+
+
+@pytest.mark.parametrize("backend", ["numpy", "torch"])
+def test_generator_convert_local_coordinates(backend):
+
+    pytest.importorskip("torch")
+    import torch
+
+    local_frame_coordinates = numpy.array([[1.0, 45.0, 45.0]])
+    local_coordinate_frames = numpy.array(
+        [
+            [[+0.0, +0.0, +0.0]],
+            [[+1.0, +0.0, +0.0]],
+            [[+0.0, +1.0, +0.0]],
+            [[+0.0, +0.0, +1.0]],
+        ]
+    )
+
+    if backend == "torch":
+        local_coordinate_frames = torch.from_numpy(local_coordinate_frames)
+        local_frame_coordinates = torch.from_numpy(local_frame_coordinates)
+
+    actual_coordinates = VirtualSiteGenerator.convert_local_coordinates(
+        local_frame_coordinates, local_coordinate_frames, backend
+    )
+
+    if backend == "numpy":
+        assert isinstance(actual_coordinates, numpy.ndarray)
+    else:
+        assert isinstance(actual_coordinates, torch.Tensor)
+        actual_coordinates = actual_coordinates.numpy()
+
+    expected_coordinates = numpy.array([[0.5, 0.5, 1.0 / numpy.sqrt(2.0)]])
+
+    assert actual_coordinates.shape == (1, 3)
+    assert numpy.allclose(actual_coordinates, expected_coordinates)
+
+
 def test_generator_generate_positions(vsite_collection):
 
     oe_molecule = smiles_to_molecule("N")
 
-    conformers = ConformerGenerator.generate(
-        oe_molecule,
-        ConformerSettings(method="omega", sampling_mode="sparse", max_conformers=1),
+    conformer = numpy.array(
+        [
+            [0.0, 1.0, 0.0],
+            [-1.0, 0.0, 0.0],
+            [0.5, 0.0, +numpy.sqrt(0.75)],
+            [0.5, 0.0, -numpy.sqrt(0.75)],
+        ]
     )
 
     vsite_position = VirtualSiteGenerator.generate_positions(
-        oe_molecule, vsite_collection, conformers[0]
+        oe_molecule, vsite_collection, conformer
     )
 
     assert vsite_position.shape == (1, 3)
-    assert not numpy.allclose(vsite_position, 0.0)
+    assert numpy.allclose(vsite_position, numpy.array([0.0, 6.0, 0.0]))

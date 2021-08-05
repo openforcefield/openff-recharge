@@ -1,0 +1,47 @@
+name: test
+channels:
+  - conda-forge
+  - openeye
+  - defaults
+dependencies:
+    # Base depends
+  - python
+  - pip
+
+    # Testing
+  - pytest
+  - pytest-cov
+  - codecov
+
+    ### Core dependencies.
+
+  - click
+  - tqdm
+  - numpy
+  - jinja2
+  - pydantic
+  - openff-utilities
+  - openeye-toolkits
+
+    # ESP storage
+  - sqlalchemy
+  - sqlite
+
+    # Python < 3.8
+  - typing-extensions
+
+    ### Optional dependencies.
+
+    # SMIRNOFF + v-site support
+  - openff-toolkit-base
+
+    # Optimization
+  - pytorch-cpu
+
+    # Linting
+  - black
+  - isort
+  - flake8
+
+  - pip:
+      - git+git://github.com/openforcefield/openff-toolkit.git@param-iter

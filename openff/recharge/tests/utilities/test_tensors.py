@@ -37,6 +37,8 @@ def test_to_numpy_none():
 @pytest.mark.parametrize("tensor_type", tensor_types)
 def test_to_torch(tensor_type):
 
+    pytest.importorskip("torch")
+
     input_tensor = tensor_type([[0.5, 1.0]])
     output_tensor = to_torch(input_tensor).type(torch.float64)
 
@@ -47,6 +49,7 @@ def test_to_torch(tensor_type):
 
 
 def test_to_torch_none():
+    pytest.importorskip("torch")
     assert to_torch(None) is None
 
 

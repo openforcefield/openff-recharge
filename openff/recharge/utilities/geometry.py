@@ -1,8 +1,11 @@
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, overload
 
 import numpy
 
+from openff.recharge.utilities.tensors import inverse_cdist, pairwise_differences
+
 if TYPE_CHECKING:
+    import torch
     from openeye import oechem
 
 BOHR_TO_ANGSTROM = 0.529177210903  # NIST 2018 CODATA
@@ -11,7 +14,21 @@ INVERSE_ANGSTROM_TO_BOHR = BOHR_TO_ANGSTROM
 ANGSTROM_TO_BOHR = 1.0 / BOHR_TO_ANGSTROM
 
 
-def compute_inverse_distance_matrix(points_a: numpy.ndarray, points_b: numpy.ndarray):
+@overload
+def compute_inverse_distance_matrix(
+    points_a: numpy.ndarray, points_b: numpy.ndarray
+) -> numpy.ndarray:
+    ...
+
+
+@overload
+def compute_inverse_distance_matrix(
+    points_a: "torch.Tensor", points_b: "torch.Tensor"
+) -> "torch.Tensor":
+    ...
+
+
+def compute_inverse_distance_matrix(points_a, points_b):
     """Computes a matrix of the inverse distances between all of the points
     in ``points_a`` and all of the points in ``points_b``.
 
@@ -32,49 +49,25 @@ def compute_inverse_distance_matrix(points_a: numpy.ndarray, points_b: numpy.nda
         with shape=(n_points_a, n_points_b).
     """
 
-    inverse_distances = numpy.zeros((len(points_a), len(points_b)))
-
-    for i in range(len(points_a)):
-
-        for j in range(len(points_b)):
-
-            distance = numpy.sqrt(
-                numpy.sum((points_a[i] - points_b[j]) * (points_a[i] - points_b[j]))
-            )
-            inverse_distances[i, j] = 1.0 / distance
-
-    return inverse_distances
+    assert type(points_a) == type(points_b)
+    return inverse_cdist(points_a, points_b)
 
 
-def compute_field_vector(
-    point_a: numpy.ndarray, point_b: numpy.ndarray
-) -> numpy.ndarray:
-    """Computes a vector which points from ``point_a`` to ``point_b`` and has
-    a magnitude equal to the inverse squared distance between the points.
-
-    Parameters
-    ----------
-    point_a
-        The first point with shape=(1, n_dim).
-    point_b
-        The second point with shape=(1, n_dim).
-
-    Returns
-    -------
-        The computed field vector with shape=(1, n_dim).
-    """
-
-    direction_vector = point_b - point_a
-    direction_norm = numpy.linalg.norm(direction_vector)
-
-    field_vector = direction_vector / (direction_norm * direction_norm * direction_norm)
-
-    return field_vector
-
-
+@overload
 def compute_vector_field(
     points_a: numpy.ndarray, points_b: numpy.ndarray
 ) -> numpy.ndarray:
+    ...
+
+
+@overload
+def compute_vector_field(
+    points_a: "torch.Tensor", points_b: "torch.Tensor"
+) -> "torch.Tensor":
+    ...
+
+
+def compute_vector_field(points_a, points_b):
     """Computes a tensor containing the vectors which point from all of the points in
     ``points_a`` to all of the points in ``points_b`` and have magnitudes equal to
     the inverse squared distance between the points.
@@ -96,16 +89,15 @@ def compute_vector_field(
         ``tensor[i, :, j] = (b_i - a_j) /  ||b_i - a_j|| ^ 3)``
     """
 
-    assert points_a.shape[1] == points_b.shape[1]
+    directions = pairwise_differences(points_a, points_b)
 
-    field_tensor = numpy.zeros((*points_b.shape, points_a.shape[0]))
+    inverse_distances = inverse_cdist(points_a, points_b)
+    inverse_distances_3 = inverse_distances * inverse_distances * inverse_distances
 
-    for j in range(len(points_a)):
-        for i in range(len(points_b)):
-
-            field_tensor[i, :, j] = compute_field_vector(points_a[j], points_b[i])
-
-    return field_tensor
+    if isinstance(inverse_distances_3, numpy.ndarray):
+        return directions * inverse_distances_3.T[:, None, :]
+    else:
+        return directions * inverse_distances_3.transpose(0, 1)[:, None, :]
 
 
 def reorder_conformer(

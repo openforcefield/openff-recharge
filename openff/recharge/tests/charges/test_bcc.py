@@ -113,6 +113,23 @@ def test_from_smirnoff():
     assert numpy.isclose(bcc_collection.parameters[1].value, -0.1)
 
 
+def test_vectorize_collection():
+
+    bcc_collection = BCCCollection(
+        parameters=[
+            BCCParameter(smirks=f"[#{element}:1]-[#1:2]", value=value, provenance={})
+            for element, value in [(9, 1.0), (17, 2.0), (35, 3.0)]
+        ]
+    )
+
+    parameter_vector = bcc_collection.vectorize(
+        smirks=["[#9:1]-[#1:2]", "[#35:1]-[#1:2]"]
+    )
+
+    assert parameter_vector.shape == (2, 1)
+    assert numpy.allclose(parameter_vector, numpy.array([[1.0], [3.0]]))
+
+
 def test_build_assignment_matrix():
 
     oe_molecule = smiles_to_molecule("C")

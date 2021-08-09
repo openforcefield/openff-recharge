@@ -321,6 +321,45 @@ def test_smirnoff_parity(
     assert numpy.allclose(openff_charges, recharges)
 
 
+def test_vectorize_collection_charge_increments(vsite_collection):
+
+    parameter_vector = vsite_collection.vectorize_charge_increments(
+        parameter_keys=[
+            ("[#6:2]=[#8:1]", "BondCharge", "EP", 1),
+            ("[#1:1]-[#8X2H2+0:2]-[#1:3]", "DivalentLonePair", "EP", 0),
+            ("[#1:1][#7:2]([#1:3])[#1:4]", "TrivalentLonePair", "EP", 1),
+        ],
+    )
+    assert parameter_vector.shape == (3, 1)
+    assert numpy.allclose(parameter_vector, numpy.array([[0.1], [1.0552 * 0.5], [0.2]]))
+
+
+def test_vectorize_collection_coordinates(vsite_collection):
+
+    parameter_vector = vsite_collection.vectorize_coordinates(
+        parameter_keys=[
+            ("[#1:1][#7:2]([#1:3])[#1:4]", "TrivalentLonePair", "EP", "distance"),
+            (
+                "[#1:1]-[#8X2H2+0:2]-[#1:3]",
+                "MonovalentLonePair",
+                "EP",
+                "in_plane_angle",
+            ),
+            (
+                "[#1:1]-[#8X2H2+0:2]-[#1:3]",
+                "MonovalentLonePair",
+                "EP",
+                "out_of_plane_angle",
+            ),
+            ("[#6:2]=[#8:1]", "BondCharge", "EP", "distance"),
+        ],
+    )
+    assert parameter_vector.shape == (4, 1)
+    assert numpy.allclose(
+        parameter_vector, numpy.array([[5.0], [180.0], [90.0], [7.0]])
+    )
+
+
 def test_generator_apply_virtual_sites(vsite_collection):
 
     oe_molecule = smiles_to_molecule("N")

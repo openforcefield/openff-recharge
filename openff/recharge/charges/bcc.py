@@ -164,6 +164,24 @@ class BCCCollection(BaseModel):
 
         return cls(parameters=bcc_parameters, aromaticity_model=aromaticity_model)
 
+    def vectorize(self, smirks: List[str]) -> numpy.ndarray:
+        """Returns a flat vector of the charge increment values associated with each
+        SMIRKS pattern in a specified list.
+
+        Parameters
+        ----------
+        smirks
+            A list of SMIRKS patterns corresponding to the BCC values to include
+            in the returned vector.
+
+        Returns
+        -------
+            A flat vector of charge increments with shape=(n_smirks, 1)
+        """
+
+        parameters = {parameter.smirks: parameter for parameter in self.parameters}
+        return numpy.array([[parameters[pattern].value] for pattern in smirks])
+
 
 class BCCGenerator:
     """A class for generating the bond charge corrections which should

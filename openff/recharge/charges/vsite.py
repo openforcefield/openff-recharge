@@ -28,6 +28,8 @@ VirtualSiteKey = Tuple[str, str, str]
 VirtualSiteChargeKey = Tuple[str, str, str, int]
 VirtualSiteGeometryKey = Tuple[str, str, str, str]
 
+_DEGREES_TO_RADIANS = numpy.pi / 180.0
+
 
 class _VirtualSiteParameter(BaseModel, abc.ABC):
     """The base class for virtual site parameters."""
@@ -319,6 +321,74 @@ class VirtualSiteCollection(BaseModel):
             parameters=parameters,
             aromaticity_model=aromaticity_model,
             exclusion_policy=parameter_handler.exclusion_policy.lower(),
+        )
+
+    def vectorize_coordinates(
+        self, parameter_keys: List[VirtualSiteGeometryKey]
+    ) -> numpy.ndarray:
+        """Returns a flat vector of the local frame coordinate values associated with a
+        specified set of 'keys'.
+
+        Parameters
+        ----------
+        parameter_keys
+            A list of parameter 'keys' of the form ``(smirks, type, name, attr)`` that
+            specify which local frame coordinate to include in the returned vector.
+
+            The allowed attributes are ``distance``, ``in_plane_angle``,
+            ``out_of_plane_angle``
+
+        Returns
+        -------
+            A vector of local frame coordinate with shape=(n_keys, 1)
+        """
+
+        parameters_by_key = {
+            (parameter.smirks, parameter.type, parameter.name): parameter
+            for parameter in self.parameters
+        }
+
+        parameter_values = numpy.array(
+            [
+                [getattr(parameters_by_key[tuple(parameter_key)], attribute)]
+                for *parameter_key, attribute in parameter_keys
+            ]
+        )
+
+        return parameter_values
+
+    def vectorize_charge_increments(
+        self, parameter_keys: List[VirtualSiteChargeKey]
+    ) -> numpy.ndarray:
+        """Returns a flat vector of the charge increment values associated with a
+        specified set of 'keys'.
+
+        Parameters
+        ----------
+        parameter_keys
+            A list of parameter 'keys' of the form ``(smirks, type, name, idx)`` that
+            specify which charge increments to include in the returned vector, where
+            `idx` is an integer index into a parameters' ``charge_increments`` tuple.
+
+        Returns
+        -------
+            A vector of charge increments with shape=(n_keys, 1)
+        """
+
+        parameters_by_key = {
+            (parameter.smirks, parameter.type, parameter.name): parameter
+            for parameter in self.parameters
+        }
+
+        return numpy.array(
+            [
+                [
+                    parameters_by_key[tuple(parameter_key)].charge_increments[
+                        charge_index
+                    ]
+                ]
+                for *parameter_key, charge_index in parameter_keys
+            ]
         )
 
 
@@ -636,10 +706,10 @@ class VirtualSiteGenerator:
     @overload
     def convert_local_coordinates(
         cls,
-        local_frame_coordinates: "torch.tensor",
-        local_coordinate_frames: "torch.tensor",
+        local_frame_coordinates: "torch.Tensor",
+        local_coordinate_frames: "torch.Tensor",
         backend: Literal["torch"],
-    ) -> "torch.tensor":
+    ) -> "torch.Tensor":
         ...
 
     @classmethod
@@ -682,19 +752,14 @@ class VirtualSiteGenerator:
 
         d = local_frame_coordinates[:, 0].reshape(-1, 1)
 
-        cos_theta = np.cos(local_frame_coordinates[:, 1] * numpy.pi / 180.0).reshape(
-            -1, 1
-        )
-        sin_theta = np.sin(local_frame_coordinates[:, 1] * numpy.pi / 180.0).reshape(
-            -1, 1
-        )
+        theta = (local_frame_coordinates[:, 1] * _DEGREES_TO_RADIANS).reshape(-1, 1)
+        phi = (local_frame_coordinates[:, 2] * _DEGREES_TO_RADIANS).reshape(-1, 1)
 
-        cos_phi = np.cos(local_frame_coordinates[:, 2] * numpy.pi / 180.0).reshape(
-            -1, 1
-        )
-        sin_phi = np.sin(local_frame_coordinates[:, 2] * numpy.pi / 180.0).reshape(
-            -1, 1
-        )
+        cos_theta = np.cos(theta)
+        sin_theta = np.sin(theta)
+
+        cos_phi = np.cos(phi)
+        sin_phi = np.sin(phi)
 
         # Here we use cos(phi) in place of sin(phi) and sin(phi) in place of cos(phi)
         # this is because we want phi=0 to represent a 0 degree angle from the x-y plane

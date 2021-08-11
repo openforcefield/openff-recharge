@@ -1,5 +1,5 @@
 import abc
-from typing import TYPE_CHECKING, Generator, List, Optional, Tuple, Type
+from typing import TYPE_CHECKING, Generator, List, Optional, Tuple, Type, TypeVar
 
 import numpy
 from typing_extensions import Literal
@@ -24,6 +24,7 @@ from openff.recharge.utilities.openeye import import_oechem
 from openff.recharge.utilities.tensors import (
     TensorType,
     append_zero,
+    concatenate,
     to_numpy,
     to_torch,
 )
@@ -33,6 +34,8 @@ if TYPE_CHECKING:
     from openeye.oechem import OEMol
 
 _VSITE_ATTRIBUTES = ("distance", "in_plane_angle", "out_of_plane_angle")
+
+_TERM_T = TypeVar("_TERM_T", bound="ObjectiveTerm")
 
 
 class ObjectiveTerm(abc.ABC):
@@ -145,6 +148,8 @@ class ObjectiveTerm(abc.ABC):
         self.grid_coordinates = grid_coordinates
         self.target_residuals = target_residuals
 
+        self._grid_batches = None
+
     def to_backend(self, backend: Literal["numpy", "torch"]):
         """Converts the tensors associated with this term to a particular backend.
 
@@ -172,11 +177,87 @@ class ObjectiveTerm(abc.ABC):
         self.grid_coordinates = converter(self.grid_coordinates)
         self.target_residuals = converter(self.target_residuals)
 
+    @classmethod
+    def combine(cls: Type[_TERM_T], *terms: _TERM_T) -> _TERM_T:
+        """Combines multiple objective term objects into a single object that can
+        be evaluated more efficiently by stacking the cached terms in a way that
+        allows vectorized operations.
+
+        Notes
+        -----
+        * This feature is very experimental and should only be used if you know what
+          you are doing.
+
+        Parameters
+        ----------
+        terms
+            The terms to combine.
+
+        Returns
+        -------
+            The combined term.
+        """
+
+        if any(term._grid_batches is not None for term in terms):
+            raise RuntimeError("Several of the terms have already been combined")
+
+        return_value = cls(
+            atom_charge_design_matrix=concatenate(
+                *(term.atom_charge_design_matrix for term in terms)
+            ),
+            #
+            vsite_charge_assignment_matrix=concatenate(
+                *(term.vsite_charge_assignment_matrix for term in terms)
+            ),
+            vsite_fixed_charges=concatenate(
+                *(term.vsite_fixed_charges for term in terms)
+            ),
+            #
+            vsite_coord_assignment_matrix=concatenate(
+                *(term.vsite_coord_assignment_matrix for term in terms)
+            ),
+            vsite_fixed_coords=concatenate(
+                *(term.vsite_fixed_coords for term in terms)
+            ),
+            #
+            vsite_local_coordinate_frame=concatenate(
+                *(term.vsite_local_coordinate_frame for term in terms), dimension=1
+            ),
+            #
+            grid_coordinates=concatenate(*(term.grid_coordinates for term in terms)),
+            target_residuals=concatenate(*(term.target_residuals for term in terms)),
+        )
+
+        if return_value.grid_coordinates is not None:
+
+            return_value._grid_batches = [(0, 0)]
+
+            n_grid_points, n_vsites = 0, 0
+
+            for term in terms:
+
+                n_grid_points += len(term.grid_coordinates)
+                n_vsites += len(term.vsite_fixed_charges)
+
+                return_value._grid_batches.append((n_grid_points, n_vsites))
+
+        return return_value
+
     def evaluate(
         self,
         charge_parameters: TensorType,
         vsite_coordinate_parameters: Optional[TensorType],
     ) -> TensorType:
+
+        if (
+            self.vsite_local_coordinate_frame is None
+            and vsite_coordinate_parameters is None
+        ):
+
+            raise RuntimeError(
+                "Virtual site parameters were provided but this term was not set-up to"
+                "handle such particles."
+            )
 
         if self._objective()._flatten_charges():
             charge_parameters = charge_parameters.flatten()
@@ -186,10 +267,7 @@ class ObjectiveTerm(abc.ABC):
         else:
             atom_contribution = 0.0
 
-        if vsite_coordinate_parameters is not None:
-
-            if self.vsite_local_coordinate_frame is None:
-                raise ValueError(...)
+        if self.vsite_local_coordinate_frame is not None:
 
             trainable_coordinates = append_zero(vsite_coordinate_parameters.flatten())[
                 self.vsite_coord_assignment_matrix
@@ -216,13 +294,36 @@ class ObjectiveTerm(abc.ABC):
             if self._objective()._flatten_charges():
                 vsite_charges = vsite_charges.flatten()
 
-            design_matrix_precursor = (
-                self._objective()._compute_design_matrix_precursor(
-                    self.grid_coordinates, vsite_coordinates
-                )
-            )
+            if self._grid_batches is None or len(self._grid_batches) <= 1:
 
-            vsite_contribution = design_matrix_precursor @ vsite_charges
+                design_matrix_precursor = (
+                    self._objective()._compute_design_matrix_precursor(
+                        self.grid_coordinates, vsite_coordinates
+                    )
+                )
+
+                vsite_contribution = design_matrix_precursor @ vsite_charges
+
+            else:
+
+                vsite_contribution = concatenate(
+                    *(
+                        self._objective()._compute_design_matrix_precursor(
+                            self.grid_coordinates[
+                                self._grid_batches[i][0] : self._grid_batches[i + 1][0],
+                                :,
+                            ],
+                            vsite_coordinates[
+                                self._grid_batches[i][1] : self._grid_batches[i + 1][1],
+                                :,
+                            ],
+                        )
+                        @ vsite_charges[
+                            self._grid_batches[i][1] : self._grid_batches[i + 1][1]
+                        ]
+                        for i in range(len(self._grid_batches) - 1)
+                    )
+                )
 
         else:
             vsite_contribution = 0.0

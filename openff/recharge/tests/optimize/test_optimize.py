@@ -295,6 +295,58 @@ def test_term_evaluate_bcc_and_vsite(
     assert numpy.isclose(expected_loss, output_loss)
 
 
+@pytest.mark.parametrize("objective_class", [ESPObjective, ElectricFieldObjective])
+@pytest.mark.parametrize("backend", backends)
+def test_combine_terms(objective_class, backend, hcl_parameters):
+
+    bcc_collection, vsite_collection = hcl_parameters
+
+    objective_terms_generator = objective_class.compute_objective_terms(
+        esp_records=[
+            MoleculeESPRecord.from_oe_molecule(
+                smiles_to_molecule("[H]Cl"),
+                conformer=numpy.random.random((2, 3)),
+                grid_coordinates=numpy.random.random((grid_size, 3)),
+                esp=numpy.random.random((grid_size, 1)),
+                electric_field=numpy.random.random((grid_size, 3)),
+                esp_settings=ESPSettings(grid_settings=GridSettings()),
+            )
+            for grid_size in [4, 5]
+        ],
+        charge_settings=None,
+        bcc_collection=bcc_collection,
+        bcc_parameter_keys=["[#17:1]-[#1:2]"],
+        vsite_collection=vsite_collection,
+        vsite_charge_parameter_keys=[("[#17:1]-[#1:2]", "BondCharge", "EP", 0)],
+        vsite_coordinate_parameter_keys=[
+            ("[#17:1]-[#1:2]", "BondCharge", "EP", "distance")
+        ],
+    )
+    objective_terms = [*objective_terms_generator]
+
+    # Define a dummy set of parameters
+    charge_values = (
+        numpy.random.random((2, 1)) if backend == "numpy" else torch.rand((2, 1))
+    )
+    coordinate_values = (
+        numpy.random.random((1, 1)) if backend == "numpy" else torch.rand((1, 1))
+    )
+
+    # Compute the total loss by summation.
+    summed_loss = numpy.zeros(1) if backend == "numpy" else torch.zeros(1)
+
+    for objective_term in objective_terms:
+
+        objective_term.to_backend(backend)
+        summed_loss += objective_term.evaluate(charge_values, coordinate_values)
+
+    # Combine the terms and re-compute the loss
+    combined_term = objective_class._objective_term().combine(*objective_terms)
+    combined_loss = combined_term.evaluate(charge_values, coordinate_values)
+
+    assert numpy.isclose(float(summed_loss), float(combined_loss))
+
+
 def test_compute_bcc_charge_terms():
 
     oe_molecule = smiles_to_molecule("C#C")

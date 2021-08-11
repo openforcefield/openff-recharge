@@ -176,3 +176,36 @@ def append_zero(a):
         return torch.cat([a, torch.zeros(1, dtype=a.dtype)])
 
     raise NotImplementedError()
+
+
+@overload
+def concatenate(*arrays: None, dimension: int = 0) -> None:
+    ...
+
+
+@overload
+def concatenate(*arrays: numpy.ndarray, dimension: int = 0) -> numpy.ndarray:
+    ...
+
+
+@overload
+def concatenate(*arrays: "torch.Tensor", dimension: int = 0) -> "torch.Tensor":
+    ...
+
+
+def concatenate(*arrays, dimension: int = 0):
+    """Concatenate multiple arrays along a specified dimension."""
+
+    if len(arrays) == 0:
+        raise NotImplementedError()
+
+    if all(array is None for array in arrays):
+        return None
+    elif isinstance(arrays[0], numpy.ndarray):
+        return numpy.concatenate([*arrays], axis=dimension)
+    elif arrays[0].__module__.startswith("torch"):
+        import torch
+
+        return torch.cat([*arrays], dim=dimension)
+
+    raise NotImplementedError()

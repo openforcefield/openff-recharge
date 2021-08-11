@@ -4,6 +4,7 @@ import pytest
 from openff.recharge.utilities.tensors import (
     append_zero,
     cdist,
+    concatenate,
     inverse_cdist,
     pairwise_differences,
     to_numpy,
@@ -121,3 +122,23 @@ def test_append_zero(tensor_type):
 
     assert output_tensor.shape == expected_tensor.shape
     assert numpy.allclose(output_tensor, expected_tensor)
+
+
+@pytest.mark.parametrize("tensor_type", tensor_types)
+def test_concatenate(tensor_type):
+
+    input_tensors = [
+        tensor_type([[1.0, 2.0]]),
+        tensor_type([[3.0, 4.0]]),
+        tensor_type([[5.0, 6.0]]),
+    ]
+    output_tensor = concatenate(*input_tensors)
+
+    expected_tensor = numpy.array([[1.0, 2.0], [3.0, 4.0], [5.0, 6.0]])
+
+    assert output_tensor.shape == expected_tensor.shape
+    assert numpy.allclose(output_tensor, expected_tensor)
+
+
+def test_concatenate_none():
+    assert concatenate(None, None) is None

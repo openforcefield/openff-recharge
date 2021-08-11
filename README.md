@@ -8,11 +8,15 @@
 OpenFF Recharge is a framework which aims to provide utilities for optimising the partial charges of molecules against 
 QC derived electrostatic potential and electric field data.
  
-Currently the framework focuses on the optimization of bond-charge correction (BCC) parameters.
+Currently, the framework focuses on the optimization of bond-charge correction (BCC) and virtual site parameters.
 
 ***Warning** - although a significant effort has been made to ensure the scientific validity of this framework 
 (especially the hand-converted AM1BCC parameters), it is still under heavy development and much care should be taken 
 when using it in production work.*
+
+## Getting Started
+
+See the [examples](examples) directory for example scripts to get started with.
 
 ## Installation
 
@@ -40,7 +44,7 @@ to the OpenFF SMIRNOFF format, it is recommended to install the following
 #### [OpenFF Toolkit](https://github.com/openforcefield/openff-toolkit):
 
 ```
-# (OPTIONAL) Enable SMIRNOFF support.
+# (OPTIONAL) Enable SMIRNOFF and virtual site support.
 conda install -c conda-forge openff-toolkit
 ```
 
@@ -48,7 +52,7 @@ conda install -c conda-forge openff-toolkit
 
 ```
 # (OPTIONAL) Enable ESP and field computation and reconstruction.
-conda install -c psi4/label/dev "psi4 >=1.4a3.dev1"
+conda install -c defaults -c psi4 "psi4 >=1.4"
 ```
 
 #### [QCPortal](https://github.com/MolSSI/QCPortal)

@@ -3,7 +3,7 @@ of a cheaper QM method and a set of bond charge corrections.
 """
 import json
 import os
-from typing import TYPE_CHECKING, Any, Dict, List
+from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
 import numpy
 from openff.utilities import get_data_file_path, requires_package
@@ -38,8 +38,8 @@ class BCCParameter(BaseModel):
     )
     value: float = Field(..., description="The value [e] of this correction.")
 
-    provenance: Dict[str, Any] = Field(
-        ..., description="Provenance information about this bond charge correction."
+    provenance: Optional[Dict[str, Any]] = Field(
+        None, description="Provenance information about this bond charge correction."
     )
 
 

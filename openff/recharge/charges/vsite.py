@@ -26,7 +26,9 @@ ExclusionPolicy = Literal["none", "parents"]
 
 VirtualSiteKey = Tuple[str, str, str]
 VirtualSiteChargeKey = Tuple[str, str, str, int]
-VirtualSiteGeometryKey = Tuple[str, str, str, str]
+VirtualSiteGeometryKey = Tuple[
+    str, str, str, Literal["distance", "in_plane_angle", "out_of_plane_angle"]
+]
 
 _DEGREES_TO_RADIANS = numpy.pi / 180.0
 
@@ -76,7 +78,7 @@ class _VirtualSiteParameter(BaseModel, abc.ABC):
 
     @property
     @abc.abstractmethod
-    def local_frame_coordinates(cls) -> numpy.ndarray:
+    def local_frame_coordinates(self) -> numpy.ndarray:
         """Returns a 1 X 3 array of the spherical coordinates (``[d, theta, phi]``) of
         this virtual site with respect to its local frame.
         """

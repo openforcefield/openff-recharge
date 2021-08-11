@@ -28,7 +28,7 @@ def to_numpy(tensor):
     if tensor is None:
         return None
 
-    if isinstance(tensor, numpy.ndarray):
+    elif isinstance(tensor, numpy.ndarray):
         return tensor
 
     return tensor.detach().numpy()
@@ -53,10 +53,15 @@ def to_torch(tensor):
     if tensor is None:
         return None
 
-    if isinstance(tensor, torch.Tensor):
+    elif isinstance(tensor, torch.Tensor):
         return tensor
 
-    return torch.from_numpy(tensor)
+    torch_tensor = torch.from_numpy(tensor)
+
+    if torch_tensor.dtype == torch.float64:
+        torch_tensor = torch_tensor.type(torch.float32)
+
+    return torch_tensor
 
 
 @overload

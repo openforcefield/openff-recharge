@@ -40,9 +40,9 @@ def test_to_torch(tensor_type):
     pytest.importorskip("torch")
 
     input_tensor = tensor_type([[0.5, 1.0]])
-    output_tensor = to_torch(input_tensor).type(torch.float64)
+    output_tensor = to_torch(input_tensor)
 
-    expected_tensor = torch.tensor([[0.5, 1.0]], dtype=torch.float64)
+    expected_tensor = torch.tensor([[0.5, 1.0]])
 
     assert output_tensor.shape == expected_tensor.shape
     assert torch.allclose(output_tensor, expected_tensor)

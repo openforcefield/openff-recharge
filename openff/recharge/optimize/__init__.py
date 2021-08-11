@@ -1,3 +1,3 @@
-from openff.recharge.optimize.optimize import ElectricFieldOptimization, ESPOptimization
+from openff.recharge.optimize.optimize import ElectricFieldObjective, ESPObjective
 
-__all__ = [ElectricFieldOptimization, ESPOptimization]
+__all__ = [ElectricFieldObjective, ESPObjective]

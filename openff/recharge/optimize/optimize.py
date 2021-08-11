@@ -1,7 +1,8 @@
 import abc
-from typing import TYPE_CHECKING, Generator, List, Optional, Tuple
+from typing import TYPE_CHECKING, Generator, List, Optional, Tuple, Type
 
 import numpy
+from typing_extensions import Literal
 
 from openff.recharge.charges.bcc import BCCCollection, BCCGenerator
 from openff.recharge.charges.charges import ChargeGenerator, ChargeSettings
@@ -9,6 +10,7 @@ from openff.recharge.charges.vsite import (
     VirtualSiteChargeKey,
     VirtualSiteCollection,
     VirtualSiteGenerator,
+    VirtualSiteGeometryKey,
 )
 from openff.recharge.esp.storage import MoleculeESPRecord
 from openff.recharge.utilities.geometry import (
@@ -19,25 +21,219 @@ from openff.recharge.utilities.geometry import (
     reorder_conformer,
 )
 from openff.recharge.utilities.openeye import import_oechem
+from openff.recharge.utilities.tensors import (
+    TensorType,
+    append_zero,
+    to_numpy,
+    to_torch,
+)
 
 if TYPE_CHECKING:
+
     from openeye.oechem import OEMol
+
+_VSITE_ATTRIBUTES = ("distance", "in_plane_angle", "out_of_plane_angle")
 
 
 class ObjectiveTerm(abc.ABC):
-    """A class which stores precalculated values used to compute the terms of
-    the objective function.
+    """A base for classes that stores precalculated values used to compute the terms of
+    an objective function.
 
-    In particular, this object contains the `design_matrix` and the target
-    residuals which the BCC values are being trained to reproduce.
+    See the ``evaluate`` function for more details.
     """
 
-    def __init__(self, design_matrix: numpy.ndarray, target_residuals: numpy.ndarray):
-        self.design_matrix = design_matrix
+    @classmethod
+    @abc.abstractmethod
+    def _objective(cls) -> Type["Objective"]:
+        """The objective class that this term is associated with."""
+        raise NotImplementedError()
+
+    def __init__(
+        self,
+        atom_charge_design_matrix: Optional[TensorType],
+        #
+        vsite_charge_assignment_matrix: Optional[TensorType],
+        vsite_fixed_charges: Optional[TensorType],
+        #
+        vsite_coord_assignment_matrix: Optional[TensorType],
+        vsite_fixed_coords: Optional[TensorType],
+        #
+        vsite_local_coordinate_frame: Optional[TensorType],
+        #
+        grid_coordinates: Optional[TensorType],
+        target_residuals: TensorType,
+    ):
+        """
+
+        Parameters
+        ----------
+        atom_charge_design_matrix
+            A matrix with shape=(n_grid_points, n_bcc_charges + n_vsite_charges) that
+            yields the atom contributions to electrostatic property of interest when
+            left multiplying by a vector of partial charges parameters [e] with
+            shape=(n_bcc_charges + n_vsite_charges, 1).
+
+            It is usually constructed by ``X=RT`` where ``R`` is either an inverse
+            distance [1 / Bohr] or vector field [1 / Bohr^2] matrix and ``T`` is an
+            assignment matrix that computes the partial charge on each atom as the sum
+            of one or more charges from the charge vector.
+        vsite_charge_assignment_matrix
+            A matrix with shape=(n_vsites, n_vsite_charges) that that computes the
+            partial charge on each virtual site as the sum of one or more charges from
+            the a vector of virtual site charge parameters [e], i.e
+
+            ``vsite_charges = vsite_charge_assignment_matrix @ v_site_charge_parameters``
+        vsite_fixed_charges
+            A vector with shape=(n_vsites, 1) of the partial charges assigned to each
+            virtual site that will remain fixed during an optimization.
+        vsite_coord_assignment_matrix
+            A matrix with shape=(n_vsites, 3) of indices into a flat vector of virtual
+            site local frame coordinate parameters that will be trained, such that
+
+            ``vsite_local_coords == vsite_coord_params[vsite_coord_assignment_matrix]
+                                    + vsite_fixed_coords``
+
+            An entry of -1 indicates a value of ``0.0`` should be used.
+        vsite_fixed_coords
+            A vector with shape=(n_vsites, 3) of virtual site local frame coordinates
+            virtual site that will remain fixed during an optimization, such that
+
+            ``vsite_local_coords == vsite_coord_params[vsite_coord_assignment_matrix]
+                                    + vsite_fixed_coords``
+        vsite_local_coordinate_frame
+            A tenser with shape=(4, n_vsites, 3) and units of [A] that stores the local
+            frames of all virtual sites  whereby ``local_frames[0]`` is an array of the
+            origins of each frame, ``local_frames[1]`` the x-directions,
+            ``local_frames[2]`` the y-directions, and ``local_frames[2]`` the
+            z-directions.
+        grid_coordinates
+            A matrix with shape=(n_grid_points, 3) and units of [A] of the grid
+            coordinates that the electrostatic property will be evaluated on.
+        target_residuals
+            A vector with shape=(n_grid_points, n_dim) of the reference values of the
+            electrostatic property of interest evaluated on a grid of points.
+        """
+
+        # TODO: Proper v-site mutual exclusive exception.
+        # TODO: Shape validation.
+        assert (
+            vsite_local_coordinate_frame is None
+            and vsite_charge_assignment_matrix is None
+            and vsite_fixed_charges is None
+            and vsite_coord_assignment_matrix is None
+            and vsite_fixed_coords is None
+            and grid_coordinates is None
+        ) or (
+            vsite_local_coordinate_frame is not None
+            and vsite_charge_assignment_matrix is not None
+            and vsite_fixed_charges is not None
+            and vsite_coord_assignment_matrix is not None
+            and vsite_fixed_coords is not None
+            and grid_coordinates is not None
+        ), "all virtual site terms must be provided or none must be"
+
+        self.atom_charge_design_matrix = atom_charge_design_matrix
+
+        self.vsite_charge_assignment_matrix = vsite_charge_assignment_matrix
+        self.vsite_fixed_charges = vsite_fixed_charges
+
+        self.vsite_coord_assignment_matrix = vsite_coord_assignment_matrix
+        self.vsite_fixed_coords = vsite_fixed_coords
+
+        self.vsite_local_coordinate_frame = vsite_local_coordinate_frame
+
+        self.grid_coordinates = grid_coordinates
         self.target_residuals = target_residuals
 
+    def to_backend(self, backend: Literal["numpy", "torch"]):
+        """Converts the tensors associated with this term to a particular backend.
 
-class _Optimization(abc.ABC):
+        Parameters
+        ----------
+        backend
+            The backend to convert the tensors to.
+        """
+        converter = to_torch if backend == "torch" else to_numpy
+
+        self.atom_charge_design_matrix = converter(self.atom_charge_design_matrix)
+
+        self.vsite_charge_assignment_matrix = converter(
+            self.vsite_charge_assignment_matrix
+        )
+        self.vsite_fixed_charges = converter(self.vsite_fixed_charges)
+
+        self.vsite_coord_assignment_matrix = converter(
+            self.vsite_coord_assignment_matrix
+        )
+        self.vsite_fixed_coords = converter(self.vsite_fixed_coords)
+
+        self.vsite_local_coordinate_frame = converter(self.vsite_local_coordinate_frame)
+
+        self.grid_coordinates = converter(self.grid_coordinates)
+        self.target_residuals = converter(self.target_residuals)
+
+    def evaluate(
+        self,
+        charge_parameters: TensorType,
+        vsite_coordinate_parameters: Optional[TensorType],
+    ) -> TensorType:
+
+        if self._objective()._flatten_charges():
+            charge_parameters = charge_parameters.flatten()
+
+        if self.atom_charge_design_matrix is not None:
+            atom_contribution = self.atom_charge_design_matrix @ charge_parameters
+        else:
+            atom_contribution = 0.0
+
+        if vsite_coordinate_parameters is not None:
+
+            if self.vsite_local_coordinate_frame is None:
+                raise ValueError(...)
+
+            trainable_coordinates = append_zero(vsite_coordinate_parameters.flatten())[
+                self.vsite_coord_assignment_matrix
+            ]
+
+            vsite_local_coordinates = self.vsite_fixed_coords + trainable_coordinates
+            # noinspection PyTypeChecker
+            vsite_coordinates = VirtualSiteGenerator.convert_local_coordinates(
+                vsite_local_coordinates,
+                self.vsite_local_coordinate_frame,
+                backend="numpy"
+                if isinstance(vsite_local_coordinates, numpy.ndarray)
+                else "torch",
+            )
+
+            n_vsite_charges = self.vsite_charge_assignment_matrix.shape[1]
+
+            vsite_charges = (
+                self.vsite_charge_assignment_matrix
+                @ charge_parameters[-n_vsite_charges:]
+                + self.vsite_fixed_charges
+            )
+
+            if self._objective()._flatten_charges():
+                vsite_charges = vsite_charges.flatten()
+
+            design_matrix_precursor = (
+                self._objective()._compute_design_matrix_precursor(
+                    self.grid_coordinates, vsite_coordinates
+                )
+            )
+
+            vsite_contribution = design_matrix_precursor @ vsite_charges
+
+        else:
+            vsite_contribution = 0.0
+
+        delta = self.target_residuals - (atom_contribution + vsite_contribution)
+
+        loss = (delta * delta).sum()
+        return loss
+
+
+class Objective(abc.ABC):
     """A utility class which contains helper functions for computing the
     contributions to a least squares objective function which captures the
     deviation of the ESP computed using molecular partial charges and the ESP
@@ -45,71 +241,16 @@ class _Optimization(abc.ABC):
 
     @classmethod
     @abc.abstractmethod
+    def _objective_term(cls) -> Type[ObjectiveTerm]:
+        """The objective term class associated with this objective."""
+        raise NotImplementedError()
+
+    @classmethod
+    @abc.abstractmethod
     def _flatten_charges(cls) -> bool:
         """Whether to operate on a flattened array of charges rather than the
         2D array. This is mainly to be used when the design matrix is a tensor."""
-
-    @classmethod
-    def compute_residuals(
-        cls,
-        design_matrix_precursor: numpy.ndarray,
-        uncorrected_charges: numpy.ndarray,
-        target_values: numpy.ndarray,
-    ) -> numpy.ndarray:
-        """Computes the difference between a set of QM values and a corresponding set
-        of values computed using a set of uncorrected partial charges.
-
-        Parameters
-        ----------
-        design_matrix_precursor
-            The precursor to the design matrix.
-        uncorrected_charges
-            The partial charges on a molecule which haven't been corrected by a
-            set of charge increments with shape=(n_atoms, 1) in units of [e].
-        target_values
-            The target values of the electronic properties being optimized against.
-
-        Returns
-        -------
-            The difference between the target values and the values calculated using
-            the uncorrected partial charges with.
-        """
-
-        if cls._flatten_charges():
-            uncorrected_charges = uncorrected_charges.flatten()
-
-        return target_values - design_matrix_precursor @ uncorrected_charges
-
-    @classmethod
-    def compute_charge_increment_contribution(
-        cls,
-        design_matrix_precursor: numpy.ndarray,
-        assignment_matrix: numpy.ndarray,
-        charge_increments: numpy.ndarray,
-    ) -> numpy.ndarray:
-        """Computes the contribution of a set of charge increments parameters to
-        the electronic properties being optimized against.
-
-        Parameters
-        ----------
-        design_matrix_precursor
-            The precursor to the design matrix.
-        assignment_matrix
-            The matrix which maps the charge increment parameters onto atoms / virtual
-            sites in the molecule.
-        charge_increments
-            The values of the charge increments in units of [e].
-
-        Returns
-        -------
-            The contribution of the charge increment parameters to the electronic
-            properties being optimized against.
-        """
-
-        if cls._flatten_charges():
-            charge_increments = charge_increments.flatten()
-
-        return design_matrix_precursor @ (assignment_matrix @ charge_increments)
+        raise NotImplementedError()
 
     @classmethod
     @abc.abstractmethod
@@ -129,7 +270,7 @@ class _Optimization(abc.ABC):
 
     @classmethod
     @abc.abstractmethod
-    def _electronic_property(cls, record: MoleculeESPRecord) -> numpy.ndarray:
+    def _electrostatic_property(cls, record: MoleculeESPRecord) -> numpy.ndarray:
         """Returns the value of the electronic property being refit from an ESP
         record.
 
@@ -140,25 +281,17 @@ class _Optimization(abc.ABC):
         """
 
     @classmethod
-    @abc.abstractmethod
-    def _create_term_object(
-        cls, design_matrix: numpy.ndarray, target_residuals: numpy.ndarray
-    ):
-        """Returns the correct term object which contains the target residuals
-        and the design matrix."""
-
-    @classmethod
-    def _compute_bcc_terms(
+    def _compute_bcc_charge_terms(
         cls,
         oe_molecule: "OEMol",
         bcc_collection: BCCCollection,
-        trainable_bcc_parameters: List[str],
+        bcc_parameter_keys: List[str],
     ) -> Tuple[numpy.ndarray, numpy.ndarray]:
 
         trainable_parameter_indices = [
             i
             for i, parameter in enumerate(bcc_collection.parameters)
-            if parameter.smirks in trainable_bcc_parameters
+            if parameter.smirks in bcc_parameter_keys
         ]
         fixed_parameter_indices = [
             i
@@ -185,11 +318,74 @@ class _Optimization(abc.ABC):
         return trainable_assignment_matrix, fixed_charges.reshape(-1, 1)
 
     @classmethod
-    def _compute_vsite_terms(
+    def _compute_vsite_coord_terms(
+        cls,
+        oe_molecule: "OEMol",
+        conformer: numpy.ndarray,
+        vsite_collection: VirtualSiteCollection,
+        vsite_coordinate_parameter_keys: List[VirtualSiteGeometryKey],
+    ) -> Tuple[numpy.ndarray, numpy.ndarray, numpy.ndarray]:
+
+        parameters_by_key = {
+            (parameter.smirks, parameter.type, parameter.name): parameter
+            for parameter in vsite_collection.parameters
+        }
+
+        _, assigned_parameter_map = VirtualSiteGenerator._apply_virtual_sites(
+            oe_molecule, vsite_collection
+        )
+        assigned_parameters = {
+            atom_indices: [parameters_by_key[key] for key in parameter_keys]
+            for atom_indices, parameter_keys in assigned_parameter_map.items()
+        }
+
+        local_coordinate_parameters = []
+        local_coordinate_indices = []
+
+        for atom_indices, parameter_key, parameter in [
+            (atom_indices, parameter_key, parameters_by_key[parameter_key])
+            for atom_indices, parameter_keys in assigned_parameter_map.items()
+            for parameter_key in parameter_keys
+        ]:
+
+            local_coordinate_parameters.append(
+                [
+                    0.0
+                    if (*parameter_key, attribute) in vsite_coordinate_parameter_keys
+                    else parameter.local_frame_coordinates[0, i]
+                    for i, attribute in enumerate(_VSITE_ATTRIBUTES)
+                ]
+            )
+            # noinspection PyTypeChecker
+            local_coordinate_indices.append(
+                [
+                    -1
+                    if (*parameter_key, attribute)
+                    not in vsite_coordinate_parameter_keys
+                    else vsite_coordinate_parameter_keys.index(
+                        (*parameter_key, attribute)
+                    )
+                    for attribute in _VSITE_ATTRIBUTES
+                ]
+            )
+
+        local_coordinate_frame = VirtualSiteGenerator.build_local_coordinate_frames(
+            conformer, assigned_parameters
+        )
+
+        # noinspection PyTypeChecker
+        return (
+            numpy.array(local_coordinate_indices),
+            numpy.array(local_coordinate_parameters),
+            local_coordinate_frame,
+        )
+
+    @classmethod
+    def _compute_vsite_charge_terms(
         cls,
         oe_molecule: "OEMol",
         vsite_collection: VirtualSiteCollection,
-        trainable_vsite_parameters: List[VirtualSiteChargeKey],
+        vsite_charge_parameter_keys: List[VirtualSiteChargeKey],
     ) -> Tuple[numpy.ndarray, numpy.ndarray]:
 
         trainable_parameter_indices = []
@@ -199,10 +395,10 @@ class _Optimization(abc.ABC):
 
         array_counter = -1
 
-        for parameter, parameter_index, charge_index in [
-            (parameter, i, j)
-            for i, parameter in enumerate(vsite_collection.parameters)
-            for j in range(len(parameter.charge_increments))
+        for parameter, charge_index in [
+            (parameter, charge_index)
+            for parameter in vsite_collection.parameters
+            for charge_index in range(len(parameter.charge_increments))
         ]:
 
             array_counter += 1
@@ -212,7 +408,7 @@ class _Optimization(abc.ABC):
                 parameter.type,
                 parameter.name,
                 charge_index,
-            ) in trainable_vsite_parameters:
+            ) in vsite_charge_parameter_keys:
 
                 trainable_parameter_indices.append(array_counter)
 
@@ -240,14 +436,12 @@ class _Optimization(abc.ABC):
         esp_records: List[MoleculeESPRecord],
         charge_settings: Optional[ChargeSettings],
         bcc_collection: Optional[BCCCollection] = None,
-        trainable_bcc_parameters: Optional[List[str]] = None,
+        bcc_parameter_keys: Optional[List[str]] = None,
         vsite_collection: Optional[VirtualSiteCollection] = None,
-        trainable_vsite_parameters: Optional[List[VirtualSiteChargeKey]] = None,
+        vsite_charge_parameter_keys: Optional[List[VirtualSiteChargeKey]] = None,
+        vsite_coordinate_parameter_keys: Optional[List[VirtualSiteGeometryKey]] = None,
     ) -> Generator[ObjectiveTerm, None, None]:
-        """Pre-calculates the terms that contribute to the objective function in the
-        form ``chi_i = y_i - X_i @ beta`` where ``y_i`` and ``X_i`` are the target
-        residual and design matrix of term ``i`` and ``beta`` is an array of the
-        current parameters.
+        """Pre-calculates the terms that contribute to the total objective function.
 
         Parameters
         ----------
@@ -261,17 +455,27 @@ class _Optimization(abc.ABC):
         bcc_collection
             A collection of bond charge correction parameters that should perturb the
             base set of charges for each molecule in the ``esp_records`` list.
-        trainable_bcc_parameters
-            A list of SMIRKS patterns referencing those parameters in the
+        bcc_parameter_keys
+            A list of SMIRKS patterns that define those parameters in the
             ``bcc_collection`` that should be trained.
         vsite_collection
             A collection of virtual site parameters that should create virtual sites
             for each molecule in the ``esp_records`` list and perturb the base charges
             on each atom.
-        trainable_vsite_parameters
-            A list of virtual site keys (tuples of the form ``(smirks, type, name)``)
-            referencing those parameters in the ``vsite_collection`` that should be
+        vsite_charge_parameter_keys
+            A list of tuples of the form ``(smirks, type, name, idx)``) that define
+            those charge increment parameters in the ``vsite_collection`` that should be
             trained.
+
+            Here ``idx`` is an index into the ``charge_increments`` field of the
+            parameter uniquely identified by the other terms of the key.
+        vsite_coordinate_parameter_keys
+            A list of tuples of the form ``(smirks, type, name, attr)``) that define
+            those local frame coordinate parameters in the ``vsite_collection`` that
+            should be trained.
+
+            Here ``attr`` should be one of ``{'distance', 'in_plane_angle',
+            'out_of_plane_angle'}``.
 
         Returns
         -------
@@ -292,241 +496,132 @@ class _Optimization(abc.ABC):
             for atom in oe_molecule.GetAtoms():
                 atom.SetMapIdx(0)
 
-            if charge_settings is not None:
+            fixed_atom_charges = numpy.zeros((oe_molecule.NumAtoms(), 1))
 
-                fixed_charges = ChargeGenerator.generate(
-                    oe_molecule, [ordered_conformer], charge_settings
-                )
-
-            else:
-
-                fixed_charges = numpy.zeros((oe_molecule.NumAtoms(), 1))
-
-            trainable_assignment_matrices = []
-
-            n_vsites = 0
-
-            if vsite_collection is not None:
-
-                vsite_assignment_matrix, vsite_fixed_charges = cls._compute_vsite_terms(
-                    oe_molecule, vsite_collection, trainable_vsite_parameters
-                )
-
-                n_vsites = len(vsite_assignment_matrix) - oe_molecule.NumAtoms()
-                fixed_charges = numpy.vstack(
-                    [fixed_charges, numpy.zeros((n_vsites, 1))]
-                )
-
-                fixed_charges += vsite_fixed_charges
-                trainable_assignment_matrices.append(vsite_assignment_matrix)
-
-                ordered_conformer = numpy.vstack(
-                    [
-                        ordered_conformer,
-                        VirtualSiteGenerator.generate_positions(
-                            oe_molecule, vsite_collection, ordered_conformer
-                        ),
-                    ]
-                )
-
-            if bcc_collection is not None:
-
-                bcc_assignment_matrix, bcc_fixed_charges = cls._compute_bcc_terms(
-                    oe_molecule, bcc_collection, trainable_bcc_parameters
-                )
-                bcc_fixed_charges = numpy.vstack(
-                    [bcc_fixed_charges, numpy.zeros((n_vsites, 1))]
-                )
-
-                fixed_charges += bcc_fixed_charges
-
-                bcc_assignment_matrix = numpy.vstack(
-                    [
-                        bcc_assignment_matrix,
-                        numpy.zeros((n_vsites, bcc_assignment_matrix.shape[1])),
-                    ]
-                )
-                trainable_assignment_matrices.insert(0, bcc_assignment_matrix)
-
-            # Pre-compute the design matrix for this molecule as this is the most
-            # expensive step in the optimization.
+            # Pre-compute the design matrix precursor (e.g inverse distance matrix for
+            # ESP) for this molecule as this is an 'expensive' step in the optimization.
             design_matrix_precursor = cls._compute_design_matrix_precursor(
                 esp_record.grid_coordinates, ordered_conformer
             )
 
-            target_residuals = cls.compute_residuals(
-                design_matrix_precursor,
-                fixed_charges,
-                cls._electronic_property(esp_record),
+            (
+                atom_charge_design_matrix,
+                vsite_charge_assignment_matrix,
+                vsite_fixed_charges,
+                vsite_coord_assignment_matrix,
+                vsite_fixed_coords,
+                vsite_local_coordinate_frame,
+                grid_coordinates,
+            ) = (None, None, None, None, None, None, None)
+
+            if charge_settings is not None:
+
+                fixed_atom_charges = ChargeGenerator.generate(
+                    oe_molecule, [ordered_conformer], charge_settings
+                )
+
+            if bcc_collection is not None:
+
+                (
+                    bcc_assignment_matrix,
+                    bcc_fixed_charges,
+                ) = cls._compute_bcc_charge_terms(
+                    oe_molecule, bcc_collection, bcc_parameter_keys
+                )
+
+                fixed_atom_charges += bcc_fixed_charges
+
+                atom_charge_design_matrix = (
+                    design_matrix_precursor @ bcc_assignment_matrix
+                )
+
+            if vsite_collection is not None:
+
+                (
+                    vsite_charge_assignment_matrix,
+                    vsite_fixed_charges,
+                ) = cls._compute_vsite_charge_terms(
+                    oe_molecule, vsite_collection, vsite_charge_parameter_keys
+                )
+                (
+                    vsite_coord_assignment_matrix,
+                    vsite_fixed_coords,
+                    vsite_local_coordinate_frame,
+                ) = cls._compute_vsite_coord_terms(
+                    oe_molecule,
+                    ordered_conformer,
+                    vsite_collection,
+                    vsite_coordinate_parameter_keys or [],
+                )
+
+                fixed_atom_charges += vsite_fixed_charges[: oe_molecule.NumAtoms()]
+                vsite_fixed_charges = vsite_fixed_charges[oe_molecule.NumAtoms() :]
+
+                atom_charge_assignment_matrix = vsite_charge_assignment_matrix[
+                    : oe_molecule.NumAtoms()
+                ]
+                atom_charge_design_matrix = numpy.concatenate(
+                    (
+                        []
+                        if atom_charge_design_matrix is None
+                        else [atom_charge_design_matrix]
+                    )
+                    + [design_matrix_precursor @ atom_charge_assignment_matrix],
+                    axis=-1,
+                )
+
+                vsite_charge_assignment_matrix = vsite_charge_assignment_matrix[
+                    oe_molecule.NumAtoms() :
+                ]
+
+                grid_coordinates = esp_record.grid_coordinates
+
+            if cls._flatten_charges():
+                fixed_atom_charges = fixed_atom_charges.flatten()
+
+            target_residuals = (
+                cls._electrostatic_property(esp_record)
+                - design_matrix_precursor @ fixed_atom_charges
             )
 
-            trainable_assignment_matrix = numpy.hstack(trainable_assignment_matrices)
-
-            yield cls._create_term_object(
-                design_matrix_precursor @ trainable_assignment_matrix,
+            yield cls._objective_term()(
+                atom_charge_design_matrix,
+                vsite_charge_assignment_matrix,
+                vsite_fixed_charges,
+                vsite_coord_assignment_matrix,
+                vsite_fixed_coords,
+                vsite_local_coordinate_frame,
+                grid_coordinates,
                 target_residuals,
             )
 
-    @classmethod
-    def vectorize_collections(
-        cls,
-        bcc_collection: Optional[BCCCollection] = None,
-        trainable_bcc_parameters: Optional[List[str]] = None,
-        vsite_collection: Optional[VirtualSiteCollection] = None,
-        trainable_vsite_parameters: Optional[List[VirtualSiteChargeKey]] = None,
-    ) -> numpy.ndarray:
-        """Returns a flat vector containing any bond charge correction and virtual
-        site charge increment parameters to be trained
-
-        The array is ordered to match the design matrices produced by
-        ``compute_objective_terms`` such that ``term.design_matrix @ charge_vector``
-        yield a vector of residuals.
-
-        Parameters
-        ----------
-        bcc_collection
-            A collection of bond charge correction parameters that should perturb the
-            base set of charges for each molecule in the ``esp_records`` list.
-        trainable_bcc_parameters
-            A list of SMIRKS patterns referencing those parameters in the
-            ``bcc_collection`` that should be trained.
-        vsite_collection
-            A collection of virtual site parameters that should create virtual sites
-            for each molecule in the ``esp_records`` list and perturb the base charges
-            on each atom.
-        trainable_vsite_parameters
-            A list of virtual site keys (tuples of the form ``(smirks, type, name)``)
-            referencing those parameters in the ``vsite_collection`` that should be
-            trained.
-
-        Returns
-        -------
-            An array of the form `[bcc_q_0, ..., bcc_q_n, vsite_q_0, ..., vsite_q_m`
-            containing the bond charge correction and virtual site charge increment
-            parameters
-        """
-
-        charge_increments = []
-
-        if bcc_collection is not None:
-
-            charge_increments.extend(
-                parameter.value
-                for parameter in bcc_collection.parameters
-                if parameter.smirks in trainable_bcc_parameters
-            )
-
-        if vsite_collection is not None:
-
-            charge_increments.extend(
-                parameter.charge_increments[charge_index]
-                for i, parameter in enumerate(vsite_collection.parameters)
-                for charge_index in range(len(parameter.charge_increments))
-                if (
-                    parameter.smirks,
-                    parameter.type,
-                    parameter.name,
-                    charge_index,
-                )
-                in trainable_vsite_parameters
-            )
-
-        return numpy.array(charge_increments).reshape((-1, 1))
-
 
 class ESPObjectiveTerm(ObjectiveTerm):
-    def __init__(self, design_matrix: numpy.ndarray, target_residuals: numpy.ndarray):
-        """
+    """A class that stores precalculated values used to compute the difference between
+    a reference set of electrostatic potentials and a set computed using a set of fixed
+    partial charges.
 
-        Parameters
-        ----------
-        design_matrix
-            A combination of the inverse distances between the grid points
-            and atoms and the BCC assignment matrix which when left multiplied
-            by the current BCC parameters yields the BCC contribution to the
-            ESP. This should have shape=(n_grid_points, n_bcc_parameters) and
-            units of [1 / Bohr].
-        target_residuals
-            The difference between the QM ESP values and the ESP values
-            calculated using the uncorrected partial charges with
-            shape=(n_grid_points, 1).
-        """
+    See the ``evaluate`` function for more details.
+    """
 
-        super(ESPObjectiveTerm, self).__init__(design_matrix, target_residuals)
+    @classmethod
+    def _objective(cls) -> Type["ESPObjective"]:
+        return ESPObjective
 
 
-class ESPOptimization(_Optimization):
+class ESPObjective(Objective):
     """A utility class which contains helper functions for computing the
     contributions to a least squares objective function which captures the
     deviation of the ESP computed using molecular partial charges and the ESP
     computed by a QM calculation."""
 
     @classmethod
+    def _objective_term(cls) -> Type[ESPObjectiveTerm]:
+        return ESPObjectiveTerm
+
+    @classmethod
     def _flatten_charges(cls) -> bool:
         return False
-
-    @classmethod
-    def compute_residuals(
-        cls,
-        design_matrix_precursor: numpy.ndarray,
-        uncorrected_charges: numpy.ndarray,
-        target_values: numpy.ndarray,
-    ) -> numpy.ndarray:
-        """Computes the difference between a QM calculated ESP and an ESP calculated
-        using a set of uncorrected partial charges [Hartree / e].
-
-        Parameters
-        ----------
-        design_matrix_precursor
-            The inverse distances between all atoms in a molecule and the set of
-            grid points which the ``electrostatic_potentials`` were calculated on
-            with shape=(n_grid_points, n_atoms) in units of [1 / Bohr].
-        uncorrected_charges
-            The partial charges on a molecule which haven't been corrected by a
-            set of charge increment parameters with shape=(n_atoms, 1) in units of [e].
-        target_values
-            The electrostatic potentials generated by a QM calculation with
-            shape=(n_grid_points, 1) in units of [Hartree / e].
-
-        Returns
-        -------
-            The difference between the `electrostatic_potentials` and the ESP
-            calculated using the uncorrected partial charges with
-            shape=(n_grid_points, 1) in units of [Hartree / e].
-        """
-        return super(ESPOptimization, cls).compute_residuals(
-            design_matrix_precursor, uncorrected_charges, target_values
-        )
-
-    @classmethod
-    def compute_charge_increment_contribution(
-        cls,
-        design_matrix_precursor: numpy.ndarray,
-        assignment_matrix: numpy.ndarray,
-        charge_increments: numpy.ndarray,
-    ) -> numpy.ndarray:
-        """Computes the contribution of a set of charge increments parameters to
-        the total ESP [Hartree / e].
-
-        Parameters
-        ----------
-        design_matrix_precursor
-            The inverse distances between all atoms in a molecule and the set of
-            grid points which the ESP values were calculated on in units of [1 / Bohr].
-        assignment_matrix
-            The matrix which maps the charge increment parameters onto atoms / virtual
-            sites in the molecule.
-        charge_increments
-            The values of the charge increments in units of [e].
-
-        Returns
-        -------
-            The contribution of the charge increment parameters to the total ESP
-            with shape=(n_grid_points, 1) in units of [Hartree / e].
-        """
-        return super(ESPOptimization, cls).compute_charge_increment_contribution(
-            design_matrix_precursor, assignment_matrix, charge_increments
-        )
 
     @classmethod
     def _compute_design_matrix_precursor(
@@ -543,115 +638,36 @@ class ESPOptimization(_Optimization):
         return inverse_distance_matrix
 
     @classmethod
-    def _electronic_property(cls, record: MoleculeESPRecord) -> numpy.ndarray:
+    def _electrostatic_property(cls, record: MoleculeESPRecord) -> numpy.ndarray:
         return record.esp
-
-    @classmethod
-    def _create_term_object(
-        cls, design_matrix: numpy.ndarray, target_residuals: numpy.ndarray
-    ):
-        return ESPObjectiveTerm(design_matrix, target_residuals)
 
 
 class ElectricFieldObjectiveTerm(ObjectiveTerm):
-    def __init__(self, design_matrix: numpy.ndarray, target_residuals: numpy.ndarray):
-        """
+    """A class that stores precalculated values used to compute the difference between
+    a reference set of electric field vectors and a set computed using a set of fixed
+    partial charges.
 
-        Parameters
-        ----------
-        design_matrix
-            A combination of the vector field point from the atoms to the grid points
-            and the BCC assignment matrix which when left multiplied
-            by the current BCC parameters yields the BCC contribution to the
-            ESP. This should have shape=(n_grid_points, 3, n_bcc_parameters) and
-            units of [1 / Bohr ^ 2].
-        target_residuals
-            The difference between the QM electric field values and the electric field
-            values calculated using the uncorrected partial charges with
-            shape=(n_grid_points, 3).
-        """
+    See the ``evaluate`` function for more details.
+    """
 
-        super(ElectricFieldObjectiveTerm, self).__init__(
-            design_matrix, target_residuals
-        )
+    @classmethod
+    def _objective(cls) -> Type["ElectricFieldObjective"]:
+        return ElectricFieldObjective
 
 
-class ElectricFieldOptimization(_Optimization):
+class ElectricFieldObjective(Objective):
     """A utility class which contains helper functions for computing the
     contributions to a least squares objective function which captures the
     deviation of the ESP computed using molecular partial charges and the ESP
     computed by a QM calculation."""
 
     @classmethod
+    def _objective_term(cls) -> Type[ElectricFieldObjectiveTerm]:
+        return ElectricFieldObjectiveTerm
+
+    @classmethod
     def _flatten_charges(cls) -> bool:
         return True
-
-    @classmethod
-    def compute_residuals(
-        cls,
-        design_matrix_precursor: numpy.ndarray,
-        uncorrected_charges: numpy.ndarray,
-        target_values: numpy.ndarray,
-    ) -> numpy.ndarray:
-        """Computes the difference between a QM calculated ESP and an ESP calculated
-        using a set of uncorrected partial charges [Hartree / e].
-
-        Parameters
-        ----------
-        design_matrix_precursor
-            The vector field which points from the atoms in a molecule to the grid
-            points which the electronic property was calculated on with
-            shape=(n_grid_points, 3, n_bcc_parameters) and units of [1 / Bohr ^ 2].
-        uncorrected_charges
-            The partial charges on a molecule which haven't been corrected by a
-            set of charge increment parameters with shape=(n_atoms, 1) in units of [e].
-        target_values
-            The electric field generated by a QM calculation with
-            shape=(n_grid_points, 3) in units of [Hartree / (e . a0)].
-
-        Returns
-        -------
-            The difference between the QM electric field and the electric field
-            calculated using the uncorrected partial charges with
-            shape=(n_grid_points, 3) in units of [Hartree / (e . a0)].
-        """
-        return super(ElectricFieldOptimization, cls).compute_residuals(
-            design_matrix_precursor, uncorrected_charges, target_values
-        )
-
-    @classmethod
-    def compute_charge_increment_contribution(
-        cls,
-        design_matrix_precursor: numpy.ndarray,
-        assignment_matrix: numpy.ndarray,
-        charge_increments: numpy.ndarray,
-    ) -> numpy.ndarray:
-        """Computes the contribution of a set of charge increments parameters to
-        the total electric field [Hartree / (e . a0)].
-
-        Parameters
-        ----------
-        design_matrix_precursor
-            The vector field which points from the atoms in a molecule to the grid
-            points which the electronic property was calculated on with
-            shape=(n_grid_points, 3, n_bcc_parameters) and units of [1 / Bohr ^ 2].
-        assignment_matrix
-            The matrix which maps the charge increment parameters onto atoms / virtual
-            sites in the molecule.
-        charge_increments
-            The values of the charge increments in units of [e].
-
-        Returns
-        -------
-            The contribution of the charge increment parameters to the total
-            electric field with shape=(n_grid_points, 3) in units of
-            [Hartree / (e . a0)].
-        """
-        return super(
-            ElectricFieldOptimization, cls
-        ).compute_charge_increment_contribution(
-            design_matrix_precursor, assignment_matrix, charge_increments
-        )
 
     @classmethod
     def _compute_design_matrix_precursor(
@@ -663,11 +679,5 @@ class ElectricFieldOptimization(_Optimization):
         return vector_field
 
     @classmethod
-    def _electronic_property(cls, record: MoleculeESPRecord) -> numpy.ndarray:
+    def _electrostatic_property(cls, record: MoleculeESPRecord) -> numpy.ndarray:
         return record.electric_field
-
-    @classmethod
-    def _create_term_object(
-        cls, design_matrix: numpy.ndarray, target_residuals: numpy.ndarray
-    ):
-        return ElectricFieldObjectiveTerm(design_matrix, target_residuals)

@@ -251,7 +251,7 @@ class ObjectiveTerm(abc.ABC):
 
         if (
             self.vsite_local_coordinate_frame is None
-            and vsite_coordinate_parameters is None
+            and vsite_coordinate_parameters is not None
         ):
 
             raise RuntimeError(

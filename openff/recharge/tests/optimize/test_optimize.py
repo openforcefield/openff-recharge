@@ -98,7 +98,7 @@ def test_term_to_backend(
             [[[0.0, 0.0, 0.0]], [[1.0, 0.0, 0.0]], [[0.0, 1.0, 0.0]], [[0.0, 0.0, 1.0]]]
         ),
         grid_coordinates=input_type([[0.0, 0.0, 0.0]]),
-        target_residuals=input_type([[0.0]]),
+        reference_values=input_type([[0.0]]),
     )
     objective_term.to_backend(backend)
 
@@ -111,7 +111,7 @@ def test_term_to_backend(
     assert isinstance(objective_term.vsite_fixed_coords, output_type)
 
     assert isinstance(objective_term.grid_coordinates, output_type)
-    assert isinstance(objective_term.target_residuals, output_type)
+    assert isinstance(objective_term.reference_values, output_type)
 
 
 @pytest.mark.parametrize(
@@ -121,7 +121,7 @@ def test_term_to_backend(
             ESPObjectiveTerm,
             # Assumes two atoms at (0,0,0) and (4,0,0) and one grid point at (0,3,0)
             numpy.array([[1.0 / 3.0, 1.0 / 5.0]]),
-            # Target residual (1.0) - design matrix @ charges (2.0)
+            # Target value (1.0) - design matrix @ charges (2.0)
             (1.0 - (2.0 / 3.0 - 2.0 / 5.0)) ** 2,
         ),
         (
@@ -138,7 +138,7 @@ def test_term_to_backend(
     ],
 )
 @pytest.mark.parametrize("backend", backends)
-def test_term_evaluate_bcc_only(
+def test_term_loss_bcc_only(
     term_class: Type[ObjectiveTerm],
     design_matrix_precursor: numpy.ndarray,
     expected_loss: numpy.ndarray,
@@ -157,11 +157,11 @@ def test_term_evaluate_bcc_only(
         vsite_fixed_coords=None,
         vsite_local_coordinate_frame=None,
         grid_coordinates=None,
-        target_residuals=numpy.ones((1, 1 if design_matrix_precursor.ndim == 2 else 3)),
+        reference_values=numpy.ones((1, 1 if design_matrix_precursor.ndim == 2 else 3)),
     )
     term.to_backend(backend)
 
-    output_loss = float(term.evaluate(charge_values, None))
+    output_loss = float(term.loss(charge_values, None))
 
     assert numpy.isclose(expected_loss, output_loss)
 
@@ -172,13 +172,13 @@ def test_term_evaluate_bcc_only(
         # Assumes an atom at (0,0,0), v-site at (4,0,0) and a grid point at (0,3,0)
         (
             ESPObjectiveTerm,
-            # Target residual (1.0) - inverse distance @ charges (2.0)
+            # Target value (1.0) - inverse distance @ charges (2.0)
             (1.0 - 2.0 / 5.0) ** 2,
         ),
         (
             ElectricFieldObjectiveTerm,
             (
-                # Target residual (1.0) - vector field @ charges (2.0)
+                # Target value (1.0) - vector field @ charges (2.0)
                 (1.0 - 2.0 * -4.0 / 125.0) ** 2
                 + (1.0 - 2.0 * 3.0 / 125.0) ** 2
                 + 1.0
@@ -220,11 +220,11 @@ def test_term_evaluate_vsite_only(
             ]
         ),
         grid_coordinates=numpy.array([[0.0, 3.0, 0.0]]) * BOHR_TO_ANGSTROM,
-        target_residuals=numpy.ones((1, 1 if term_class == ESPObjectiveTerm else 3)),
+        reference_values=numpy.ones((1, 1 if term_class == ESPObjectiveTerm else 3)),
     )
     term.to_backend(backend)
 
-    output_loss = float(term.evaluate(charge_values, coordinate_values))
+    output_loss = float(term.loss(charge_values, coordinate_values))
 
     assert numpy.isclose(expected_loss, output_loss)
 
@@ -238,7 +238,7 @@ def test_term_evaluate_vsite_only(
         (
             ESPObjectiveTerm,
             numpy.array([[1.0 / 3.0, 1.0 / 5.0]]),
-            # Target residual (1.0) - design matrix @ charges (2.0)
+            # Target value (1.0) - design matrix @ charges (2.0)
             (1.0 - (2.5 / 3.0 - 2.0 / 5.0 - 0.5 / 5.0)) ** 2,
         ),
         (
@@ -286,11 +286,11 @@ def test_term_evaluate_bcc_and_vsite(
             ]
         ),
         grid_coordinates=numpy.array([[0.0, 3.0, 0.0]]) * BOHR_TO_ANGSTROM,
-        target_residuals=numpy.ones((1, 1 if term_class == ESPObjectiveTerm else 3)),
+        reference_values=numpy.ones((1, 1 if term_class == ESPObjectiveTerm else 3)),
     )
     term.to_backend(backend)
 
-    output_loss = float(term.evaluate(charge_values, coordinate_values))
+    output_loss = float(term.loss(charge_values, coordinate_values))
 
     assert numpy.isclose(expected_loss, output_loss)
 
@@ -338,11 +338,11 @@ def test_combine_terms(objective_class, backend, hcl_parameters):
     for objective_term in objective_terms:
 
         objective_term.to_backend(backend)
-        summed_loss += objective_term.evaluate(charge_values, coordinate_values)
+        summed_loss += objective_term.loss(charge_values, coordinate_values)
 
     # Combine the terms and re-compute the loss
     combined_term = objective_class._objective_term().combine(*objective_terms)
-    combined_loss = combined_term.evaluate(charge_values, coordinate_values)
+    combined_loss = combined_term.loss(charge_values, coordinate_values)
 
     assert numpy.isclose(float(summed_loss), float(combined_loss))
 
@@ -527,9 +527,9 @@ def test_compute_esp_objective_terms(hcl_esp_record, hcl_parameters):
         hcl_esp_record.grid_coordinates, objective_term.grid_coordinates
     )
 
-    assert objective_term.target_residuals.shape == (2, 1)
+    assert objective_term.reference_values.shape == (2, 1)
     assert numpy.allclose(
-        objective_term.target_residuals,
+        objective_term.reference_values,
         numpy.array(
             [[2.0 - (0.1 / 3.0)], [2.0 - (0.1 / numpy.sqrt(3.0 * 3.0 + 8.0 * 8.0))]]
         ),
@@ -605,9 +605,9 @@ def test_compute_field_objective_terms(hcl_esp_record, hcl_parameters):
         hcl_esp_record.grid_coordinates, objective_term.grid_coordinates
     )
 
-    assert objective_term.target_residuals.shape == (2, 3)
+    assert objective_term.reference_values.shape == (2, 3)
     assert numpy.allclose(
-        objective_term.target_residuals,
+        objective_term.reference_values,
         numpy.array(
             [
                 [1.0 - 0.0, 2.0 - 0.1 * 3.0 / 3.0 ** 3, 3.0 - 0.0],

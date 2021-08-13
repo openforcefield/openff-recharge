@@ -128,9 +128,7 @@ def main():
 
     for epoch in range(n_epochs + 1):
 
-        loss = objective_term.evaluate(
-            initial_charge_increments, initial_vsite_coordinates
-        )
+        loss = objective_term.loss(initial_charge_increments, initial_vsite_coordinates)
 
         # Add a light restraint to the v-site distance to stop it from becoming too
         # unphysical

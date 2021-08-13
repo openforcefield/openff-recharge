@@ -42,7 +42,7 @@ class ObjectiveTerm(abc.ABC):
     """A base for classes that stores precalculated values used to compute the terms of
     an objective function.
 
-    See the ``evaluate`` function for more details.
+    See the ``predict`` and ``loss`` functions for more details.
     """
 
     @classmethod
@@ -64,7 +64,7 @@ class ObjectiveTerm(abc.ABC):
         vsite_local_coordinate_frame: Optional[TensorType],
         #
         grid_coordinates: Optional[TensorType],
-        target_residuals: TensorType,
+        reference_values: TensorType,
     ):
         """
 
@@ -112,7 +112,7 @@ class ObjectiveTerm(abc.ABC):
         grid_coordinates
             A matrix with shape=(n_grid_points, 3) and units of [A] of the grid
             coordinates that the electrostatic property will be evaluated on.
-        target_residuals
+        reference_values
             A vector with shape=(n_grid_points, n_dim) of the reference values of the
             electrostatic property of interest evaluated on a grid of points.
         """
@@ -146,7 +146,7 @@ class ObjectiveTerm(abc.ABC):
         self.vsite_local_coordinate_frame = vsite_local_coordinate_frame
 
         self.grid_coordinates = grid_coordinates
-        self.target_residuals = target_residuals
+        self.reference_values = reference_values
 
         self._grid_batches = None
 
@@ -175,7 +175,7 @@ class ObjectiveTerm(abc.ABC):
         self.vsite_local_coordinate_frame = converter(self.vsite_local_coordinate_frame)
 
         self.grid_coordinates = converter(self.grid_coordinates)
-        self.target_residuals = converter(self.target_residuals)
+        self.reference_values = converter(self.reference_values)
 
     @classmethod
     def combine(cls: Type[_TERM_T], *terms: _TERM_T) -> _TERM_T:
@@ -225,7 +225,7 @@ class ObjectiveTerm(abc.ABC):
             ),
             #
             grid_coordinates=concatenate(*(term.grid_coordinates for term in terms)),
-            target_residuals=concatenate(*(term.target_residuals for term in terms)),
+            reference_values=concatenate(*(term.reference_values for term in terms)),
         )
 
         if return_value.grid_coordinates is not None:
@@ -243,11 +243,38 @@ class ObjectiveTerm(abc.ABC):
 
         return return_value
 
-    def evaluate(
+    def predict(
         self,
         charge_parameters: TensorType,
         vsite_coordinate_parameters: Optional[TensorType],
-    ) -> TensorType:
+    ):
+        """Predict the value of the electrostatic property of interest using the
+        current values of the parameter.
+
+        Parameters
+        ----------
+        charge_parameters
+            A vector with shape=(n_bcc_charges + n_vsite_charges, 1) and units of [e]
+            that contains the current values of both the BCC and virtual site charge
+            increment parameters being trained.
+
+            The ordering of the parameters should match the order used to generate
+            the ``atom_charge_design_matrix``.
+        vsite_coordinate_parameters
+            A flat vector with shape=(n_bcc_charges + n_vsite_charges, 1)
+            that contains the current values of both the virtual site coordinate
+            parameters being trained.
+
+            All distances should be in units of [A] and all angles in units of degrees.
+
+            The ordering of the parameters should match the order used to generate
+            the ``vsite_coord_assignment_matrix``.
+
+        Returns
+        -------
+            The predicted value of the electrostatic property represented by this term
+            with the same units and shape as ``reference_values``.
+        """
 
         if (
             self.vsite_local_coordinate_frame is None
@@ -328,10 +355,45 @@ class ObjectiveTerm(abc.ABC):
         else:
             vsite_contribution = 0.0
 
-        delta = self.target_residuals - (atom_contribution + vsite_contribution)
+        return atom_contribution + vsite_contribution
 
-        loss = (delta * delta).sum()
-        return loss
+    def loss(
+        self,
+        charge_parameters: TensorType,
+        vsite_coordinate_parameters: Optional[TensorType],
+    ) -> TensorType:
+        """Evaluate the L2 loss function (i.e ``(target_values - predict(q, c)) ** 2)``
+        using the current values of the parameters being trained.
+
+        Parameters
+        ----------
+        charge_parameters
+            A vector with shape=(n_bcc_charges + n_vsite_charges, 1) and units of [e]
+            that contains the current values of both the BCC and virtual site charge
+            increment parameters being trained.
+
+            The ordering of the parameters should match the order used to generate
+            the ``atom_charge_design_matrix``.
+        vsite_coordinate_parameters
+            A flat vector with shape=(n_bcc_charges + n_vsite_charges, 1)
+            that contains the current values of both the virtual site coordinate
+            parameters being trained.
+
+            All distances should be in units of [A] and all angles in units of degrees.
+
+            The ordering of the parameters should match the order used to generate
+            the ``vsite_coord_assignment_matrix``.
+
+        Returns
+        -------
+            The L2 loss function.
+        """
+
+        delta = self.reference_values - self.predict(
+            charge_parameters, vsite_coordinate_parameters
+        )
+
+        return (delta * delta).sum()
 
 
 class Objective(abc.ABC):
@@ -680,7 +742,7 @@ class Objective(abc.ABC):
             if cls._flatten_charges():
                 fixed_atom_charges = fixed_atom_charges.flatten()
 
-            target_residuals = (
+            reference_values = (
                 cls._electrostatic_property(esp_record)
                 - design_matrix_precursor @ fixed_atom_charges
             )
@@ -693,7 +755,7 @@ class Objective(abc.ABC):
                 vsite_fixed_coords,
                 vsite_local_coordinate_frame,
                 grid_coordinates,
-                target_residuals,
+                reference_values,
             )
 
 
@@ -702,7 +764,7 @@ class ESPObjectiveTerm(ObjectiveTerm):
     a reference set of electrostatic potentials and a set computed using a set of fixed
     partial charges.
 
-    See the ``evaluate`` function for more details.
+    See the ``predict`` and ``loss`` functions for more details.
     """
 
     @classmethod
@@ -748,7 +810,7 @@ class ElectricFieldObjectiveTerm(ObjectiveTerm):
     a reference set of electric field vectors and a set computed using a set of fixed
     partial charges.
 
-    See the ``evaluate`` function for more details.
+    See the ```predict`` and ``loss`` functions for more details.
     """
 
     @classmethod

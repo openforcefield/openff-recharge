@@ -69,7 +69,7 @@ def main():
     # Train the parameters.
     trained_values, *_ = numpy.linalg.lstsq(
         objective_term.atom_charge_design_matrix,
-        objective_term.target_residuals,
+        objective_term.reference_values,
         rcond=None,
     )
 

@@ -81,6 +81,12 @@ jobs:
         run: |
           pytest -v --cov=openff openff/recharge/tests/ --cov-report=xml
 
+      - name: Run NumPy example
+        shell: bash -l {0}
+        if: ${{ matrix.cfg.env-file == 'test-psi4' }}
+        run: |
+          python examples/parameter-training/numpy/train-bcc-parameters.py
+
       - name: CodeCov
         uses: codecov/codecov-action@v2.0.2
         with:

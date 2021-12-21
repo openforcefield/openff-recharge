@@ -1,6 +1,6 @@
 # OpenFF Recharge
 
-[![tests](https://github.com/openforcefield/openff-recharge/workflows/tests/badge.svg?branch=master)](https://github.com/openforcefield/openff-recharge/workflows/tests/)
+[![tests](https://github.com/openforcefield/openff-recharge/actions/workflows/ci.yaml/badge.svg?branch=master)](https://github.com/openforcefield/openff-recharge/actions/workflows/ci.yaml)
 [![Language grade: Python](https://img.shields.io/lgtm/grade/python/g/openforcefield/openff-recharge.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/openforcefield/openff-recharge/context:python)
 [![codecov](https://codecov.io/gh/openforcefield/openff-recharge/branch/master/graph/badge.svg)](https://codecov.io/gh/openforcefield/openff-recharge/branch/master)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)

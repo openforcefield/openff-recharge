@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.0.2](https://github.com/openforcefield/openff-recharge/tree/0.0.2) (2021-12-21)
+
+[Full Changelog](https://github.com/openforcefield/openff-recharge/compare/0.0.1...0.0.2)
+
+**Implemented enhancements:**
+
+- Add pyro example [\#79](https://github.com/openforcefield/openff-recharge/pull/79) ([SimonBoothroyd](https://github.com/SimonBoothroyd))
+- Split `evaluate` term into `predict` and `loss` [\#78](https://github.com/openforcefield/openff-recharge/pull/78) ([SimonBoothroyd](https://github.com/SimonBoothroyd))
+- Refactor the examples [\#77](https://github.com/openforcefield/openff-recharge/pull/77) ([SimonBoothroyd](https://github.com/SimonBoothroyd))
+- Add helper method to combine objective terms [\#76](https://github.com/openforcefield/openff-recharge/pull/76) ([SimonBoothroyd](https://github.com/SimonBoothroyd))
+- Add support for optimizing v-site coordinates [\#75](https://github.com/openforcefield/openff-recharge/pull/75) ([SimonBoothroyd](https://github.com/SimonBoothroyd))
+- Abstract tensor operations into new utility [\#74](https://github.com/openforcefield/openff-recharge/pull/74) ([SimonBoothroyd](https://github.com/SimonBoothroyd))
+- Add convenience methods to vectorize collections [\#73](https://github.com/openforcefield/openff-recharge/pull/73) ([SimonBoothroyd](https://github.com/SimonBoothroyd))
+- Add 'autodiff-able' function to compute v-site positions [\#72](https://github.com/openforcefield/openff-recharge/pull/72) ([SimonBoothroyd](https://github.com/SimonBoothroyd))
+- Add Initial V-Site Support [\#63](https://github.com/openforcefield/openff-recharge/pull/63) ([trevorgokey](https://github.com/trevorgokey))
+
 ## [0.0.1](https://github.com/openforcefield/openff-recharge/tree/0.0.1) (2021-02-25)
 
 [Full Changelog](https://github.com/openforcefield/openff-recharge/compare/0.0.1-alpha.7...0.0.1)

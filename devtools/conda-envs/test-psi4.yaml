@@ -38,6 +38,7 @@ dependencies:
 
     # QCFractal integration.
   - qcportal
+  - h5py <3.2 # Needed as newer packages don't work with QCP for now.
   - cmiles-base
 
     # SMIRNOFF + v-site support

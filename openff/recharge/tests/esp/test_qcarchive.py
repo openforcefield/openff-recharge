@@ -2,7 +2,6 @@ from json import JSONDecodeError
 
 import numpy
 import pytest
-from qcportal import FractalClient
 
 from openff.recharge.esp import PCMSettings
 from openff.recharge.esp.qcarchive import (
@@ -17,6 +16,8 @@ from openff.recharge.esp.qcarchive import (
 )
 from openff.recharge.grids import GridSettings
 from openff.recharge.tests import does_not_raise
+
+pytest.importorskip("qcportal")
 
 
 @pytest.mark.parametrize("pcm_settings", [None, PCMSettings()])
@@ -99,6 +100,7 @@ def test_from_qcfractal_result():
 
 def test_missing_wavefunction():
 
+    from qcportal import FractalClient
     from qcportal.models import ResultRecord
 
     qc_result = FractalClient().query_results(id="1")[0]

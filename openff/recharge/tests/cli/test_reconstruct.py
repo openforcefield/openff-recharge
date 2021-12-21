@@ -15,6 +15,8 @@ from openff.recharge.utilities.openeye import smiles_to_molecule
 
 def test_retrieve_result_records():
 
+    pytest.importorskip("qcportal")
+
     # noinspection PyTypeChecker
     qc_results, qc_keywords = _retrieve_result_records(["1"])
 

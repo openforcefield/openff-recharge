@@ -418,21 +418,22 @@ class VirtualSiteGenerator:
 
         parameter_handler = vsite_collection.to_smirnoff()
 
-        off_topology = parameter_handler.create_openff_virtual_sites(
-            Molecule.from_openeye(oe_molecule).to_topology()
-        )
-        off_molecule = next(off_topology.reference_molecules)
+        off_topology = Molecule.from_openeye(oe_molecule).to_topology()
+        parameter_handler.create_openff_virtual_sites(off_topology)
 
-        term_topology = parameter_handler._term_map_topology(off_topology)
-
+        vsite_matches = parameter_handler.find_matches(off_topology)
         assigned_vsite_keys = defaultdict(set)
 
-        for (_, atom_indices), vsite_keys in term_topology.items():
+        for atom_indices in vsite_matches:
+            for vsite_match in vsite_matches[atom_indices]:
 
-            for vsite_key in vsite_keys:
+                vsite_parameter = vsite_match.parameter_type
 
-                (_, (smirks, (vsite_type, (vsite_name, _)))) = vsite_key
-                assigned_vsite_keys[atom_indices].add((smirks, vsite_type, vsite_name))
+                assigned_vsite_keys[atom_indices].add(
+                    (vsite_parameter.smirks, vsite_parameter.type, vsite_parameter.name)
+                )
+
+        off_molecule = next(off_topology.reference_molecules)
 
         return off_molecule, {
             atom_indices: [*keys] for atom_indices, keys in assigned_vsite_keys.items()

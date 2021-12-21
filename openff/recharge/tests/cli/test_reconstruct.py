@@ -1,7 +1,6 @@
 import json
 import os
 from multiprocessing.pool import Pool
-from typing import TYPE_CHECKING
 
 import numpy
 import pytest
@@ -13,11 +12,8 @@ from openff.recharge.esp.storage import MoleculeESPRecord, MoleculeESPStore
 from openff.recharge.grids import GridSettings
 from openff.recharge.utilities.openeye import smiles_to_molecule
 
-if TYPE_CHECKING:
-    from qcfractal import FractalSnowflake
 
-
-def test_retrieve_result_records(qc_server: "FractalSnowflake"):
+def test_retrieve_result_records():
 
     # noinspection PyTypeChecker
     qc_results, qc_keywords = _retrieve_result_records(["1"])

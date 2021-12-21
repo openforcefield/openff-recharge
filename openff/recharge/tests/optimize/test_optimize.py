@@ -299,6 +299,8 @@ def test_term_evaluate_bcc_and_vsite(
 @pytest.mark.parametrize("backend", backends)
 def test_combine_terms(objective_class, backend, hcl_parameters):
 
+    pytest.xfail("will fail until openff-toolkit/issues/#1159 is resolved")
+
     bcc_collection, vsite_collection = hcl_parameters
 
     objective_terms_generator = objective_class.compute_objective_terms(
@@ -471,6 +473,8 @@ def test_compute_vsite_coord_terms():
 
 def test_compute_esp_objective_terms(hcl_esp_record, hcl_parameters):
 
+    pytest.xfail("will fail until openff-toolkit/issues/#1159 is resolved")
+
     bcc_collection, vsite_collection = hcl_parameters
 
     objective_terms_generator = ESPObjective.compute_objective_terms(
@@ -537,6 +541,7 @@ def test_compute_esp_objective_terms(hcl_esp_record, hcl_parameters):
 
 
 def test_compute_field_objective_terms(hcl_esp_record, hcl_parameters):
+    pytest.xfail("will fail until openff-toolkit/issues/#1159 is resolved")
 
     bcc_collection, vsite_collection = hcl_parameters
 

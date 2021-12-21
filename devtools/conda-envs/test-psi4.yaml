@@ -1,7 +1,7 @@
 name: test
 channels:
   - conda-forge
-  - psi4/label/dev
+  - psi4
   - openeye
   - defaults
 dependencies:
@@ -37,8 +37,6 @@ dependencies:
   - psi4 >=1.4a3.dev1
 
     # QCFractal integration.
-  - qcfractal >=0.15.6  # - for testing only. Users only need qcportal.
-  - h5py <3.2 # Needed as newer packages don't work with QCF for now.
   - qcportal
   - cmiles-base
 
@@ -49,6 +47,3 @@ dependencies:
   - black
   - isort
   - flake8
-
-  - pip:
-      - git+git://github.com/openforcefield/openff-toolkit.git@param-iter

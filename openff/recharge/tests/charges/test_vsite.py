@@ -467,6 +467,9 @@ def test_generator_validate_charge_assignment_matrix(
 )
 def test_generator_charge_assignment_matrix(smiles, expected_matrix, vsite_collection):
 
+    if smiles == "C(=O)=O":
+        pytest.xfail("will fail until openff-toolkit/issues/#1159 is resolved")
+
     oe_molecule = smiles_to_molecule(smiles)
 
     assignment_matrix = VirtualSiteGenerator.build_charge_assignment_matrix(
@@ -488,6 +491,9 @@ def test_generator_charge_assignment_matrix(smiles, expected_matrix, vsite_colle
 def test_generator_generate_charge_increments(
     smiles, expected_increments, vsite_collection
 ):
+
+    if smiles == "C(=O)=O":
+        pytest.xfail("will fail until openff-toolkit/issues/#1159 is resolved")
 
     oe_molecule = smiles_to_molecule(smiles)
 
@@ -543,9 +549,6 @@ def test_generator_local_coordinate_frames():
 @pytest.mark.parametrize("backend", ["numpy", "torch"])
 def test_generator_convert_local_coordinates(backend):
 
-    pytest.importorskip("torch")
-    import torch
-
     local_frame_coordinates = numpy.array([[1.0, 45.0, 45.0]])
     local_coordinate_frames = numpy.array(
         [
@@ -557,6 +560,10 @@ def test_generator_convert_local_coordinates(backend):
     )
 
     if backend == "torch":
+
+        pytest.importorskip("torch")
+        import torch
+
         local_coordinate_frames = torch.from_numpy(local_coordinate_frames)
         local_frame_coordinates = torch.from_numpy(local_frame_coordinates)
 

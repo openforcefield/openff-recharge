@@ -41,12 +41,7 @@ def main():
         )
 
         record = MoleculeESPRecord.from_oe_molecule(
-            oe_molecule,
-            conformer,
-            grid,
-            esp,
-            electric_field,
-            esp_settings
+            oe_molecule, conformer, grid, esp, electric_field, esp_settings
         )
         records.append(record)
 

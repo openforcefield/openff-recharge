@@ -1,8 +1,8 @@
 import numpy
 from tqdm import tqdm
 
-from openff.recharge.charges.bcc import BCCCollection, BCCParameter
 from openff.recharge.charges import ChargeSettings
+from openff.recharge.charges.bcc import BCCCollection, BCCParameter
 from openff.recharge.conformers import ConformerGenerator, ConformerSettings
 from openff.recharge.esp import ESPSettings
 from openff.recharge.esp.psi4 import Psi4ESPGenerator

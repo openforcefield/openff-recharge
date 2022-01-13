@@ -6,8 +6,8 @@ import torch.distributions
 from matplotlib import pyplot
 from pyro.infer import MCMC, NUTS
 
-from openff.recharge.charges.bcc import BCCCollection, BCCParameter
 from openff.recharge.charges import ChargeSettings
+from openff.recharge.charges.bcc import BCCCollection, BCCParameter
 from openff.recharge.charges.vsite import BondChargeSiteParameter, VirtualSiteCollection
 from openff.recharge.conformers import ConformerGenerator, ConformerSettings
 from openff.recharge.esp import ESPSettings

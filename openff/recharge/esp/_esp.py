@@ -3,7 +3,7 @@ import os
 from enum import Enum
 from typing import TYPE_CHECKING, Optional, Tuple
 
-import numpy
+from openff.units import unit
 from pydantic import BaseModel, Field
 from typing_extensions import Literal
 
@@ -105,11 +105,11 @@ class ESPGenerator(abc.ABC):
     def _generate(
         cls,
         oe_molecule: "oechem.OEMol",
-        conformer: numpy.ndarray,
-        grid: numpy.ndarray,
+        conformer: unit.Quantity,
+        grid: unit.Quantity,
         settings: ESPSettings,
         directory: str = None,
-    ) -> Tuple[numpy.ndarray, numpy.ndarray]:
+    ) -> Tuple[unit.Quantity, unit.Quantity]:
         """The implementation of the public ``generate`` function which
         should return the ESP for the provided conformer.
 
@@ -138,10 +138,10 @@ class ESPGenerator(abc.ABC):
     def generate(
         cls,
         oe_molecule: "oechem.OEMol",
-        conformer: numpy.ndarray,
+        conformer: unit.Quantity,
         settings: ESPSettings,
         directory: str = None,
-    ) -> Tuple[numpy.ndarray, numpy.ndarray, numpy.ndarray]:
+    ) -> Tuple[unit.Quantity, unit.Quantity, unit.Quantity]:
         """Generate the electrostatic potential (ESP) on a grid defined by
         a provided set of settings.
 

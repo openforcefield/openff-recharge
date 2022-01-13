@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING
 import numpy
 import pytest
 from openff.toolkit.topology import Molecule
+from openff.units import unit
 
 from openff.recharge.charges.exceptions import UnableToAssignChargeError
 from openff.recharge.charges.vsite import (
@@ -467,9 +468,6 @@ def test_generator_validate_charge_assignment_matrix(
 )
 def test_generator_charge_assignment_matrix(smiles, expected_matrix, vsite_collection):
 
-    if smiles == "C(=O)=O":
-        pytest.xfail("will fail until openff-toolkit/issues/#1159 is resolved")
-
     oe_molecule = smiles_to_molecule(smiles)
 
     assignment_matrix = VirtualSiteGenerator.build_charge_assignment_matrix(
@@ -491,9 +489,6 @@ def test_generator_charge_assignment_matrix(smiles, expected_matrix, vsite_colle
 def test_generator_generate_charge_increments(
     smiles, expected_increments, vsite_collection
 ):
-
-    if smiles == "C(=O)=O":
-        pytest.xfail("will fail until openff-toolkit/issues/#1159 is resolved")
 
     oe_molecule = smiles_to_molecule(smiles)
 
@@ -587,13 +582,16 @@ def test_generator_generate_positions(vsite_collection):
 
     oe_molecule = smiles_to_molecule("N")
 
-    conformer = numpy.array(
-        [
-            [0.0, 1.0, 0.0],
-            [-1.0, 0.0, 0.0],
-            [0.5, 0.0, +numpy.sqrt(0.75)],
-            [0.5, 0.0, -numpy.sqrt(0.75)],
-        ]
+    conformer = (
+        numpy.array(
+            [
+                [0.0, 1.0, 0.0],
+                [-1.0, 0.0, 0.0],
+                [0.5, 0.0, +numpy.sqrt(0.75)],
+                [0.5, 0.0, -numpy.sqrt(0.75)],
+            ]
+        )
+        * unit.angstrom
     )
 
     vsite_position = VirtualSiteGenerator.generate_positions(
@@ -601,4 +599,4 @@ def test_generator_generate_positions(vsite_collection):
     )
 
     assert vsite_position.shape == (1, 3)
-    assert numpy.allclose(vsite_position, numpy.array([0.0, 6.0, 0.0]))
+    assert numpy.allclose(vsite_position, numpy.array([0.0, 6.0, 0.0]) * unit.angstrom)

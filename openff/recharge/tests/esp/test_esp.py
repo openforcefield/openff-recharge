@@ -1,5 +1,6 @@
 import numpy
 import pytest
+from openff.units import unit
 
 from openff.recharge.esp import ESPGenerator, ESPSettings
 from openff.recharge.grids import GridSettings
@@ -15,7 +16,7 @@ def test_abstract_generate():
 
     # Generate a small molecule which should finish fast.
     oe_molecule = smiles_to_molecule("C")
-    conformer = numpy.zeros((oe_molecule.NumAtoms(), 3))
+    conformer = numpy.zeros((oe_molecule.NumAtoms(), 3)) * unit.angstrom
 
     with pytest.raises(NotImplementedError):
         ESPGenerator.generate(oe_molecule, conformer, settings)

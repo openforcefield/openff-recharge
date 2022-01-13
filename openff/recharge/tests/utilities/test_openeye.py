@@ -3,11 +3,12 @@ import sys
 import numpy
 import pytest
 from openeye import oechem
+from openff.units import unit
 from openff.utilities.exceptions import MissingOptionalDependency
 
 from openff.recharge.utilities.exceptions import (
-    InvalidSmirksError,
-    MoleculeFromSmilesError,
+    InvalidSMIRKSError,
+    MoleculeFromSMILESError,
 )
 from openff.recharge.utilities.openeye import (
     import_oechem,
@@ -26,7 +27,7 @@ def test_smiles_to_molecule():
     smiles_to_molecule("CO")
 
     # Test a bad smiles pattern.
-    with pytest.raises(MoleculeFromSmilesError) as error_info:
+    with pytest.raises(MoleculeFromSMILESError) as error_info:
         smiles_to_molecule("X")
 
     assert error_info.value.smiles == "X"
@@ -71,7 +72,7 @@ def test_match_smirks_invalid():
     """Test that the correct exception is raised when an invalid smirks
     pattern is provided to `match_smirks`."""
 
-    with pytest.raises(InvalidSmirksError) as error_info:
+    with pytest.raises(InvalidSMIRKSError) as error_info:
         match_smirks("X", smiles_to_molecule("C"))
 
     assert error_info.value.smirks == "X"
@@ -91,7 +92,7 @@ def test_molecule_to_conformer():
     assert len(conformers) == 1
 
     assert conformers[0].shape == conformer.shape
-    assert numpy.allclose(conformers[0], conformer)
+    assert numpy.allclose(conformers[0], conformer * unit.angstrom)
 
 
 def test_missing_oechem(monkeypatch):

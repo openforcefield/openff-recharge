@@ -2,6 +2,7 @@ from typing import List
 
 import numpy
 import pytest
+from openff.units import unit
 
 from openff.recharge.esp import DFTGridSettings, ESPSettings, PCMSettings
 from openff.recharge.esp.exceptions import Psi4Error
@@ -20,7 +21,7 @@ def test_generate_input_base():
 
     # Create a closed shell molecule.
     oe_molecule = smiles_to_molecule("[Cl-]")
-    conformer = numpy.array([[0.0, 0.0, 0.0]])
+    conformer = numpy.array([[0.0, 0.0, 0.0]]) * unit.angstrom
 
     input_contents = Psi4ESPGenerator._generate_input(oe_molecule, conformer, settings)
 
@@ -46,7 +47,7 @@ def test_generate_input_base():
 
     # Create an open shell molecule.
     oe_molecule = smiles_to_molecule("[B]")
-    conformer = numpy.array([[0.0, 0.0, 0.0]])
+    conformer = numpy.array([[0.0, 0.0, 0.0]]) * unit.angstrom
 
     input_contents = Psi4ESPGenerator._generate_input(oe_molecule, conformer, settings)
 
@@ -109,7 +110,7 @@ def test_generate_input_dft_settings(
 
     # Create a closed shell molecule.
     oe_molecule = smiles_to_molecule("[Cl-]")
-    conformer = numpy.array([[0.0, 0.0, 0.0]])
+    conformer = numpy.array([[0.0, 0.0, 0.0]]) * unit.angstrom
 
     input_contents = Psi4ESPGenerator._generate_input(oe_molecule, conformer, settings)
 
@@ -145,7 +146,7 @@ def test_generate_input_pcm():
 
     # Create a closed shell molecule.
     oe_molecule = smiles_to_molecule("[Cl-]")
-    conformer = numpy.array([[0.0, 0.0, 0.0]])
+    conformer = numpy.array([[0.1, 0.0, 0.0]]) * unit.nanometer
 
     input_contents = Psi4ESPGenerator._generate_input(oe_molecule, conformer, settings)
 
@@ -155,7 +156,7 @@ def test_generate_input_pcm():
             "  noreorient",
             "  nocom",
             "  -1 1",
-            "  Cl  0.000000000  0.000000000  0.000000000",
+            "  Cl  1.000000000  0.000000000  0.000000000",
             "}",
             "",
             "set {",
@@ -202,14 +203,17 @@ def test_generate(enable_pcm):
     # Generate a small molecule which should finish fast.
     oe_molecule = smiles_to_molecule("C")
 
-    conformer = numpy.array(
-        [
-            [-0.0000658, -0.0000061, 0.0000215],
-            [-0.0566733, 1.0873573, -0.0859463],
-            [0.6194599, -0.3971111, -0.8071615],
-            [-1.0042799, -0.4236047, -0.0695677],
-            [0.4415590, -0.2666354, 0.9626540],
-        ]
+    conformer = (
+        numpy.array(
+            [
+                [-0.0000658, -0.0000061, 0.0000215],
+                [-0.0566733, 1.0873573, -0.0859463],
+                [0.6194599, -0.3971111, -0.8071615],
+                [-1.0042799, -0.4236047, -0.0695677],
+                [0.4415590, -0.2666354, 0.9626540],
+            ]
+        )
+        * unit.angstrom
     )
 
     grid, esp, electric_field = Psi4ESPGenerator.generate(
@@ -236,7 +240,7 @@ def test_ps4_error():
 
     # Generate a small molecule with an invalid conformer.
     oe_molecule = smiles_to_molecule("C")
-    conformer = numpy.zeros((5, 3))
+    conformer = numpy.zeros((5, 3)) * unit.angstrom
 
     with pytest.raises(Psi4Error) as error_info:
         Psi4ESPGenerator.generate(oe_molecule, conformer, settings)

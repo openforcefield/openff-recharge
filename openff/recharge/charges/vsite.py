@@ -3,6 +3,7 @@ from collections import defaultdict
 from typing import TYPE_CHECKING, Dict, List, Optional, Tuple, Union, overload
 
 import numpy
+from openff.units import unit
 from openff.utilities import requires_package
 from pydantic import BaseModel, Field, constr
 from typing_extensions import Literal
@@ -781,8 +782,8 @@ class VirtualSiteGenerator:
         cls,
         oe_molecule: "OEMol",
         vsite_collection: VirtualSiteCollection,
-        conformer: numpy.ndarray,
-    ):
+        conformer: unit.Quantity,
+    ) -> unit.Quantity:
         """Computes the positions of a set of virtual sites relative to a provided
         molecule in a given conformer.
 
@@ -800,6 +801,8 @@ class VirtualSiteGenerator:
         -------
             An array of virtual site positions [A] with shape=(n_vsites, 3).
         """
+
+        conformer = conformer.to(unit.angstrom).m
 
         vsite_parameters_by_key = {
             (parameter.smirks, parameter.type, parameter.name): parameter
@@ -831,4 +834,4 @@ class VirtualSiteGenerator:
             local_frame_coordinates, local_coordinate_frames, backend="numpy"
         )
 
-        return vsite_positions
+        return vsite_positions * unit.angstrom

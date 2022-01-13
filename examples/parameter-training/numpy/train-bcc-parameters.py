@@ -2,14 +2,13 @@ import numpy
 from tqdm import tqdm
 
 from openff.recharge.charges.bcc import BCCCollection, BCCParameter
-from openff.recharge.charges.charges import ChargeSettings
+from openff.recharge.charges import ChargeSettings
 from openff.recharge.conformers import ConformerGenerator, ConformerSettings
 from openff.recharge.esp import ESPSettings
 from openff.recharge.esp.psi4 import Psi4ESPGenerator
 from openff.recharge.esp.storage import MoleculeESPRecord
 from openff.recharge.grids import GridSettings
-from openff.recharge.optimize import ESPObjective
-from openff.recharge.optimize.optimize import ESPObjectiveTerm
+from openff.recharge.optimize import ESPObjective, ESPObjectiveTerm
 from openff.recharge.utilities.openeye import smiles_to_molecule
 
 
@@ -61,7 +60,7 @@ def main():
         bcc_collection=bcc_collection,
         bcc_parameter_keys=bcc_parameters_to_train,
     )
-    # Combine all of the terms in our objective function (i.e. the difference between
+    # Combine all the terms in our objective function (i.e. the difference between
     # the reference and predicted ESP values for each molecule in each conformer) into
     # a single object.
     objective_term = ESPObjectiveTerm.combine(*objective_terms_generator)

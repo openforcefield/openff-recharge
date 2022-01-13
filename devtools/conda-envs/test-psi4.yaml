@@ -22,6 +22,7 @@ dependencies:
   - jinja2
   - pydantic
   - openff-utilities
+  - openff-units
   - openeye-toolkits
 
     # ESP storage
@@ -42,7 +43,7 @@ dependencies:
   - cmiles-base
 
     # SMIRNOFF + v-site support
-  - openff-toolkit-base
+  - openff-toolkit-base >=0.10.2
 
     # Linting
   - black

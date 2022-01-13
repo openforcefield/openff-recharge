@@ -7,6 +7,7 @@ from contextlib import contextmanager
 from typing import TYPE_CHECKING, ContextManager, Dict, List, Optional
 
 import numpy
+from openff.units import unit
 from pydantic import BaseModel, Field
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
@@ -16,10 +17,8 @@ from openff.recharge.esp.storage.db import (
     DB_VERSION,
     DBBase,
     DBConformerRecord,
-    DBCoordinate,
     DBESPSettings,
     DBGeneralProvenance,
-    DBGridESP,
     DBGridSettings,
     DBInformation,
     DBMoleculeRecord,
@@ -34,7 +33,7 @@ if TYPE_CHECKING:
 
     Array = numpy.ndarray
 else:
-    from openff.recharge.utilities.pydantic import Array
+    from openff.recharge.utilities.pydantic import Array, wrapped_array_validator
 
 
 class MoleculeESPRecord(BaseModel):
@@ -66,7 +65,7 @@ class MoleculeESPRecord(BaseModel):
         description="The value of the ESP [Hartree / e] at each of the grid "
         "coordinates with shape=(n_grid_points, 1).",
     )
-    electric_field: Array[float] = Field(
+    electric_field: Optional[Array[float]] = Field(
         ...,
         description="The value of the electric field [Hartree / (e . a0)] at each of "
         "the grid coordinates with shape=(n_grid_points, 3).",
@@ -76,14 +75,38 @@ class MoleculeESPRecord(BaseModel):
         ..., description="The settings used to generate the ESP stored in this record."
     )
 
+    _validate_conformer = wrapped_array_validator("conformer", unit.angstrom)
+    _validate_grid = wrapped_array_validator("grid_coordinates", unit.angstrom)
+
+    _validate_esp = wrapped_array_validator("esp", unit.hartree / unit.e)
+    _validate_field = wrapped_array_validator(
+        "electric_field", unit.hartree / (unit.bohr * unit.e)
+    )
+
+    @property
+    def conformer_quantity(self) -> unit.Quantity:
+        return self.conformer * unit.angstrom
+
+    @property
+    def grid_coordinates_quantity(self) -> unit.Quantity:
+        return self.grid_coordinates * unit.angstrom
+
+    @property
+    def esp_quantity(self) -> unit.Quantity:
+        return self.esp * unit.hartree / unit.e
+
+    @property
+    def electric_field_quantity(self) -> unit.Quantity:
+        return self.electric_field * unit.hartree / (unit.bohr * unit.e)
+
     @classmethod
     def from_oe_molecule(
         cls,
         oe_molecule: "oechem.OEMol",
-        conformer: numpy.ndarray,
-        grid_coordinates: numpy.ndarray,
-        esp: numpy.ndarray,
-        electric_field: numpy.ndarray,
+        conformer: unit.Quantity,
+        grid_coordinates: unit.Quantity,
+        esp: unit.Quantity,
+        electric_field: unit.Quantity,
         esp_settings: ESPSettings,
     ) -> "MoleculeESPRecord":
         """Creates a new ``MoleculeESPRecord`` from an existing molecule
@@ -266,34 +289,10 @@ class MoleculeESPStore:
         return [
             MoleculeESPRecord(
                 tagged_smiles=db_conformer.tagged_smiles,
-                conformer=numpy.array(
-                    [
-                        [db_coordinate.x, db_coordinate.y, db_coordinate.z]
-                        for db_coordinate in db_conformer.coordinates
-                    ]
-                ),
-                grid_coordinates=numpy.array(
-                    [
-                        [grid_esp_value.x, grid_esp_value.y, grid_esp_value.z]
-                        for grid_esp_value in db_conformer.grid_esp_values
-                    ]
-                ),
-                esp=numpy.array(
-                    [
-                        [grid_esp_value.value]
-                        for grid_esp_value in db_conformer.grid_esp_values
-                    ]
-                ),
-                electric_field=numpy.array(
-                    [
-                        [
-                            grid_esp_value.field_x,
-                            grid_esp_value.field_y,
-                            grid_esp_value.field_z,
-                        ]
-                        for grid_esp_value in db_conformer.grid_esp_values
-                    ]
-                ),
+                conformer=db_conformer.coordinates,
+                grid_coordinates=db_conformer.grid,
+                esp=db_conformer.esp,
+                electric_field=db_conformer.field,
                 esp_settings=ESPSettings(
                     basis=db_conformer.esp_settings.basis,
                     method=db_conformer.esp_settings.method,
@@ -340,24 +339,10 @@ class MoleculeESPStore:
         db_record.conformers.extend(
             DBConformerRecord(
                 tagged_smiles=record.tagged_smiles,
-                coordinates=[
-                    DBCoordinate(x=coordinate[0], y=coordinate[1], z=coordinate[2])
-                    for coordinate in record.conformer
-                ],
-                grid_esp_values=[
-                    DBGridESP(
-                        x=coordinate[0],
-                        y=coordinate[1],
-                        z=coordinate[2],
-                        value=esp[0],
-                        field_x=electric_field[0],
-                        field_y=electric_field[1],
-                        field_z=electric_field[2],
-                    )
-                    for coordinate, esp, electric_field in zip(
-                        record.grid_coordinates, record.esp, record.electric_field
-                    )
-                ],
+                coordinates=record.conformer,
+                grid=record.grid_coordinates,
+                esp=record.esp,
+                field=record.electric_field,
                 grid_settings=DBGridSettings.unique(
                     db, record.esp_settings.grid_settings
                 ),
@@ -375,7 +360,7 @@ class MoleculeESPStore:
         return db_record
 
     @classmethod
-    @functools.lru_cache(128)
+    @functools.lru_cache(10000)
     def _tagged_to_canonical_smiles(cls, tagged_smiles: str) -> str:
         """Converts a smiles pattern which contains atom indices into
         a canonical smiles pattern without indices.

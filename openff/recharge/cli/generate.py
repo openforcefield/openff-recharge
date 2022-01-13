@@ -31,8 +31,8 @@ def _compute_esp(
         The settings to use when generating the ESP.
     """
 
-    logger = logging.getLogger(__name__)
-    logger.info(f"Processing {smiles}")
+    _logger = logging.getLogger(__name__)
+    _logger.info(f"Processing {smiles}")
 
     oe_molecule = smiles_to_molecule(smiles)
 
@@ -40,7 +40,7 @@ def _compute_esp(
     try:
         conformers = ConformerGenerator.generate(oe_molecule, conformer_settings)
     except (OEOmegaError, OEQuacpacError):
-        logger.exception(f"Coordinates could not be generated for {smiles}.")
+        _logger.exception(f"Coordinates could not be generated for {smiles}.")
         return []
 
     esp_records = []
@@ -52,7 +52,7 @@ def _compute_esp(
                 oe_molecule, conformer, settings
             )
         except Psi4Error:
-            logger.exception(f"Psi4 failed to run for conformer {index} of {smiles}.")
+            _logger.exception(f"Psi4 failed to run for conformer {index} of {smiles}.")
             continue
 
         esp_records.append(
@@ -61,7 +61,7 @@ def _compute_esp(
             )
         )
 
-    logger.info(f"Finished processing {smiles}")
+    _logger.info(f"Finished processing {smiles}")
 
     return esp_records
 

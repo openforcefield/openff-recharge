@@ -2,10 +2,12 @@ import itertools
 from typing import TYPE_CHECKING
 
 import numpy
+from openff.units import unit
 from pydantic import BaseModel, Field
 from typing_extensions import Literal
 
 from openff.recharge.utilities.openeye import import_oechem
+from openff.recharge.utilities.pydantic import wrapped_float_validator
 
 if TYPE_CHECKING:
     from openeye import oechem
@@ -36,6 +38,12 @@ class GridSettings(BaseModel):
         "around the molecule to retain grid points within.",
     )
 
+    @property
+    def spacing_quantity(self) -> unit.Quantity:
+        return self.spacing * unit.angstrom
+
+    _validate_spacing = wrapped_float_validator("spacing", unit.angstrom)
+
 
 class GridGenerator:
     """A containing methods to generate the grids upon which the
@@ -45,9 +53,9 @@ class GridGenerator:
     def generate(
         cls,
         oe_molecule: "oechem.OEMol",
-        conformer: numpy.ndarray,
+        conformer: unit.Quantity,
         settings: GridSettings,
-    ) -> numpy.ndarray:
+    ) -> unit.Quantity:
         """Generates a grid of points in a shell around a specified
         molecule in a given conformer according a set of settings.
 
@@ -67,6 +75,8 @@ class GridGenerator:
         """
 
         oechem = import_oechem()
+
+        conformer = conformer.to(unit.angstrom).m
 
         # Only operate on a copy of the molecule.
         oe_molecule = oechem.OEMol(oe_molecule)
@@ -138,4 +148,4 @@ class GridGenerator:
 
             coordinates.append(coordinate)
 
-        return numpy.concatenate(coordinates)
+        return numpy.concatenate(coordinates) * unit.angstrom

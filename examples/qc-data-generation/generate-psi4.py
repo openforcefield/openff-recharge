@@ -32,17 +32,25 @@ def main():
     qc_data_store = MoleculeESPStore()
 
     # Compute and store the electrostatic properties for each conformer
-    qc_data_store.store(
-        *(
-            MoleculeESPRecord.from_oe_molecule(
-                oe_molecule,
-                conformer,
-                *Psi4ESPGenerator.generate(oe_molecule, conformer, esp_settings),
-                esp_settings
-            )
-            for conformer in tqdm(conformers)
+    records = []
+
+    for conformer in tqdm(conformers):
+
+        grid, esp, electric_field = Psi4ESPGenerator.generate(
+            oe_molecule, conformer, esp_settings
         )
-    )
+
+        record = MoleculeESPRecord.from_oe_molecule(
+            oe_molecule,
+            conformer,
+            grid,
+            esp,
+            electric_field,
+            esp_settings
+        )
+        records.append(record)
+
+    qc_data_store.store(*records)
 
     # Retrieve the stored properties.
     print(qc_data_store.retrieve())

@@ -1,9 +1,10 @@
 import json
 import logging
 import re
-from typing import TYPE_CHECKING, Dict, Iterable, List, Optional, Tuple
+from typing import TYPE_CHECKING, Optional, Tuple
 
 import numpy
+from openff.units import unit
 from openff.utilities import requires_package
 from pydantic import ValidationError
 
@@ -18,46 +19,7 @@ if TYPE_CHECKING:
     import qcelemental.models.results
     import qcportal.models
 
-QCFractalResults = List[
-    Tuple["qcelemental.models.Molecule", "qcportal.models.ResultRecord"]
-]
-QCFractalKeywords = Dict[str, "qcportal.models.KeywordSet"]
-
-logger = logging.getLogger(__name__)
-
-
-class MissingQCMoleculesError(RechargeException):
-    """An exception raised when an expected set of molecules are not present
-    in a QC data set."""
-
-    def __init__(self, data_set_name: str, missing_smiles: Iterable[str]):
-
-        smiles_string = "\n".join(missing_smiles)
-
-        super(MissingQCMoleculesError, self).__init__(
-            f"The {smiles_string} SMILES patterns were not found in the "
-            f"{data_set_name} data set."
-        )
-
-        self.data_set_name = data_set_name
-        self.missing_smiles = missing_smiles
-
-
-class MissingQCResultsError(RechargeException):
-    """An exception raised when an expected set of results are not present
-    in a QC data set."""
-
-    def __init__(self, data_set_name: str, missing_ids: Iterable[str]):
-
-        id_string = "\n".join(missing_ids)
-
-        super(MissingQCResultsError, self).__init__(
-            f"The result records associated with the following molecule ids from the "
-            f"{data_set_name} data set could not be retrieved from QCA: {id_string}"
-        )
-
-        self.data_set_name = data_set_name
-        self.missing_ids = missing_ids
+_logger = logging.getLogger(__name__)
 
 
 class MissingQCWaveFunctionError(RechargeException):
@@ -132,202 +94,6 @@ def _parse_pcm_input(input_string: str) -> PCMSettings:
     return pcm_settings
 
 
-def _compare_pcm_settings(settings_a: PCMSettings, settings_b: PCMSettings) -> bool:
-    """Compares if two PCM settings are identical."""
-
-    for field in PCMSettings.__fields__:
-
-        value_a = getattr(settings_a, field)
-        value_b = getattr(settings_b, field)
-
-        if isinstance(value_a, float) and not numpy.isclose(value_a, value_b):
-            return False
-        elif not isinstance(value_a, float) and value_a != value_b:
-            return False
-
-    return True
-
-
-@requires_package("cmiles")
-@requires_package("qcportal")
-def retrieve_qcfractal_results(
-    data_set_name: str,
-    subset: Optional[Iterable[str]],
-    method: str,
-    basis: str,
-    pcm_settings: Optional[PCMSettings],
-    qcfractal_address: Optional[str] = None,
-    error_on_missing: bool = True,
-) -> Tuple[QCFractalResults, QCFractalKeywords]:
-    """Attempt to retrieve the results for the requested data set from a QCFractal
-    server.
-
-    Parameters
-    ----------
-    data_set_name
-        The name of the data set to retrieve the results from.
-    subset
-        The SMILES representations of the subset of molecules to retrieve from the data
-        set.
-    method
-        The method which the results should have been computed using.
-    basis
-        The basis which the results should have been computed using.
-    pcm_settings
-        The PCM settings which the results should have been computed using.
-        Use ``None`` to specify that PCM should not have been enabled.
-    qcfractal_address
-        An optional address to the QCFractal server instance which stores the data set.
-    error_on_missing
-        Whether to raise an exception when either a molecule listed in the subset
-        cannot be found in the data set, or when a result record could not be found
-        for one of the requested molecule in the data set.
-
-    Returns
-    -------
-        A list of the retrieved results (alongside their corresponding molecule records)
-        and a dictionary of the keywords referenced by the results entries.
-    """
-
-    import cmiles
-    import qcportal
-    from qcelemental.models import Molecule as QCMolecule
-
-    # Map the input smiles to uniform isomeric and explicit hydrogen smiles.
-    subset = (
-        None
-        if subset is None
-        else [
-            cmiles.get_molecule_ids(smiles, "openeye", strict=False)[
-                "canonical_isomeric_explicit_hydrogen_smiles"
-            ]
-            for smiles in subset
-        ]
-    )
-
-    # Connect to the default QCA server and retrieve the data set of interest.
-    if qcfractal_address is None:
-        client = qcportal.FractalClient()
-    else:
-        client = qcportal.FractalClient(address=qcfractal_address)
-
-    # noinspection PyTypeChecker
-    collection: qcportal.collections.Dataset = client.get_collection(
-        "Dataset", data_set_name
-    )
-
-    # Retrieve the ids of the molecules of interest.
-    molecules = {}
-    found_smiles = set()
-
-    for _, molecule_row in collection.get_molecules().iterrows():
-
-        qc_molecule: QCMolecule = molecule_row["molecule"]
-
-        # Manually map the molecule to a dictionary as CMILES expects a flat geometry
-        # array.
-        qc_molecule_dict = {
-            "symbols": qc_molecule.symbols,
-            "connectivity": qc_molecule.connectivity,
-            "geometry": qc_molecule.geometry.flatten(),
-            "molecular_charge": qc_molecule.molecular_charge,
-            "molecular_multiplicity": qc_molecule.molecular_multiplicity,
-        }
-
-        cmiles_ids = cmiles.get_molecule_ids(qc_molecule_dict, toolkit="openeye")
-        molecule_smiles = cmiles_ids["canonical_isomeric_explicit_hydrogen_smiles"]
-
-        if subset is not None and molecule_smiles not in subset:
-            continue
-
-        molecules[qc_molecule.id] = qc_molecule
-        found_smiles.add(molecule_smiles)
-
-    molecule_ids = sorted(molecules)
-
-    # Make sure the data set contains the requested subset.
-    missing_smiles = (set() if subset is None else {*subset}) - found_smiles
-
-    if len(missing_smiles) > 0:
-
-        if error_on_missing:
-            raise MissingQCMoleculesError(data_set_name, missing_smiles)
-        else:
-            logger.warning(
-                f"The following smiles count not be found in the {data_set_name} "
-                f"data set: {missing_smiles}"
-            )
-
-    # Retrieve the data sets results records
-    results = []
-
-    paginating = True
-    page_index = 0
-
-    while paginating:
-
-        page_results = client.query_results(
-            molecule=molecule_ids,
-            method=method,
-            basis=basis,
-            limit=client.server_info["query_limit"],
-            skip=page_index,
-        )
-
-        results.extend(page_results)
-
-        paginating = len(page_results) > 0
-        page_index += client.server_info["query_limit"]
-
-    # Filter based on the PCM settings.
-    keyword_ids = list({result.keywords for result in results})
-    keywords: Dict[
-        str,
-    ] = {keyword_id: client.query_keywords(keyword_id)[0] for keyword_id in keyword_ids}
-
-    if pcm_settings is None:
-        matching_keywords = [
-            keyword_id
-            for keyword_id, keyword in keywords.items()
-            if "pcm" not in keyword.values or keyword.values["pcm"] is False
-        ]
-    else:
-        matching_keywords = [
-            keyword_id
-            for keyword_id, keyword in keywords.items()
-            if "pcm" in keyword.values
-            and keyword.values["pcm"] is True
-            and "pcm__input" in keyword.values
-            and _compare_pcm_settings(
-                pcm_settings, _parse_pcm_input(keyword.values["pcm__input"])
-            )
-        ]
-
-    results = list(
-        filter(lambda x: x.keywords is None or x.keywords in matching_keywords, results)
-    )
-
-    # Make sure none of the records are missing.
-    result_ids = {result.molecule for result in results}
-
-    missing_result_ids = {*molecule_ids} - {*result_ids}
-
-    if len(missing_result_ids) > 0:
-
-        if error_on_missing:
-            raise MissingQCResultsError(data_set_name, missing_result_ids)
-        else:
-            logger.warning(
-                f"Result records could not be found for the following molecules in the "
-                f"{data_set_name}: {missing_result_ids}"
-            )
-
-    return (
-        [(molecules[result.molecule], result) for result in results],
-        {keyword_id: keywords[keyword_id] for keyword_id in matching_keywords},
-    )
-
-
 def reconstruct_density(
     wavefunction: "qcelemental.models.results.WavefunctionProperties", n_alpha: int
 ) -> numpy.ndarray:
@@ -394,8 +160,12 @@ def reconstruct_density(
 
 @requires_package("psi4")
 def compute_esp(
-    qc_molecule, density, esp_settings, grid
-) -> Tuple[numpy.ndarray, numpy.ndarray]:
+    qc_molecule: "qcelemental.models.Molecule",
+    density: numpy.ndarray,
+    esp_settings: ESPSettings,
+    grid: unit.Quantity,
+    compute_field: bool = True,
+) -> Tuple[unit.Quantity, Optional[unit.Quantity]]:
     """Computes the ESP and electric field for a particular molecule on
     a specified grid and using the specified settings.
 
@@ -409,6 +179,8 @@ def compute_esp(
         The settings to use when computing the ESP / electric field.
     grid
         The grid to evaluate the ESP and electric field on.
+    compute_field
+        Whether to compute the electric field in addition to the ESP.
 
     Returns
     -------
@@ -429,27 +201,33 @@ def compute_esp(
     psi4_wavefunction.Da().copy(psi4.core.Matrix.from_array(density))
 
     psi4_calculator = psi4.core.ESPPropCalc(psi4_wavefunction)
-    psi4_grid = psi4.core.Matrix.from_array(grid)
+    psi4_grid = psi4.core.Matrix.from_array(grid.to(unit.angstrom).m)
 
     esp = numpy.array(
         psi4_calculator.compute_esp_over_grid_in_memory(psi4_grid)
     ).reshape(-1, 1)
 
-    field = numpy.array(psi4_calculator.compute_field_over_grid_in_memory(psi4_grid))
+    field = None
 
-    return esp, field
+    if compute_field:
+        field = numpy.array(
+            psi4_calculator.compute_field_over_grid_in_memory(psi4_grid)
+        )
+
+    return esp * unit.hartree / unit.e, field * unit.hartree / (unit.bohr * unit.e)
 
 
 @requires_package("cmiles")
 @requires_package("qcportal")
-def from_qcfractal_result(
+def from_qcportal_results(
     qc_result: "qcportal.models.ResultRecord",
     qc_molecule: "qcelemental.models.Molecule",
     qc_keyword_set: "qcportal.models.KeywordSet",
     grid_settings: GridSettings,
+    compute_field: bool = True,
 ) -> MoleculeESPRecord:
-    """A function which will evaluate the the ESP and electric field from a set of
-    wavefunctions which have been computed by a QCFractal instance using the Psi4
+    """A function which will re-construct the ESP and optionally the electric field from
+    a set of wavefunctions that have been computed by a QCFractal instance using the Psi4
     package.
 
     Parameters
@@ -462,10 +240,13 @@ def from_qcfractal_result(
         The keyword set used when computing the result record.
     grid_settings
         The settings which define the grid to evaluate the electronic properties on.
+    compute_field
+        Whether to compute the electric field in addition to the ESP.
 
     Returns
     -------
-        The values of the ESP and electric field stored in storable records.
+        The values of the ESP and (optionally) the electric field stored in a storable
+        record object.
     """
 
     import cmiles.utils
@@ -521,7 +302,9 @@ def from_qcfractal_result(
     )
 
     # Reconstruct the ESP and field from the density.
-    esp, electric_field = compute_esp(qc_molecule, density, esp_settings, grid)
+    esp, electric_field = compute_esp(
+        qc_molecule, density, esp_settings, grid, compute_field
+    )
 
     return MoleculeESPRecord.from_oe_molecule(
         oe_molecule,

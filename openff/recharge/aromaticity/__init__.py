@@ -1,3 +1,3 @@
-from openff.recharge.aromaticity.aromaticity import AromaticityModel, AromaticityModels
+from openff.recharge.aromaticity._aromaticity import AromaticityModel, AromaticityModels
 
 __all__ = [AromaticityModel, AromaticityModels]

@@ -1,20 +1,12 @@
 """A module containing general exceptions raised by the framework."""
 import abc
 
-_CONDA_INSTALLATION_COMMANDS = {
-    "openff.toolkit": "conda install -c conda-forge openff-toolkit",
-    "openeye": "conda install -c openeye openeye-toolkits",
-    "qcportal": "conda install -c conda-forge qcportal",
-    "cmiles": "conda install -c conda-forge cmiles",
-    "psi4": "conda install -c psi4/label/dev psi4",
-}
-
 
 class RechargeException(BaseException):
     """The base exception from which most custom exceptions should inherit."""
 
 
-class MoleculeFromSmilesError(RechargeException):
+class MoleculeFromSMILESError(RechargeException):
     """An exception raised when attempting to create a molecule from a
     SMILES pattern."""
 
@@ -27,12 +19,12 @@ class MoleculeFromSmilesError(RechargeException):
             The SMILES pattern which could not be parsed.
         """
 
-        super(MoleculeFromSmilesError, self).__init__(*args, **kwargs)
+        super(MoleculeFromSMILESError, self).__init__(*args, **kwargs)
         self.smiles = smiles
 
 
-class InvalidSmirksError(RechargeException):
-    """An exception raised when an invalid smirks pattern is provided."""
+class InvalidSMIRKSError(RechargeException):
+    """An exception raised when an invalid SMIRKS pattern is provided."""
 
     def __init__(self, *args, smirks: str, **kwargs):
         """
@@ -43,7 +35,7 @@ class InvalidSmirksError(RechargeException):
             The SMIRKS pattern which could not be parsed.
         """
 
-        super(InvalidSmirksError, self).__init__(*args, **kwargs)
+        super(InvalidSMIRKSError, self).__init__(*args, **kwargs)
         self.smirks = smirks
 
 

@@ -5,23 +5,25 @@ import os
 import pwd
 from datetime import datetime
 from multiprocessing import Pool
-from typing import TYPE_CHECKING, List, Tuple
+from typing import TYPE_CHECKING, Dict, List, Tuple
 
 import click
 from tqdm import tqdm
 
 import openff.recharge
-from openff.recharge.esp.qcarchive import (
-    QCFractalKeywords,
-    QCFractalResults,
-    from_qcfractal_result,
-)
+from openff.recharge.esp.qcresults import from_qcportal_results
 from openff.recharge.esp.storage import MoleculeESPStore
 from openff.recharge.grids import GridSettings
 
 if TYPE_CHECKING:
     import qcelemental.models
     import qcportal.models
+
+
+QCFractalResults = List[
+    Tuple["qcelemental.models.Molecule", "qcportal.models.ResultRecord"]
+]
+QCFractalKeywords = Dict[str, "qcportal.models.KeywordSet"]
 
 
 def _retrieve_result_records(
@@ -70,23 +72,25 @@ def _process_result(
     ],
     grid_settings: GridSettings,
 ):
-    return from_qcfractal_result(*result_tuple, grid_settings=grid_settings)
+    return from_qcportal_results(*result_tuple, grid_settings=grid_settings)
 
 
-@click.command(help="Reconstructs ESP / EF data from wavefunctions stored in QCA.")
+@click.command(
+    help="Compute the ESP from a set of wave-functions stored in a QCFractal instance."
+)
 @click.option(
     "--record-ids",
     "record_ids_path",
     type=click.Path(exists=True, dir_okay=False),
-    help="The path to a JSON serialized list of the QCA compute record ids which store "
-    "the wavefunctions to reconstruct the ESP / EF from.",
+    help="The path to a JSON serialized list of the ids of the result records that "
+    "contain the wave-functions to reconstruct the ESP / electric field from.",
 )
 @click.option(
     "--grid-settings",
     "grid_settings_path",
     type=click.Path(exists=True, dir_okay=False),
     help="The path to the JSON serialized settings which define the grid to reconstruct "
-    "the ESP / EF on.",
+    "the ESP / electric field on.",
 )
 @click.option(
     "--n-procs",

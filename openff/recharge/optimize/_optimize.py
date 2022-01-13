@@ -2,10 +2,11 @@ import abc
 from typing import TYPE_CHECKING, Generator, List, Optional, Tuple, Type, TypeVar
 
 import numpy
+from openff.units import unit
 from typing_extensions import Literal
 
+from openff.recharge.charges import ChargeGenerator, ChargeSettings
 from openff.recharge.charges.bcc import BCCCollection, BCCGenerator
-from openff.recharge.charges.charges import ChargeGenerator, ChargeSettings
 from openff.recharge.charges.vsite import (
     VirtualSiteChargeKey,
     VirtualSiteCollection,
@@ -14,8 +15,6 @@ from openff.recharge.charges.vsite import (
 )
 from openff.recharge.esp.storage import MoleculeESPRecord
 from openff.recharge.utilities.geometry import (
-    ANGSTROM_TO_BOHR,
-    INVERSE_ANGSTROM_TO_BOHR,
     compute_inverse_distance_matrix,
     compute_vector_field,
     reorder_conformer,
@@ -426,9 +425,11 @@ class Objective(abc.ABC):
         Parameters
         ----------
         grid_coordinates
-            The grid coordinates which the electronic property was computed on.
+            The grid coordinates which the electronic property was computed on in
+            units of Angstrom.
         conformer
-            The coordinates of the molecule conformer the property was computed for.
+            The coordinates of the molecule conformer the property was computed for in
+            units of Angstrom.
         """
 
     @classmethod
@@ -680,7 +681,7 @@ class Objective(abc.ABC):
             if charge_settings is not None:
 
                 fixed_atom_charges = ChargeGenerator.generate(
-                    oe_molecule, [ordered_conformer], charge_settings
+                    oe_molecule, [ordered_conformer * unit.angstrom], charge_settings
                 )
 
             if bcc_collection is not None:
@@ -791,11 +792,14 @@ class ESPObjective(Objective):
         cls, grid_coordinates: numpy.ndarray, conformer: numpy.ndarray
     ):
         # Pre-compute the inverse distance between each atom in the molecule
-        # and each grid point. Care must be taken to ensure that length units
-        # are converted from [Angstrom] to [Bohr].
-        inverse_distance_matrix = (
-            compute_inverse_distance_matrix(grid_coordinates, conformer)
-            * INVERSE_ANGSTROM_TO_BOHR
+        # and each grid point.
+        inverse_distance_matrix = compute_inverse_distance_matrix(
+            grid_coordinates, conformer
+        )
+        # Care must be taken to ensure that length units are converted from [Angstrom]
+        # to [Bohr].
+        inverse_distance_matrix = unit.convert(
+            inverse_distance_matrix, unit.angstrom ** -1, unit.bohr ** -1
         )
 
         return inverse_distance_matrix
@@ -821,8 +825,8 @@ class ElectricFieldObjectiveTerm(ObjectiveTerm):
 class ElectricFieldObjective(Objective):
     """A utility class which contains helper functions for computing the
     contributions to a least squares objective function which captures the
-    deviation of the ESP computed using molecular partial charges and the ESP
-    computed by a QM calculation."""
+    deviation of the electric field computed using molecular partial charges and the
+    electric field computed by a QM calculation."""
 
     @classmethod
     def _objective_term(cls) -> Type[ElectricFieldObjectiveTerm]:
@@ -837,8 +841,10 @@ class ElectricFieldObjective(Objective):
         cls, grid_coordinates: numpy.ndarray, conformer: numpy.ndarray
     ):
         vector_field = compute_vector_field(
-            conformer * ANGSTROM_TO_BOHR, grid_coordinates * ANGSTROM_TO_BOHR
+            unit.convert(conformer, unit.angstrom, unit.bohr),
+            unit.convert(grid_coordinates, unit.angstrom, unit.bohr),
         )
+
         return vector_field
 
     @classmethod

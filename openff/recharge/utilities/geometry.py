@@ -8,11 +8,6 @@ if TYPE_CHECKING:
     import torch
     from openeye import oechem
 
-BOHR_TO_ANGSTROM = 0.529177210903  # NIST 2018 CODATA
-INVERSE_ANGSTROM_TO_BOHR = BOHR_TO_ANGSTROM
-
-ANGSTROM_TO_BOHR = 1.0 / BOHR_TO_ANGSTROM
-
 
 @overload
 def compute_inverse_distance_matrix(

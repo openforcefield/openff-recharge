@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING, Tuple
 
 import jinja2
 import numpy
+from openff.units import unit
 from openff.utilities import get_data_file_path, temporary_cd
 
 from openff.recharge.esp import ESPGenerator, ESPSettings
@@ -23,7 +24,7 @@ class Psi4ESPGenerator(ESPGenerator):
     def _generate_input(
         cls,
         oe_molecule: "oechem.OEMol",
-        conformer: numpy.ndarray,
+        conformer: unit.Quantity,
         settings: ESPSettings,
     ) -> str:
         """Generate the input files for Psi4.
@@ -55,6 +56,8 @@ class Psi4ESPGenerator(ESPGenerator):
         spin_multiplicity = 1 if (formal_charge + total_atomic_number) % 2 == 0 else 2
 
         # Store the atoms and coordinates in a jinja friendly dict.
+        conformer = conformer.to(unit.angstrom).m
+
         atoms = [
             {
                 "element": oechem.OEGetAtomicSymbol(atom.GetAtomicNum()),
@@ -107,11 +110,11 @@ class Psi4ESPGenerator(ESPGenerator):
     def _generate(
         cls,
         oe_molecule: "oechem.OEMol",
-        conformer: numpy.ndarray,
-        grid: numpy.ndarray,
+        conformer: unit.Quantity,
+        grid: unit.Quantity,
         settings: ESPSettings,
         directory: str = None,
-    ) -> Tuple[numpy.ndarray, numpy.ndarray]:
+    ) -> Tuple[unit.Quantity, unit.Quantity]:
 
         # Perform the calculation in a temporary directory
         with temporary_cd(directory):
@@ -123,7 +126,7 @@ class Psi4ESPGenerator(ESPGenerator):
                 file.write(input_contents)
 
             # Store the grid to file.
-            # noinspection PyTypeChecker
+            grid = grid.to(unit.angstrom).m
             numpy.savetxt("grid.dat", grid, delimiter=" ", fmt="%16.10f")
 
             # Attempt to run the calculation
@@ -139,7 +142,9 @@ class Psi4ESPGenerator(ESPGenerator):
             if exit_code != 0:
                 raise Psi4Error(std_output.decode(), std_error.decode())
 
-            esp = numpy.loadtxt("grid_esp.dat").reshape(-1, 1)
-            electric_field = numpy.loadtxt("grid_field.dat")
+            esp = numpy.loadtxt("grid_esp.dat").reshape(-1, 1) * unit.hartree / unit.e
+            electric_field = (
+                numpy.loadtxt("grid_field.dat") * unit.hartree / (unit.e * unit.bohr)
+            )
 
         return esp, electric_field

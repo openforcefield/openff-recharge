@@ -2,7 +2,7 @@
 import logging
 from typing import TYPE_CHECKING, List, Optional
 
-import numpy
+from openff.units import unit
 from pydantic import BaseModel, Field
 from typing_extensions import Literal
 
@@ -19,7 +19,7 @@ from openff.recharge.utilities.openeye import (
 if TYPE_CHECKING:
     from openeye import oechem
 
-logger = logging.getLogger()
+_logger = logging.getLogger()
 
 
 class ConformerSettings(BaseModel):
@@ -49,7 +49,7 @@ class ConformerGenerator:
         cls,
         oe_molecule: "oechem.OEMol",
         settings: ConformerSettings,
-    ) -> List[numpy.ndarray]:
+    ) -> List[unit.Quantity]:
         """Generates a set of conformers for a given molecule.
 
         Notes

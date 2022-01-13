@@ -5,9 +5,9 @@ from typing import TypeVar
 from sqlalchemy import (
     Boolean,
     Column,
-    Float,
     ForeignKey,
     Integer,
+    PickleType,
     String,
     UniqueConstraint,
 )
@@ -22,7 +22,7 @@ DBBase = declarative_base()
 _InstanceType = TypeVar("_InstanceType")
 _DBInstanceType = TypeVar("_DBInstanceType")
 
-DB_VERSION = 1
+DB_VERSION = 2
 _DB_FLOAT_PRECISION = 100000.0
 
 
@@ -84,36 +84,6 @@ class _UniqueMixin:
 
         cache[key] = existing_instance
         return existing_instance
-
-
-class DBCoordinate(DBBase):
-
-    __tablename__ = "coordinates"
-
-    id = Column(Integer, primary_key=True, index=True)
-    parent_id = Column(Integer, ForeignKey("conformers.id"), nullable=False)
-
-    x = Column(Float, nullable=False)
-    y = Column(Float, nullable=False)
-    z = Column(Float, nullable=False)
-
-
-class DBGridESP(DBBase):
-
-    __tablename__ = "grid_esp_values"
-
-    id = Column(Integer, primary_key=True, index=True)
-    parent_id = Column(Integer, ForeignKey("conformers.id"), nullable=False)
-
-    x = Column(Float, nullable=False)
-    y = Column(Float, nullable=False)
-    z = Column(Float, nullable=False)
-
-    value = Column(Float, nullable=False)
-
-    field_x = Column(Float, nullable=False)
-    field_y = Column(Float, nullable=False)
-    field_z = Column(Float, nullable=False)
 
 
 class DBGridSettings(_UniqueMixin, DBBase):
@@ -246,8 +216,8 @@ class DBESPSettings(_UniqueMixin, DBBase):
 
     id = Column(Integer, primary_key=True, index=True)
 
-    basis = Column(String, nullable=False)
-    method = Column(String, nullable=False)
+    basis = Column(String, index=True, nullable=False)
+    method = Column(String, index=True, nullable=False)
 
     psi4_dft_grid_settings = Column(String, nullable=False)
 
@@ -288,8 +258,11 @@ class DBConformerRecord(DBBase):
 
     tagged_smiles = Column(String, nullable=False)
 
-    coordinates = relationship("DBCoordinate")
-    grid_esp_values = relationship("DBGridESP")
+    coordinates = Column(PickleType, nullable=False)
+
+    grid = Column(PickleType, nullable=False)
+    esp = Column(PickleType, nullable=False)
+    field = Column(PickleType, nullable=True)
 
     grid_settings = relationship("DBGridSettings", uselist=False)
     grid_settings_id = Column(Integer, ForeignKey("grid_settings.id"), nullable=False)

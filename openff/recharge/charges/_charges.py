@@ -4,6 +4,7 @@ of a cheaper QM method and a set of bond charge corrections.
 from typing import TYPE_CHECKING, List
 
 import numpy
+from openff.units import unit
 from pydantic import BaseModel, Field
 from typing_extensions import Literal
 
@@ -47,7 +48,7 @@ class ChargeGenerator:
     def generate(
         cls,
         oe_molecule: "oechem.OEMol",
-        conformers: List[numpy.ndarray],
+        conformers: List[unit.Quantity],
         settings: ChargeSettings,
     ) -> numpy.ndarray:
         """Generates the averaged partial charges from multiple conformers of a specified
@@ -82,7 +83,7 @@ class ChargeGenerator:
         oe_molecule.DeleteConfs()
 
         for conformer in conformers:
-            conformer = conformer[: oe_molecule.NumAtoms()]
+            conformer = conformer[: oe_molecule.NumAtoms()].to(unit.angstrom).m
             oe_molecule.NewConf(oechem.OEFloatArray(conformer.flatten()))
 
         # Compute the partial charges.

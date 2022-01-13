@@ -21,6 +21,7 @@ dependencies:
   - jinja2
   - pydantic
   - openff-utilities
+  - openff-units
   - openeye-toolkits
 
     # ESP storage
@@ -33,7 +34,7 @@ dependencies:
     ### Optional dependencies.
 
     # SMIRNOFF + v-site support
-  - openff-toolkit-base
+  - openff-toolkit-base >=0.10.2
 
     # Optimization
   - pytorch-cpu

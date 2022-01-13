@@ -1,8 +1,8 @@
 import numpy
 import torch
 
+from openff.recharge.charges import ChargeSettings
 from openff.recharge.charges.bcc import BCCCollection, BCCParameter
-from openff.recharge.charges.charges import ChargeSettings
 from openff.recharge.charges.vsite import (
     DivalentLonePairParameter,
     VirtualSiteCollection,

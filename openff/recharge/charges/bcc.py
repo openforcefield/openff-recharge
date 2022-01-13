@@ -10,7 +10,7 @@ from openff.utilities import get_data_file_path, requires_package
 from pydantic import BaseModel, Field, constr
 
 from openff.recharge.aromaticity import AromaticityModel, AromaticityModels
-from openff.recharge.charges.charges import ChargeGenerator, ChargeSettings
+from openff.recharge.charges import ChargeGenerator, ChargeSettings
 from openff.recharge.charges.exceptions import UnableToAssignChargeError
 from openff.recharge.conformers import ConformerGenerator, ConformerSettings
 from openff.recharge.utilities.exceptions import (

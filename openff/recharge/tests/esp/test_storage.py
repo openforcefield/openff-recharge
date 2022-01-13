@@ -1,5 +1,6 @@
 import numpy
 import pytest
+from openff.units import unit
 
 from openff.recharge.esp import ESPSettings, PCMSettings
 from openff.recharge.esp.storage import MoleculeESPRecord, MoleculeESPStore
@@ -13,6 +14,59 @@ from openff.recharge.esp.storage.db import (
 from openff.recharge.esp.storage.exceptions import IncompatibleDBVersion
 from openff.recharge.grids import GridSettings
 from openff.recharge.utilities.openeye import smiles_to_molecule
+
+
+class TestMoleculeESPRecord:
+    @pytest.fixture()
+    def mock_record(self):
+        return MoleculeESPRecord(
+            tagged_smiles="[Ar:1]",
+            esp_settings=ESPSettings(grid_settings=GridSettings()),
+            conformer=numpy.array([[0.0, 5.0, 0.0]]) * unit.nanometers,
+            grid_coordinates=numpy.array([[0.0, 6.0, 0.0]]) * unit.nanometers,
+            esp=numpy.array([[4.0]]) * unit.hartree / unit.e,
+            electric_field=numpy.array([[1.0, 2.0, 3.0]])
+            * unit.hartree
+            / (unit.bohr * unit.e),
+        )
+
+    def test_validate_quantity(self, mock_record):
+
+        assert numpy.allclose(mock_record.conformer, numpy.array([[0.0, 50.0, 0.0]]))
+        assert numpy.allclose(
+            mock_record.grid_coordinates, numpy.array([[0.0, 60.0, 0.0]])
+        )
+        assert numpy.allclose(mock_record.esp, numpy.array([[4.0]]))
+        assert numpy.allclose(
+            mock_record.electric_field, numpy.array([[1.0, 2.0, 3.0]])
+        )
+
+    def test_conformer_quantity(self, mock_record):
+
+        assert numpy.allclose(
+            mock_record.conformer_quantity,
+            numpy.array([[0.0, 5.0, 0.0]]) * unit.nanometers,
+        )
+
+    def test_grid_coordinates_quantity(self, mock_record):
+
+        assert numpy.allclose(
+            mock_record.grid_coordinates_quantity,
+            numpy.array([[0.0, 6.0, 0.0]]) * unit.nanometers,
+        )
+
+    def test_esp_quantity(self, mock_record):
+
+        assert numpy.allclose(
+            mock_record.esp_quantity, numpy.array([[4.0]]) * unit.hartree / unit.e
+        )
+
+    def test_electric_field_quantity(self, mock_record):
+
+        assert numpy.allclose(
+            mock_record.electric_field_quantity,
+            numpy.array([[1.0, 2.0, 3.0]]) * unit.hartree / (unit.bohr * unit.e),
+        )
 
 
 def test_db_version(tmp_path):

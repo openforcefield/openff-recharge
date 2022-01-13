@@ -1,3 +1,3 @@
-from openff.recharge.conformers.conformers import ConformerGenerator, ConformerSettings
+from openff.recharge.conformers._conformers import ConformerGenerator, ConformerSettings
 
 __all__ = [ConformerGenerator, ConformerSettings]

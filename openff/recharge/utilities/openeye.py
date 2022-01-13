@@ -5,19 +5,20 @@ import re
 from typing import TYPE_CHECKING, Any, Callable, Dict, List, Type, TypeVar
 
 import numpy
+from openff.units import unit
 from openff.utilities.exceptions import MissingOptionalDependency
 from typing_extensions import Literal
 
 from openff.recharge.utilities.exceptions import (
-    InvalidSmirksError,
-    MoleculeFromSmilesError,
+    InvalidSMIRKSError,
+    MoleculeFromSMILESError,
     RechargeException,
 )
 
 if TYPE_CHECKING:
     from openeye import oechem
 
-logger = logging.getLogger(__name__)
+_logger = logging.getLogger(__name__)
 
 T = TypeVar("T")
 
@@ -85,7 +86,7 @@ def call_openeye(
 ):
     """Wraps a call to an OpenEye function, either capturing the output in an
     exception if the function does not complete successfully, or redirecting it
-    to the logger.
+    to the _logger.
 
     Parameters
     ----------
@@ -126,7 +127,7 @@ def call_openeye(
         raise exception_type("\n" + output_string, **exception_kwargs)
 
     elif len(output_string) > 0:
-        logger.debug(output_string)
+        _logger.debug(output_string)
 
 
 def smiles_to_molecule(
@@ -157,19 +158,19 @@ def smiles_to_molecule(
         oechem.OESmilesToMol,
         oe_molecule,
         smiles,
-        exception_type=MoleculeFromSmilesError,
+        exception_type=MoleculeFromSMILESError,
         exception_kwargs={"smiles": smiles},
     )
     call_openeye(
         oechem.OEAddExplicitHydrogens,
         oe_molecule,
-        exception_type=MoleculeFromSmilesError,
+        exception_type=MoleculeFromSMILESError,
         exception_kwargs={"smiles": smiles},
     )
     call_openeye(
         oechem.OEPerceiveChiral,
         oe_molecule,
-        exception_type=MoleculeFromSmilesError,
+        exception_type=MoleculeFromSMILESError,
         exception_kwargs={"smiles": smiles},
     )
 
@@ -214,7 +215,7 @@ def match_smirks(
         oechem.OEParseSmarts,
         query,
         smirks,
-        exception_type=InvalidSmirksError,
+        exception_type=InvalidSMIRKSError,
         exception_kwargs={"smirks": smirks},
     )
 
@@ -260,6 +261,6 @@ def molecule_to_conformers(oe_molecule: "oechem.OEMol") -> List[numpy.ndarray]:
         for atom_index, coordinates in oe_conformer.GetCoords().items():
             conformer[atom_index, :] = coordinates
 
-        conformers.append(conformer)
+        conformers.append(conformer * unit.angstrom)
 
     return conformers

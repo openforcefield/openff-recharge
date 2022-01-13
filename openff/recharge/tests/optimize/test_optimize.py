@@ -2,6 +2,7 @@ from typing import Callable, Tuple, Type
 
 import numpy
 import pytest
+from openff.units import unit
 from typing_extensions import Literal
 
 from openff.recharge.charges.bcc import BCCCollection, BCCParameter
@@ -13,15 +14,13 @@ from openff.recharge.charges.vsite import (
 from openff.recharge.esp import ESPSettings
 from openff.recharge.esp.storage import MoleculeESPRecord
 from openff.recharge.grids import GridSettings
-from openff.recharge.optimize import ESPObjective
-from openff.recharge.optimize.optimize import (
+from openff.recharge.optimize import (
     ElectricFieldObjective,
     ElectricFieldObjectiveTerm,
+    ESPObjective,
     ESPObjectiveTerm,
-    Objective,
-    ObjectiveTerm,
 )
-from openff.recharge.utilities.geometry import BOHR_TO_ANGSTROM
+from openff.recharge.optimize._optimize import Objective, ObjectiveTerm
 from openff.recharge.utilities.openeye import smiles_to_molecule
 
 try:
@@ -30,6 +29,8 @@ except ImportError:
     torch = None
 
 backends = ["numpy"] + ([] if torch is None else ["torch"])
+
+BOHR_TO_ANGSTROM = unit.convert(1.0, unit.bohr, unit.angstrom)
 
 
 @pytest.fixture()
@@ -299,8 +300,6 @@ def test_term_evaluate_bcc_and_vsite(
 @pytest.mark.parametrize("backend", backends)
 def test_combine_terms(objective_class, backend, hcl_parameters):
 
-    pytest.xfail("will fail until openff-toolkit/issues/#1159 is resolved")
-
     bcc_collection, vsite_collection = hcl_parameters
 
     objective_terms_generator = objective_class.compute_objective_terms(
@@ -473,8 +472,6 @@ def test_compute_vsite_coord_terms():
 
 def test_compute_esp_objective_terms(hcl_esp_record, hcl_parameters):
 
-    pytest.xfail("will fail until openff-toolkit/issues/#1159 is resolved")
-
     bcc_collection, vsite_collection = hcl_parameters
 
     objective_terms_generator = ESPObjective.compute_objective_terms(
@@ -541,7 +538,6 @@ def test_compute_esp_objective_terms(hcl_esp_record, hcl_parameters):
 
 
 def test_compute_field_objective_terms(hcl_esp_record, hcl_parameters):
-    pytest.xfail("will fail until openff-toolkit/issues/#1159 is resolved")
 
     bcc_collection, vsite_collection = hcl_parameters
 

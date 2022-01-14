@@ -13,7 +13,7 @@ from tqdm import tqdm
 import openff.recharge
 from openff.recharge.esp.qcresults import from_qcportal_results
 from openff.recharge.esp.storage import MoleculeESPStore
-from openff.recharge.grids import GridSettings
+from openff.recharge.grids import GridSettings, GridSettingsType
 
 if TYPE_CHECKING:
     import qcelemental.models
@@ -70,7 +70,7 @@ def _process_result(
         "qcelemental.models.Molecule",
         "qcportal.models.KeywordSet",
     ],
-    grid_settings: GridSettings,
+    grid_settings: GridSettingsType,
 ):
     return from_qcportal_results(*result_tuple, grid_settings=grid_settings)
 

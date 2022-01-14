@@ -7,7 +7,7 @@ from openff.units import unit
 from openff.recharge.esp import DFTGridSettings, ESPSettings, PCMSettings
 from openff.recharge.esp.exceptions import Psi4Error
 from openff.recharge.esp.psi4 import Psi4ESPGenerator
-from openff.recharge.grids import GridSettings
+from openff.recharge.grids import LatticeGridSettings
 from openff.recharge.utilities.openeye import smiles_to_molecule
 
 
@@ -17,7 +17,7 @@ def test_generate_input_base():
     pytest.importorskip("psi4")
 
     # Define the settings to use.
-    settings = ESPSettings(grid_settings=GridSettings())
+    settings = ESPSettings(grid_settings=LatticeGridSettings())
 
     # Create a closed shell molecule.
     oe_molecule = smiles_to_molecule("[Cl-]")
@@ -105,7 +105,7 @@ def test_generate_input_dft_settings(
 
     # Define the settings to use.
     settings = ESPSettings(
-        psi4_dft_grid_settings=dft_grid_settings, grid_settings=GridSettings()
+        psi4_dft_grid_settings=dft_grid_settings, grid_settings=LatticeGridSettings()
     )
 
     # Create a closed shell molecule.
@@ -142,7 +142,9 @@ def test_generate_input_pcm():
     pytest.importorskip("psi4")
 
     # Define the settings to use.
-    settings = ESPSettings(pcm_settings=PCMSettings(), grid_settings=GridSettings())
+    settings = ESPSettings(
+        pcm_settings=PCMSettings(), grid_settings=LatticeGridSettings()
+    )
 
     # Create a closed shell molecule.
     oe_molecule = smiles_to_molecule("[Cl-]")
@@ -195,7 +197,7 @@ def test_generate(enable_pcm):
     pytest.importorskip("psi4")
 
     # Define the settings to use.
-    settings = ESPSettings(grid_settings=GridSettings(spacing=2.0))
+    settings = ESPSettings(grid_settings=LatticeGridSettings(spacing=2.0))
 
     if enable_pcm:
         settings.pcm_settings = PCMSettings()
@@ -236,7 +238,7 @@ def test_ps4_error():
     pytest.importorskip("psi4")
 
     # Define the settings to use.
-    settings = ESPSettings(grid_settings=GridSettings(spacing=2.0))
+    settings = ESPSettings(grid_settings=LatticeGridSettings(spacing=2.0))
 
     # Generate a small molecule with an invalid conformer.
     oe_molecule = smiles_to_molecule("C")

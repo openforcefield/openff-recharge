@@ -1,5 +1,6 @@
+import functools
 import itertools
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional, Union
 
 import numpy
 from openff.units import unit
@@ -17,9 +18,9 @@ else:
     from pydantic import PositiveFloat
 
 
-class GridSettings(BaseModel):
+class LatticeGridSettings(BaseModel):
     """A class which encodes the settings to use when generating a
-    grid to compute the electrostatic potential of a molecule on."""
+    lattice type grid."""
 
     type: Literal["fcc"] = Field("fcc", description="The type of grid to generate.")
 
@@ -45,50 +46,157 @@ class GridSettings(BaseModel):
     _validate_spacing = wrapped_float_validator("spacing", unit.angstrom)
 
 
+class MSKGridSettings(BaseModel):
+    """A class which encodes the settings to use when generating a standard
+    Merz-Singh-Kollman (MSK) grid."""
+
+    type: Literal["msk"] = "msk"
+
+    density: PositiveFloat = Field(
+        1.0, description="The density [/Angstrom^2] of the MSK grid."
+    )
+
+    @property
+    def density_quantity(self) -> unit.Quantity:
+        return self.density * unit.angstrom ** -2
+
+    _validate_density = wrapped_float_validator("density", unit.angstrom ** -2)
+
+
+GridSettings = LatticeGridSettings  # For backwards compatability.
+GridSettingsType = Union[LatticeGridSettings, MSKGridSettings]
+
+
 class GridGenerator:
     """A containing methods to generate the grids upon which the
     electrostatic potential of a molecule will be computed."""
 
     @classmethod
-    def generate(
-        cls,
-        oe_molecule: "oechem.OEMol",
-        conformer: unit.Quantity,
-        settings: GridSettings,
-    ) -> unit.Quantity:
-        """Generates a grid of points in a shell around a specified
-        molecule in a given conformer according a set of settings.
+    @functools.lru_cache
+    def _generate_connolly_sphere(cls, radius: float, density: float) -> numpy.ndarray:
+        """Generates a set of points on a sphere with a given radius and density
+        according to the method described by M. Connolly.
 
         Parameters
         ----------
-        oe_molecule
-            The molecule to generate the grid around.
-        conformer
-            The conformer of the molecule with shape=(n_atoms, 3).
-        settings
-            The settings which describe how the grid should
-            be generated.
+        radius
+            The radius [Angstrom] of the sphere.
+        density
+            The density [/Angstrom^2] of the points on the sphere.
 
         Returns
         -------
-            The coordinates of the grid with shape=(n_grid_points, 3).
+            The coordinates of the points on the sphere
         """
 
-        oechem = import_oechem()
+        # Estimate the number of points according to `surface area * density`
+        n_points = int(4 * numpy.pi * radius * radius * density)
 
-        conformer = conformer.to(unit.angstrom).m
+        n_equatorial = int(numpy.sqrt(n_points * numpy.pi))  # sqrt (density) * 2 * pi
+        n_latitudinal = int(n_equatorial / 2)  # 0 to 180 def so 1/2 points
 
-        # Only operate on a copy of the molecule.
-        oe_molecule = oechem.OEMol(oe_molecule)
-        # Assign a radius to each atom in the molecule.
-        oechem.OEAssignBondiVdWRadii(oe_molecule)
+        phi_per_latitude = numpy.pi * numpy.arange(n_latitudinal + 1) / n_latitudinal
 
-        # Store the radii in a numpy array.
-        oe_atoms = {atom.GetIdx(): atom for atom in oe_molecule.GetAtoms()}
+        sin_phi_per_latitude = numpy.sin(phi_per_latitude)
+        cos_phi_per_latitude = numpy.cos(phi_per_latitude)
 
-        radii = numpy.array(
-            [[oe_atoms[index].GetRadius()] for index in range(oe_molecule.NumAtoms())]
+        n_longitudinal_per_latitude = numpy.maximum(
+            (n_equatorial * sin_phi_per_latitude).astype(int), 1
         )
+
+        sin_phi = numpy.repeat(sin_phi_per_latitude, n_longitudinal_per_latitude)
+        cos_phi = numpy.repeat(cos_phi_per_latitude, n_longitudinal_per_latitude)
+
+        theta = numpy.concatenate(
+            [
+                2 * numpy.pi * numpy.arange(1, n_longitudinal + 1) / n_longitudinal
+                for n_longitudinal in n_longitudinal_per_latitude
+            ]
+        )
+
+        x = radius * numpy.cos(theta) * sin_phi
+        y = radius * numpy.sin(theta) * sin_phi
+        z = radius * cos_phi
+
+        return numpy.stack([x, y, z]).T
+
+    @classmethod
+    def _generate_msk_shells(
+        cls, conformer: numpy.ndarray, radii: numpy.ndarray, settings: MSKGridSettings
+    ) -> numpy.ndarray:
+        """Generates a grid of points according to the algorithm proposed by Connolly
+        using the settings proposed by Merz-Singh-Kollman.
+
+        Parameters
+        ----------
+        conformer
+            The conformer [Angstrom] of the molecule with shape=(n_atoms, 3).
+        radii
+            The radii [Angstrom] of each atom in the molecule with shape=(n_atoms, 1).
+        settings
+            The settings that describe how the grid should be generated.
+
+        Returns
+        -------
+            The coordinates [Angstrom] of the grid with shape=(n_grid_points, 3).
+        """
+
+        shells = []
+
+        for scale in [1.4, 1.6, 1.8, 2.0]:
+
+            atom_spheres = [
+                coordinate
+                + cls._generate_connolly_sphere(radius.item() * scale, settings.density)
+                for radius, coordinate in zip(radii, conformer)
+            ]
+            shell = numpy.vstack(atom_spheres)
+
+            n_grid_points = len(shell)
+            n_atoms = len(radii)
+
+            # Build a mask to ensure that grid points generated around an atom aren't
+            # accidentally culled due to precision issues.
+            exclusion_mask = numpy.zeros((n_atoms, n_grid_points), dtype=bool)
+
+            offset = 0
+
+            for atom_index, atom_sphere in enumerate(atom_spheres):
+
+                exclusion_mask[atom_index, offset : offset + len(atom_sphere)] = True
+                offset += len(atom_sphere)
+
+            shells.append(
+                cls._cull_points(
+                    conformer, shell, radii * scale, exclusion_mask=exclusion_mask
+                )
+            )
+
+        return numpy.vstack(shells)
+
+    @classmethod
+    def _generate_lattice(
+        cls,
+        conformer: numpy.ndarray,
+        radii: numpy.ndarray,
+        settings: LatticeGridSettings,
+    ) -> numpy.ndarray:
+        """Generates a grid of points in on a lattice around a specified
+        molecule in a given conformer.
+
+        Parameters
+        ----------
+        conformer
+            The conformer [Angstrom] of the molecule with shape=(n_atoms, 3).
+        radii
+            The radii [Angstrom] of each atom in the molecule.
+        settings
+            The settings that describe how the grid should be generated.
+
+        Returns
+        -------
+            The coordinates [Angstrom] of the grid with shape=(n_grid_points, 3).
+        """
 
         # Compute the center of the molecule
         conformer_center = numpy.mean(conformer, axis=0)
@@ -132,20 +240,93 @@ class GridGenerator:
                 + conformer_center
             )
 
-            # Determine the distance between the grid point and each atom in the
-            # molecule.
-            distances = numpy.sqrt(
-                numpy.sum((coordinate - conformer) ** 2, axis=1)
-            ).reshape(-1, 1)
-
-            # # Check if the coordinate is inside the inner shell
-            if numpy.any(distances < radii * settings.inner_vdw_scale):
-                continue
-
-            # Check if the coordinate is outside the outer shell
-            if numpy.all(distances > radii * settings.outer_vdw_scale):
-                continue
-
             coordinates.append(coordinate)
 
-        return numpy.concatenate(coordinates) * unit.angstrom
+        return cls._cull_points(
+            conformer,
+            numpy.concatenate(coordinates),
+            radii * settings.inner_vdw_scale,
+            radii * settings.outer_vdw_scale,
+        )
+
+    @classmethod
+    def _cull_points(
+        cls,
+        conformer: numpy.ndarray,
+        grid: numpy.ndarray,
+        inner_radii: numpy.ndarray,
+        outer_radii: Optional[numpy.ndarray] = None,
+        exclusion_mask: Optional[numpy.ndarray] = None,
+    ) -> numpy.ndarray:
+        """Removes all points that are either within or outside a vdW shell around a
+        given conformer.
+        """
+
+        from scipy.spatial.distance import cdist
+
+        distances = cdist(conformer, grid)
+        exclusion_mask = False if exclusion_mask is None else exclusion_mask
+
+        is_within_shell = numpy.any(
+            (distances < inner_radii) & (~exclusion_mask), axis=0
+        )
+        is_outside_shell = False
+
+        if outer_radii is not None:
+            is_outside_shell = numpy.all(
+                (distances > outer_radii) & (~exclusion_mask), axis=0
+            )
+
+        discard_point = numpy.logical_or(is_within_shell, is_outside_shell)
+
+        return grid[~discard_point]
+
+    @classmethod
+    def generate(
+        cls,
+        oe_molecule: "oechem.OEMol",
+        conformer: unit.Quantity,
+        settings: GridSettingsType,
+    ) -> unit.Quantity:
+        """Generates a grid of points in a shell around a specified
+        molecule in a given conformer according a set of settings.
+
+        Parameters
+        ----------
+        oe_molecule
+            The molecule to generate the grid around.
+        conformer
+            The conformer of the molecule with shape=(n_atoms, 3).
+        settings
+            The settings which describe how the grid should
+            be generated.
+
+        Returns
+        -------
+            The coordinates of the grid with shape=(n_grid_points, 3).
+        """
+
+        oechem = import_oechem()
+
+        conformer = conformer.to(unit.angstrom).m
+
+        # Only operate on a copy of the molecule.
+        oe_molecule = oechem.OEMol(oe_molecule)
+        # Assign a radius to each atom in the molecule.
+        oechem.OEAssignBondiVdWRadii(oe_molecule)
+
+        # Store the radii in a numpy array.
+        oe_atoms = {atom.GetIdx(): atom for atom in oe_molecule.GetAtoms()}
+
+        radii = numpy.array(
+            [[oe_atoms[index].GetRadius()] for index in range(oe_molecule.NumAtoms())]
+        )
+
+        if isinstance(settings, LatticeGridSettings):
+            coordinates = cls._generate_lattice(conformer, radii, settings)
+        elif isinstance(settings, MSKGridSettings):
+            coordinates = cls._generate_msk_shells(conformer, radii, settings)
+        else:
+            raise NotImplementedError()
+
+        return coordinates * unit.angstrom

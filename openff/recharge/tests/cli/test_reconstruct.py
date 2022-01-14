@@ -9,7 +9,7 @@ from openff.recharge.cli.reconstruct import _retrieve_result_records
 from openff.recharge.cli.reconstruct import reconstruct as reconstruct_cli
 from openff.recharge.esp import ESPSettings
 from openff.recharge.esp.storage import MoleculeESPRecord, MoleculeESPStore
-from openff.recharge.grids import GridSettings
+from openff.recharge.grids import LatticeGridSettings
 from openff.recharge.utilities.openeye import smiles_to_molecule
 
 
@@ -38,7 +38,7 @@ def test_reconstruct(runner, monkeypatch):
                 grid_coordinates=numpy.zeros((1, 3)),
                 esp=numpy.zeros((1, 1)),
                 electric_field=numpy.zeros((1, 3)),
-                esp_settings=ESPSettings(grid_settings=GridSettings()),
+                esp_settings=ESPSettings(grid_settings=LatticeGridSettings()),
             )
         ]
 
@@ -49,7 +49,7 @@ def test_reconstruct(runner, monkeypatch):
         json.dump(["1"], file)
 
     with open("grid-settings.json", "w") as file:
-        file.write(GridSettings(spacing=1.0).json())
+        file.write(LatticeGridSettings(spacing=1.0).json())
 
     result = runner.invoke(
         reconstruct_cli,

@@ -13,7 +13,7 @@ from openff.recharge.charges.vsite import (
 )
 from openff.recharge.esp import ESPSettings
 from openff.recharge.esp.storage import MoleculeESPRecord
-from openff.recharge.grids import GridSettings
+from openff.recharge.grids import LatticeGridSettings
 from openff.recharge.optimize import (
     ElectricFieldObjective,
     ElectricFieldObjectiveTerm,
@@ -44,7 +44,7 @@ def hcl_esp_record() -> MoleculeESPRecord:
         grid_coordinates=numpy.array([[-4, 3, 0], [4, 3, 0]]) * BOHR_TO_ANGSTROM,
         esp=numpy.array([[2.0], [2.0]]),
         electric_field=numpy.array([[1.0, 2.0, 3.0], [1.0, 2.0, 3.0]]),
-        esp_settings=ESPSettings(grid_settings=GridSettings()),
+        esp_settings=ESPSettings(grid_settings=LatticeGridSettings()),
     )
 
 
@@ -310,7 +310,7 @@ def test_combine_terms(objective_class, backend, hcl_parameters):
                 grid_coordinates=numpy.random.random((grid_size, 3)),
                 esp=numpy.random.random((grid_size, 1)),
                 electric_field=numpy.random.random((grid_size, 3)),
-                esp_settings=ESPSettings(grid_settings=GridSettings()),
+                esp_settings=ESPSettings(grid_settings=LatticeGridSettings()),
             )
             for grid_size in [4, 5]
         ],

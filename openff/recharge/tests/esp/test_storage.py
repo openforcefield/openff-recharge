@@ -12,7 +12,7 @@ from openff.recharge.esp.storage.db import (
     DBPCMSettings,
 )
 from openff.recharge.esp.storage.exceptions import IncompatibleDBVersion
-from openff.recharge.grids import GridSettings
+from openff.recharge.grids import LatticeGridSettings, MSKGridSettings
 from openff.recharge.utilities.openeye import smiles_to_molecule
 
 
@@ -21,7 +21,7 @@ class TestMoleculeESPRecord:
     def mock_record(self):
         return MoleculeESPRecord(
             tagged_smiles="[Ar:1]",
-            esp_settings=ESPSettings(grid_settings=GridSettings()),
+            esp_settings=ESPSettings(grid_settings=LatticeGridSettings()),
             conformer=numpy.array([[0.0, 5.0, 0.0]]) * unit.nanometers,
             grid_coordinates=numpy.array([[0.0, 6.0, 0.0]]) * unit.nanometers,
             esp=numpy.array([[4.0]]) * unit.hartree / unit.e,
@@ -129,7 +129,9 @@ def test_record_from_oe_mol():
     esp = numpy.array([[2.0]])
     electric_field = numpy.array([[2.0, 3.0, 4.0]])
 
-    esp_settings = ESPSettings(pcm_settings=PCMSettings(), grid_settings=GridSettings())
+    esp_settings = ESPSettings(
+        pcm_settings=PCMSettings(), grid_settings=LatticeGridSettings()
+    )
 
     record = MoleculeESPRecord.from_oe_molecule(
         oe_molecule=oe_molecule,
@@ -168,7 +170,7 @@ def test_store(tmp_path):
             grid_coordinates=numpy.array([[0.0, 0.0, 0.0]]),
             esp=numpy.array([[0.0]]),
             electric_field=numpy.array([[0.0, 0.0, 0.0]]),
-            esp_settings=ESPSettings(grid_settings=GridSettings()),
+            esp_settings=ESPSettings(grid_settings=LatticeGridSettings()),
         ),
         MoleculeESPRecord(
             tagged_smiles="[Ar:1]",
@@ -177,7 +179,7 @@ def test_store(tmp_path):
             esp=numpy.array([[0.0]]),
             electric_field=numpy.array([[0.0, 0.0, 0.0]]),
             esp_settings=ESPSettings(
-                pcm_settings=PCMSettings(), grid_settings=GridSettings()
+                pcm_settings=PCMSettings(), grid_settings=LatticeGridSettings()
             ),
         ),
     )
@@ -189,7 +191,7 @@ def test_unique_esp_settings(tmp_path):
     """Tests that ESP settings are stored uniquely in the DB."""
 
     esp_store = MoleculeESPStore(f"{tmp_path}.sqlite")
-    esp_settings = ESPSettings(grid_settings=GridSettings())
+    esp_settings = ESPSettings(grid_settings=LatticeGridSettings())
 
     # Store duplicate settings in the same session.
     with esp_store._get_session() as db:
@@ -216,32 +218,36 @@ def test_unique_esp_settings(tmp_path):
         assert db.query(DBESPSettings.id).count() == 2
 
 
-def test_unique_grid_settings(tmp_path):
+@pytest.mark.parametrize(
+    "original_grid_settings, modified_grid_settings",
+    [
+        (LatticeGridSettings(), LatticeGridSettings(spacing=0.7)),
+        (MSKGridSettings(), MSKGridSettings(density=0.123)),
+    ],
+)
+def test_unique_grid_settings(tmp_path, original_grid_settings, modified_grid_settings):
     """Tests that ESP settings are stored uniquely in the DB."""
 
     esp_store = MoleculeESPStore(f"{tmp_path}.sqlite")
-    grid_settings = GridSettings()
 
     # Store duplicate settings in the same session.
     with esp_store._get_session() as db:
-        db.add(DBGridSettings.unique(db, grid_settings))
-        db.add(DBGridSettings.unique(db, grid_settings))
+        db.add(DBGridSettings.unique(db, original_grid_settings))
+        db.add(DBGridSettings.unique(db, original_grid_settings))
 
     with esp_store._get_session() as db:
         assert db.query(DBGridSettings.id).count() == 1
 
     # Store a duplicate setting in a new session.
     with esp_store._get_session() as db:
-        db.add(DBGridSettings.unique(db, grid_settings))
+        db.add(DBGridSettings.unique(db, original_grid_settings))
 
     with esp_store._get_session() as db:
         assert db.query(DBGridSettings.id).count() == 1
 
     # Store a non-duplicate set of settings
-    grid_settings.spacing = 0.7
-
     with esp_store._get_session() as db:
-        db.add(DBGridSettings.unique(db, grid_settings))
+        db.add(DBGridSettings.unique(db, modified_grid_settings))
 
     with esp_store._get_session() as db:
         assert db.query(DBGridSettings.id).count() == 2
@@ -278,11 +284,11 @@ def test_unique_pcm_settings(tmp_path):
         assert db.query(DBPCMSettings.id).count() == 2
 
 
-def test_grid_settings_round_trip():
+def test_lattice_grid_settings_round_trip():
     """Test the round trip to / from the DB representation
-    of a ``GridSettings`` object."""
+    of a ``LatticeGridSettings`` object."""
 
-    original_grid_settings = GridSettings()
+    original_grid_settings = LatticeGridSettings()
 
     db_grid_settings = DBGridSettings._instance_to_db(original_grid_settings)
     recreated_grid_settings = DBGridSettings.db_to_instance(db_grid_settings)
@@ -297,6 +303,22 @@ def test_grid_settings_round_trip():
     )
     assert numpy.isclose(
         original_grid_settings.outer_vdw_scale, recreated_grid_settings.outer_vdw_scale
+    )
+
+
+def test_msk_grid_settings_round_trip():
+    """Test the round trip to / from the DB representation
+    of a ``LatticeGridSettings`` object."""
+
+    original_grid_settings = MSKGridSettings()
+
+    db_grid_settings = DBGridSettings._instance_to_db(original_grid_settings)
+    recreated_grid_settings = DBGridSettings.db_to_instance(db_grid_settings)
+
+    assert original_grid_settings.type == recreated_grid_settings.type
+
+    assert numpy.isclose(
+        original_grid_settings.density, recreated_grid_settings.density
     )
 
 
@@ -336,7 +358,7 @@ def test_retrieve(tmp_path):
             esp_settings=ESPSettings(
                 basis="6-31g*",
                 method="scf",
-                grid_settings=GridSettings(),
+                grid_settings=LatticeGridSettings(),
             ),
         ),
         MoleculeESPRecord.from_oe_molecule(
@@ -348,7 +370,7 @@ def test_retrieve(tmp_path):
             esp_settings=ESPSettings(
                 basis="6-31g**",
                 method="hf",
-                grid_settings=GridSettings(),
+                grid_settings=LatticeGridSettings(),
             ),
         ),
         MoleculeESPRecord.from_oe_molecule(
@@ -360,7 +382,7 @@ def test_retrieve(tmp_path):
             esp_settings=ESPSettings(
                 basis="6-31g*",
                 method="hf",
-                grid_settings=GridSettings(),
+                grid_settings=LatticeGridSettings(),
                 pcm_settings=PCMSettings(),
             ),
         ),

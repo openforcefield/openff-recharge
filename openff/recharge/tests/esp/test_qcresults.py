@@ -9,7 +9,7 @@ from openff.recharge.esp.qcresults import (
     _parse_pcm_input,
     from_qcportal_results,
 )
-from openff.recharge.grids import GridSettings
+from openff.recharge.grids import LatticeGridSettings
 
 pytest.importorskip("qcportal")
 
@@ -17,15 +17,16 @@ pytest.importorskip("qcportal")
 def test_from_qcportal_results():
 
     from qcportal import FractalClient
+    from qcportal.models import ObjectId
 
-    qc_result = FractalClient().query_results(id="32651863")[0]
-    qc_keyword_set = FractalClient().query_keywords(id="2")[0]
+    qc_result = FractalClient().query_results(id=ObjectId("32651863"))[0]
+    qc_keyword_set = FractalClient().query_keywords(id=ObjectId("2"))[0]
 
     esp_record = from_qcportal_results(
         qc_result=qc_result,
         qc_molecule=qc_result.get_molecule(),
         qc_keyword_set=qc_keyword_set,
-        grid_settings=GridSettings(spacing=2.0),
+        grid_settings=LatticeGridSettings(spacing=2.0),
     )
 
     assert not numpy.allclose(esp_record.esp, 0.0, rtol=1.0e-9)
@@ -35,11 +36,11 @@ def test_from_qcportal_results():
 def test_missing_wavefunction():
 
     from qcportal import FractalClient
-    from qcportal.models import ResultRecord
+    from qcportal.models import ObjectId, ResultRecord
 
-    qc_result = FractalClient().query_results(id="1")[0]
+    qc_result = FractalClient().query_results(id=ObjectId("1"))[0]
     qc_molecule = qc_result.get_molecule()
-    qc_keyword_set = FractalClient().query_keywords(id="2")[0]
+    qc_keyword_set = FractalClient().query_keywords(id=ObjectId("2"))[0]
 
     # Delete the wavefunction
     qc_result = ResultRecord(
@@ -47,7 +48,9 @@ def test_missing_wavefunction():
     )
 
     with pytest.raises(MissingQCWaveFunctionError):
-        from_qcportal_results(qc_result, qc_molecule, qc_keyword_set, GridSettings())
+        from_qcportal_results(
+            qc_result, qc_molecule, qc_keyword_set, LatticeGridSettings()
+        )
 
 
 def test_parse_pcm_input():

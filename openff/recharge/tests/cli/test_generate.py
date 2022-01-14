@@ -15,7 +15,7 @@ from openff.recharge.esp import ESPSettings
 from openff.recharge.esp.exceptions import Psi4Error
 from openff.recharge.esp.psi4 import Psi4ESPGenerator
 from openff.recharge.esp.storage import MoleculeESPStore
-from openff.recharge.grids import GridSettings
+from openff.recharge.grids import LatticeGridSettings
 
 
 def test_generate(runner, monkeypatch):
@@ -37,7 +37,7 @@ def test_generate(runner, monkeypatch):
         json.dump(["C"], file)
 
     with open("esp-settings.json", "w") as file:
-        file.write(ESPSettings(grid_settings=GridSettings(spacing=1.0)).json())
+        file.write(ESPSettings(grid_settings=LatticeGridSettings(spacing=1.0)).json())
 
     with open("conformer-settings.json", "w") as file:
         file.write(ConformerSettings(method="omega", sampling_mode="sparse").json())
@@ -64,7 +64,7 @@ def test_compute_esp_oe_error(error_type, caplog, monkeypatch):
         _compute_esp(
             "C",
             ConformerSettings(),
-            ESPSettings(grid_settings=GridSettings(spacing=1.0)),
+            ESPSettings(grid_settings=LatticeGridSettings(spacing=1.0)),
         )
 
     assert "Coordinates could not be generated for" in caplog.text
@@ -82,7 +82,7 @@ def test_compute_esp_psi4_error(caplog, monkeypatch):
         _compute_esp(
             "C",
             ConformerSettings(),
-            ESPSettings(grid_settings=GridSettings(spacing=1.0)),
+            ESPSettings(grid_settings=LatticeGridSettings(spacing=1.0)),
         )
 
     assert "Psi4 failed to run for conformer" in caplog.text

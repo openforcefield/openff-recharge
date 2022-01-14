@@ -11,7 +11,7 @@ from openff.recharge.conformers import ConformerGenerator, ConformerSettings
 from openff.recharge.esp import ESPSettings
 from openff.recharge.esp.psi4 import Psi4ESPGenerator
 from openff.recharge.esp.storage import MoleculeESPRecord
-from openff.recharge.grids import GridSettings
+from openff.recharge.grids import LatticeGridSettings
 from openff.recharge.optimize import ESPObjective
 from openff.recharge.utilities.openeye import smiles_to_molecule
 from openff.recharge.utilities.tensors import to_torch
@@ -34,7 +34,7 @@ def main():
     )[0]
 
     esp_settings = ESPSettings(
-        method="hf", basis="6-31G*", grid_settings=GridSettings(spacing=0.7)
+        method="hf", basis="6-31G*", grid_settings=LatticeGridSettings(spacing=0.7)
     )
 
     grid, esp, electric_field = Psi4ESPGenerator.generate(

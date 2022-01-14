@@ -10,7 +10,7 @@ from pydantic import ValidationError
 
 from openff.recharge.esp import ESPSettings, PCMSettings
 from openff.recharge.esp.storage import MoleculeESPRecord
-from openff.recharge.grids import GridGenerator, GridSettings
+from openff.recharge.grids import GridGenerator, GridSettingsType
 from openff.recharge.utilities.exceptions import RechargeException
 from openff.recharge.utilities.openeye import molecule_to_conformers
 
@@ -223,7 +223,7 @@ def from_qcportal_results(
     qc_result: "qcportal.models.ResultRecord",
     qc_molecule: "qcelemental.models.Molecule",
     qc_keyword_set: "qcportal.models.KeywordSet",
-    grid_settings: GridSettings,
+    grid_settings: GridSettingsType,
     compute_field: bool = True,
 ) -> MoleculeESPRecord:
     """A function which will re-construct the ESP and optionally the electric field from

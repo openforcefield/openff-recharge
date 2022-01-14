@@ -7,7 +7,7 @@ from openff.units import unit
 from pydantic import BaseModel, Field
 from typing_extensions import Literal
 
-from openff.recharge.grids import GridGenerator, GridSettings
+from openff.recharge.grids import GridGenerator, GridSettingsType
 
 if TYPE_CHECKING:
     from openeye import oechem
@@ -76,7 +76,7 @@ class ESPSettings(BaseModel):
     )
     method: str = Field("hf", description="The method to use in the ESP calculation.")
 
-    grid_settings: GridSettings = Field(
+    grid_settings: GridSettingsType = Field(
         ...,
         description="The settings to use when generating the grid to generate the "
         "electrostatic potential on.",

@@ -15,7 +15,7 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import Query, Session, relationship
 
 from openff.recharge.esp import ESPSettings, PCMSettings
-from openff.recharge.grids import GridSettings
+from openff.recharge.grids import GridSettingsType, LatticeGridSettings, MSKGridSettings
 
 DBBase = declarative_base()
 
@@ -93,56 +93,103 @@ class DBGridSettings(_UniqueMixin, DBBase):
     id = Column(Integer, primary_key=True, index=True)
 
     type = Column(String, nullable=False)
-    spacing = Column(Integer, nullable=False)
 
-    inner_vdw_scale = Column(Integer, nullable=False)
-    outer_vdw_scale = Column(Integer, nullable=False)
+    lattice_spacing = Column(Integer, nullable=True)
+    lattice_inner_vdw_scale = Column(Integer, nullable=True)
+    lattice_outer_vdw_scale = Column(Integer, nullable=True)
+
+    msk_density = Column(Integer, nullable=True)
 
     @classmethod
-    def _hash(cls, instance: GridSettings) -> int:
-        return hash(
-            (
-                instance.type,
-                _float_to_db_int(instance.spacing),
-                _float_to_db_int(instance.inner_vdw_scale),
-                _float_to_db_int(instance.outer_vdw_scale),
+    def _hash(cls, instance: GridSettingsType) -> int:
+
+        if isinstance(instance, LatticeGridSettings):
+
+            return hash(
+                (
+                    instance.type,
+                    _float_to_db_int(instance.spacing),
+                    _float_to_db_int(instance.inner_vdw_scale),
+                    _float_to_db_int(instance.outer_vdw_scale),
+                )
             )
-        )
+
+        elif isinstance(instance, MSKGridSettings):
+            return hash((instance.type, _float_to_db_int(instance.density)))
+
+        else:
+            raise NotImplementedError()
 
     @classmethod
-    def _query(cls, db: Session, instance: GridSettings) -> Query:
+    def _query(cls, db: Session, instance: GridSettingsType) -> Query:
 
-        spacing = _float_to_db_int(instance.spacing)
-        inner_vdw_scale = _float_to_db_int(instance.inner_vdw_scale)
-        outer_vdw_scale = _float_to_db_int(instance.outer_vdw_scale)
+        if isinstance(instance, LatticeGridSettings):
 
-        return (
-            db.query(DBGridSettings)
-            .filter(DBGridSettings.type == instance.type)
-            .filter(DBGridSettings.spacing == spacing)
-            .filter(DBGridSettings.inner_vdw_scale == inner_vdw_scale)
-            .filter(DBGridSettings.outer_vdw_scale == outer_vdw_scale)
-        )
+            spacing = _float_to_db_int(instance.spacing)
+            inner_vdw_scale = _float_to_db_int(instance.inner_vdw_scale)
+            outer_vdw_scale = _float_to_db_int(instance.outer_vdw_scale)
+
+            return (
+                db.query(DBGridSettings)
+                .filter(DBGridSettings.type == instance.type)
+                .filter(DBGridSettings.lattice_spacing == spacing)
+                .filter(DBGridSettings.lattice_inner_vdw_scale == inner_vdw_scale)
+                .filter(DBGridSettings.lattice_outer_vdw_scale == outer_vdw_scale)
+            )
+
+        elif isinstance(instance, MSKGridSettings):
+
+            density = _float_to_db_int(instance.density)
+
+            return (
+                db.query(DBGridSettings)
+                .filter(DBGridSettings.type == instance.type)
+                .filter(DBGridSettings.msk_density == density)
+            )
+
+        else:
+            raise NotImplementedError()
 
     @classmethod
-    def _instance_to_db(cls, instance: GridSettings) -> "DBGridSettings":
-        return DBGridSettings(
-            type=instance.type,
-            spacing=_float_to_db_int(instance.spacing),
-            inner_vdw_scale=_float_to_db_int(instance.inner_vdw_scale),
-            outer_vdw_scale=_float_to_db_int(instance.outer_vdw_scale),
-        )
+    def _instance_to_db(cls, instance: GridSettingsType) -> "DBGridSettings":
+
+        if isinstance(instance, LatticeGridSettings):
+
+            return DBGridSettings(
+                type=instance.type,
+                lattice_spacing=_float_to_db_int(instance.spacing),
+                lattice_inner_vdw_scale=_float_to_db_int(instance.inner_vdw_scale),
+                lattice_outer_vdw_scale=_float_to_db_int(instance.outer_vdw_scale),
+            )
+
+        elif isinstance(instance, MSKGridSettings):
+
+            return DBGridSettings(
+                type=instance.type,
+                msk_density=_float_to_db_int(instance.density),
+            )
+
+        else:
+            raise NotImplementedError()
 
     @classmethod
-    def db_to_instance(cls, db_instance: "DBGridSettings") -> GridSettings:
+    def db_to_instance(cls, db_instance: "DBGridSettings") -> GridSettingsType:
 
-        # noinspection PyTypeChecker
-        return GridSettings(
-            type=db_instance.type,
-            spacing=_db_int_to_float(db_instance.spacing),
-            inner_vdw_scale=_db_int_to_float(db_instance.inner_vdw_scale),
-            outer_vdw_scale=_db_int_to_float(db_instance.outer_vdw_scale),
-        )
+        if db_instance.type in ["fcc"]:
+            # noinspection PyTypeChecker
+            return LatticeGridSettings(
+                type=db_instance.type,
+                spacing=_db_int_to_float(db_instance.lattice_spacing),
+                inner_vdw_scale=_db_int_to_float(db_instance.lattice_inner_vdw_scale),
+                outer_vdw_scale=_db_int_to_float(db_instance.lattice_outer_vdw_scale),
+            )
+        elif db_instance.type == "msk":
+            # noinspection PyTypeChecker
+            return MSKGridSettings(
+                type=db_instance.type, density=_db_int_to_float(db_instance.msk_density)
+            )
+        else:
+            raise NotImplementedError()
 
 
 class DBPCMSettings(_UniqueMixin, DBBase):

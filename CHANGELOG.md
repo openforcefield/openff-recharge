@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.0.4](https://github.com/openforcefield/openff-recharge/tree/0.0.4) (2022-01-20)
+
+[Full Changelog](https://github.com/openforcefield/openff-recharge/compare/0.0.3...0.0.4)
+
+**Fixed bugs:**
+
+- Fix attaching units to `None` electric field from QCF [\#92](https://github.com/openforcefield/openff-recharge/pull/92) ([SimonBoothroyd](https://github.com/SimonBoothroyd))
+
+**Closed issues:**
+
+- Merz-Singh-Kollman \(MSK\) shell support for ESP points [\#83](https://github.com/openforcefield/openff-recharge/issues/83)
+
 ## [0.0.3](https://github.com/openforcefield/openff-recharge/tree/0.0.3) (2022-01-14)
 
 [Full Changelog](https://github.com/openforcefield/openff-recharge/compare/0.0.2...0.0.3)
@@ -12,7 +24,6 @@
 **Closed issues:**
 
 - Pin dependency after openff-toolkit/1159 resolved [\#89](https://github.com/openforcefield/openff-recharge/issues/89)
-- Merz-Singh-Kollman \(MSK\) shell support for ESP points [\#83](https://github.com/openforcefield/openff-recharge/issues/83)
 
 ## [0.0.2](https://github.com/openforcefield/openff-recharge/tree/0.0.2) (2021-12-21)
 

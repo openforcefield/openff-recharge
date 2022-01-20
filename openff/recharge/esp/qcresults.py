@@ -210,11 +210,14 @@ def compute_esp(
     field = None
 
     if compute_field:
-        field = numpy.array(
-            psi4_calculator.compute_field_over_grid_in_memory(psi4_grid)
+
+        field = (
+            numpy.array(psi4_calculator.compute_field_over_grid_in_memory(psi4_grid))
+            * unit.hartree
+            / (unit.bohr * unit.e)
         )
 
-    return esp * unit.hartree / unit.e, field * unit.hartree / (unit.bohr * unit.e)
+    return esp * unit.hartree / unit.e, field
 
 
 @requires_package("cmiles")

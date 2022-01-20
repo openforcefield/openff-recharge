@@ -106,7 +106,7 @@ class MoleculeESPRecord(BaseModel):
         conformer: unit.Quantity,
         grid_coordinates: unit.Quantity,
         esp: unit.Quantity,
-        electric_field: unit.Quantity,
+        electric_field: Optional[unit.Quantity],
         esp_settings: ESPSettings,
     ) -> "MoleculeESPRecord":
         """Creates a new ``MoleculeESPRecord`` from an existing molecule

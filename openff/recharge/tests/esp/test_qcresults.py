@@ -14,7 +14,8 @@ from openff.recharge.grids import LatticeGridSettings
 pytest.importorskip("qcportal")
 
 
-def test_from_qcportal_results():
+@pytest.mark.parametrize("with_field", [False, True])
+def test_from_qcportal_results(with_field):
 
     from qcportal import FractalClient
     from qcportal.models import ObjectId
@@ -27,10 +28,15 @@ def test_from_qcportal_results():
         qc_molecule=qc_result.get_molecule(),
         qc_keyword_set=qc_keyword_set,
         grid_settings=LatticeGridSettings(spacing=2.0),
+        compute_field=with_field,
     )
 
     assert not numpy.allclose(esp_record.esp, 0.0, rtol=1.0e-9)
-    assert not numpy.allclose(esp_record.electric_field, 0.0, rtol=1.0e-9)
+    assert (
+        esp_record.electric_field is None
+        if not with_field
+        else not numpy.allclose(esp_record.electric_field, 0.0, rtol=1.0e-9)
+    )
 
 
 def test_missing_wavefunction():

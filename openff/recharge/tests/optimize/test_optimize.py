@@ -560,19 +560,16 @@ def test_compute_field_objective_terms(hcl_esp_record, hcl_parameters):
     # Distance between H and the grid point at (4, 3, 0)
     h_distance = numpy.sqrt(3.0 * 3.0 + 8.0 * 8.0)
 
-    expected_design_matrix = (
-        numpy.array(
+    expected_design_matrix = numpy.array(
+        [
+            [[0.0, -4.0 / 5.0**3], [3.0 / 3.0**3, 3.0 / 5.0**3], [0.0, 0.0]],
             [
-                [[0.0, -4.0 / 5.0 ** 3], [3.0 / 3.0 ** 3, 3.0 / 5.0 ** 3], [0.0, 0.0]],
-                [
-                    [8.0 / h_distance ** 3, 4.0 / 5.0 ** 3],
-                    [3.0 / h_distance ** 3, 3.0 / 5.0 ** 3],
-                    [0.0, 0.0],
-                ],
-            ]
-        )
-        @ numpy.array([[-1, 0], [1, 1]])
-    )
+                [8.0 / h_distance**3, 4.0 / 5.0**3],
+                [3.0 / h_distance**3, 3.0 / 5.0**3],
+                [0.0, 0.0],
+            ],
+        ]
+    ) @ numpy.array([[-1, 0], [1, 1]])
 
     assert (
         objective_term.atom_charge_design_matrix.shape == expected_design_matrix.shape
@@ -611,10 +608,10 @@ def test_compute_field_objective_terms(hcl_esp_record, hcl_parameters):
         objective_term.reference_values,
         numpy.array(
             [
-                [1.0 - 0.0, 2.0 - 0.1 * 3.0 / 3.0 ** 3, 3.0 - 0.0],
+                [1.0 - 0.0, 2.0 - 0.1 * 3.0 / 3.0**3, 3.0 - 0.0],
                 [
-                    1.0 - 0.1 * 8.0 / h_distance ** 3,
-                    2.0 - 0.1 * 3.0 / h_distance ** 3,
+                    1.0 - 0.1 * 8.0 / h_distance**3,
+                    2.0 - 0.1 * 3.0 / h_distance**3,
                     3.0 - 0.0,
                 ],
             ]

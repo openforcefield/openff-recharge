@@ -36,8 +36,8 @@ class TestMSKGridSettings:
         "value, expected",
         [
             (MSKGridSettings(density=0.1), 0.1),
-            (MSKGridSettings(density=0.1 / unit.angstrom ** 2), 0.1),
-            (MSKGridSettings(density=2.0 / unit.nanometers ** 2), 0.02),
+            (MSKGridSettings(density=0.1 / unit.angstrom**2), 0.1),
+            (MSKGridSettings(density=2.0 / unit.nanometers**2), 0.02),
         ],
     )
     def test_validate_density(self, value, expected):
@@ -45,7 +45,7 @@ class TestMSKGridSettings:
 
     def test_density_quantity(self):
 
-        value = numpy.random.random() / unit.nanometers ** 2
+        value = numpy.random.random() / unit.nanometers**2
 
         assert numpy.isclose(MSKGridSettings(density=value).density_quantity, value)
 

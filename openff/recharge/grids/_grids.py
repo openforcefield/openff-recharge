@@ -58,9 +58,9 @@ class MSKGridSettings(BaseModel):
 
     @property
     def density_quantity(self) -> unit.Quantity:
-        return self.density * unit.angstrom ** -2
+        return self.density * unit.angstrom**-2
 
-    _validate_density = wrapped_float_validator("density", unit.angstrom ** -2)
+    _validate_density = wrapped_float_validator("density", unit.angstrom**-2)
 
 
 GridSettings = LatticeGridSettings  # For backwards compatability.

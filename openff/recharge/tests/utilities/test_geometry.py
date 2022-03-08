@@ -46,8 +46,8 @@ def test_compute_vector_field(tensor_type):
     expected_output = tensor_type(
         [
             [
-                [+4.0 / 5.0 ** 3, +4.0 / (root_2 * 4.0) ** 3],
-                [-3.0 / 5.0 ** 3, +0.0],
+                [+4.0 / 5.0**3, +4.0 / (root_2 * 4.0) ** 3],
+                [-3.0 / 5.0**3, +0.0],
                 [+0.0, -4.0 / (root_2 * 4.0) ** 3],
             ]
         ]

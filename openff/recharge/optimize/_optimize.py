@@ -799,7 +799,7 @@ class ESPObjective(Objective):
         # Care must be taken to ensure that length units are converted from [Angstrom]
         # to [Bohr].
         inverse_distance_matrix = unit.convert(
-            inverse_distance_matrix, unit.angstrom ** -1, unit.bohr ** -1
+            inverse_distance_matrix, unit.angstrom**-1, unit.bohr**-1
         )
 
         return inverse_distance_matrix

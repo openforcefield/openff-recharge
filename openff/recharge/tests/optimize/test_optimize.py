@@ -6,6 +6,10 @@ from openff.units import unit
 from typing_extensions import Literal
 
 from openff.recharge.charges.bcc import BCCCollection, BCCParameter
+from openff.recharge.charges.library import (
+    LibraryChargeCollection,
+    LibraryChargeParameter,
+)
 from openff.recharge.charges.vsite import (
     BondChargeSiteParameter,
     MonovalentLonePairParameter,
@@ -139,7 +143,7 @@ def test_term_to_backend(
     ],
 )
 @pytest.mark.parametrize("backend", backends)
-def test_term_loss_bcc_only(
+def test_term_loss_atom_charge_only(
     term_class: Type[ObjectiveTerm],
     design_matrix_precursor: numpy.ndarray,
     expected_loss: numpy.ndarray,
@@ -255,7 +259,7 @@ def test_term_evaluate_vsite_only(
     ],
 )
 @pytest.mark.parametrize("backend", backends)
-def test_term_evaluate_bcc_and_vsite(
+def test_term_evaluate_atom_charge_and_vsite(
     term_class, design_matrix_precursor, expected_loss, backend
 ):
 
@@ -314,7 +318,7 @@ def test_combine_terms(objective_class, backend, hcl_parameters):
             )
             for grid_size in [4, 5]
         ],
-        charge_settings=None,
+        charge_collection=None,
         bcc_collection=bcc_collection,
         bcc_parameter_keys=["[#17:1]-[#1:2]"],
         vsite_collection=vsite_collection,
@@ -346,6 +350,31 @@ def test_combine_terms(objective_class, backend, hcl_parameters):
     combined_loss = combined_term.loss(charge_values, coordinate_values)
 
     assert numpy.isclose(float(summed_loss), float(combined_loss))
+
+
+def test_compute_library_charge_terms():
+
+    oe_molecule = smiles_to_molecule("[H]C#C[H]")
+
+    library_charge_collection = LibraryChargeCollection(
+        parameters=[
+            LibraryChargeParameter(
+                smiles="[#1:1][#6:2]#[#6:3][#1:4]", value=[-0.05, 0.05, 0.05, -0.05]
+            )
+        ]
+    )
+
+    assignment_matrix, fixed_charges = Objective._compute_library_charge_terms(
+        oe_molecule, library_charge_collection, [("[#1:1][#6:2]#[#6:3][#1:4]", (3, 1))]
+    )
+
+    assert assignment_matrix.shape == (4, 2)
+    assert numpy.allclose(
+        assignment_matrix, numpy.array([[0, 0], [0, 1], [0, 0], [1, 0]])
+    )
+
+    assert fixed_charges.shape == (4, 1)
+    assert numpy.allclose(fixed_charges, numpy.array([[-0.05], [0.0], [0.05], [0.0]]))
 
 
 def test_compute_bcc_charge_terms():

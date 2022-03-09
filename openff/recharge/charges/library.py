@@ -83,7 +83,7 @@ class LibraryChargeCollection(BaseModel):
         """
         from simtk import unit
 
-        return cls(
+        return cls(  # [py/call-to-non-callable]
             parameters=[
                 LibraryChargeParameter(
                     smiles=off_parameter.smirks,

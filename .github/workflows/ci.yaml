@@ -22,19 +22,8 @@ jobs:
         cfg:
           - python-version: 3.8
             os: macos-latest
-            env-file: "test-psi4"
-
           - python-version: 3.9
             os: macos-latest
-            env-file: "test-psi4"
-
-          - python-version: 3.8
-            os: macos-latest
-            env-file: "test-torch"
-
-          - python-version: 3.9
-            os: macos-latest
-            env-file: "test-torch"
 
     env:
       OE_LICENSE: ${{ github.workspace }}/oe_license.txt
@@ -46,7 +35,7 @@ jobs:
         uses: conda-incubator/setup-miniconda@v2.1.1
         with:
           python-version: ${{ matrix.cfg.python-version }}
-          environment-file: devtools/conda-envs/${{ matrix.cfg.env-file }}.yaml
+          environment-file: devtools/conda-envs/test-env.yaml
 
           channels: conda-forge,defaults
 

@@ -1,5 +1,5 @@
 import abc
-from typing import TYPE_CHECKING, Generator, List, Optional, Tuple, Type, TypeVar
+from typing import TYPE_CHECKING, Generator, List, Optional, Tuple, Type, TypeVar, Union
 
 import numpy
 from openff.units import unit
@@ -7,6 +7,10 @@ from typing_extensions import Literal
 
 from openff.recharge.charges import ChargeGenerator, ChargeSettings
 from openff.recharge.charges.bcc import BCCCollection, BCCGenerator
+from openff.recharge.charges.library import (
+    LibraryChargeCollection,
+    LibraryChargeGenerator,
+)
 from openff.recharge.charges.vsite import (
     VirtualSiteChargeKey,
     VirtualSiteCollection,
@@ -445,6 +449,51 @@ class Objective(abc.ABC):
         """
 
     @classmethod
+    def _compute_library_charge_terms(
+        cls,
+        oe_molecule: "OEMol",
+        charge_collection: LibraryChargeCollection,
+        charge_parameter_keys: List[Tuple[str, Tuple[int, ...]]],
+    ) -> Tuple[numpy.ndarray, numpy.ndarray]:
+
+        assignment_matrix = LibraryChargeGenerator.build_assignment_matrix(
+            oe_molecule, charge_collection
+        )
+
+        flat_collection_keys = [
+            (parameter.smiles, i)
+            for parameter in charge_collection.parameters
+            for i in range(len(parameter.value))
+        ]
+        flat_collection_values = [
+            charge
+            for parameter in charge_collection.parameters
+            for charge in parameter.value
+        ]
+
+        trainable_parameter_indices = [
+            flat_collection_keys.index((smirks, i))
+            for smirks, indices in charge_parameter_keys
+            for i in indices
+        ]
+        fixed_parameter_indices = [
+            i
+            for i in range(len(flat_collection_keys))
+            if i not in trainable_parameter_indices
+        ]
+
+        fixed_assignment_matrix = assignment_matrix[:, fixed_parameter_indices]
+        fixed_charge_values = numpy.array(
+            [[flat_collection_values[index]] for index in fixed_parameter_indices]
+        )
+
+        fixed_charges = fixed_assignment_matrix @ fixed_charge_values
+
+        trainable_assignment_matrix = assignment_matrix[:, trainable_parameter_indices]
+
+        return trainable_assignment_matrix, fixed_charges
+
+    @classmethod
     def _compute_bcc_charge_terms(
         cls,
         oe_molecule: "OEMol",
@@ -598,7 +647,10 @@ class Objective(abc.ABC):
     def compute_objective_terms(
         cls,
         esp_records: List[MoleculeESPRecord],
-        charge_settings: Optional[ChargeSettings],
+        charge_collection: Optional[
+            Union[ChargeSettings, LibraryChargeCollection]
+        ] = None,
+        charge_parameter_keys: Optional[List[Tuple[str, Tuple[int, ...]]]] = None,
         bcc_collection: Optional[BCCCollection] = None,
         bcc_parameter_keys: Optional[List[str]] = None,
         vsite_collection: Optional[VirtualSiteCollection] = None,
@@ -612,10 +664,21 @@ class Objective(abc.ABC):
         esp_records
             The calculated records that contain the reference ESP and electric field
             data to train against.
-        charge_settings
-            The (optional) settings that define how to calculate the base set of charges
-            that will be perturbed by trainable charge increment parameters. If no value
-            is provided all base charges will be set to zero.
+        charge_collection
+            Optionally either i) a collection settings that define how to compute a
+            set of base charges (e.g. AM1) or ii) a collection of library charges to
+            be applied. This base charges may be perturbed by any supplied
+            ``bcc_collection`` or ``vsite_collection``. If no value is provided, all
+            base charges will be set to zero.
+        charge_parameter_keys
+            A list of tuples of the form ``(smiles, (idx_0, ...))`` that define those
+            parameters in the ``charge_collection`` that should be trained.
+
+            Here ``idx_i`` is an index into the ``value`` field of the parameter uniquely
+            identified by the ``smiles`` key.
+
+            This argument can only be used when the ``charge_collection`` is a library
+            charge collection.
         bcc_collection
             A collection of bond charge correction parameters that should perturb the
             base set of charges for each molecule in the ``esp_records`` list.
@@ -627,7 +690,7 @@ class Objective(abc.ABC):
             for each molecule in the ``esp_records`` list and perturb the base charges
             on each atom.
         vsite_charge_parameter_keys
-            A list of tuples of the form ``(smirks, type, name, idx)``) that define
+            A list of tuples of the form ``(smirks, type, name, idx)`` that define
             those charge increment parameters in the ``vsite_collection`` that should be
             trained.
 
@@ -669,20 +732,44 @@ class Objective(abc.ABC):
             )
 
             (
-                atom_charge_design_matrix,
+                atom_charge_design_matrices,
                 vsite_charge_assignment_matrix,
                 vsite_fixed_charges,
                 vsite_coord_assignment_matrix,
                 vsite_fixed_coords,
                 vsite_local_coordinate_frame,
                 grid_coordinates,
-            ) = (None, None, None, None, None, None, None)
+            ) = ([], None, None, None, None, None, None)
 
-            if charge_settings is not None:
+            if charge_collection is None:
+                pass
+            elif isinstance(charge_collection, ChargeSettings):
+                assert (
+                    charge_parameter_keys is None
+                ), "charges generated using `ChargeSettings` cannot be trained"
 
-                fixed_atom_charges = ChargeGenerator.generate(
-                    oe_molecule, [ordered_conformer * unit.angstrom], charge_settings
+                fixed_atom_charges += ChargeGenerator.generate(
+                    oe_molecule, [ordered_conformer * unit.angstrom], charge_collection
                 )
+
+            elif isinstance(charge_collection, LibraryChargeCollection):
+
+                (
+                    library_assignment_matrix,
+                    library_fixed_charges,
+                ) = cls._compute_library_charge_terms(
+                    oe_molecule,
+                    charge_collection,
+                    charge_parameter_keys,
+                )
+
+                fixed_atom_charges += library_fixed_charges
+
+                atom_charge_design_matrices.append(
+                    design_matrix_precursor @ library_assignment_matrix
+                )
+            else:
+                raise NotImplementedError()
 
             if bcc_collection is not None:
 
@@ -695,7 +782,7 @@ class Objective(abc.ABC):
 
                 fixed_atom_charges += bcc_fixed_charges
 
-                atom_charge_design_matrix = (
+                atom_charge_design_matrices.append(
                     design_matrix_precursor @ bcc_assignment_matrix
                 )
 
@@ -724,14 +811,8 @@ class Objective(abc.ABC):
                 atom_charge_assignment_matrix = vsite_charge_assignment_matrix[
                     : oe_molecule.NumAtoms()
                 ]
-                atom_charge_design_matrix = numpy.concatenate(
-                    (
-                        []
-                        if atom_charge_design_matrix is None
-                        else [atom_charge_design_matrix]
-                    )
-                    + [design_matrix_precursor @ atom_charge_assignment_matrix],
-                    axis=-1,
+                atom_charge_design_matrices.append(
+                    design_matrix_precursor @ atom_charge_assignment_matrix
                 )
 
                 vsite_charge_assignment_matrix = vsite_charge_assignment_matrix[
@@ -739,6 +820,12 @@ class Objective(abc.ABC):
                 ]
 
                 grid_coordinates = esp_record.grid_coordinates
+
+            atom_charge_design_matrix = (
+                None
+                if len(atom_charge_design_matrices) == 0
+                else numpy.concatenate(atom_charge_design_matrices, axis=-1)
+            )
 
             if cls._flatten_charges():
                 fixed_atom_charges = fixed_atom_charges.flatten()

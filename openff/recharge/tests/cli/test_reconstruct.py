@@ -28,6 +28,7 @@ def test_retrieve_result_records():
 def test_reconstruct(runner, monkeypatch):
 
     pytest.importorskip("psi4")
+    pytest.importorskip("qcportal")
 
     # Mock the multiprocessing call to return a dummy ESP record for a faster test.
     def mock_imap(_, func, iterable):

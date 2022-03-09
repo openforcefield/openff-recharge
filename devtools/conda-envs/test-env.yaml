@@ -1,9 +1,9 @@
 name: test
 channels:
   - conda-forge
-  - psi4
   - openeye
   - defaults
+  - psi4
 dependencies:
     # Base depends
   - python
@@ -34,16 +34,19 @@ dependencies:
 
     ### Optional dependencies.
 
+    # SMIRNOFF + v-site support
+  - openff-toolkit-base >=0.10.2
+
     # ESP calculations
   - psi4 >=1.4a3.dev1
 
     # QCFractal integration.
-  - qcportal
+  - qcportal >=0.15
   - h5py <3.2 # Needed as newer packages don't work with QCP for now.
   - cmiles-base
 
-    # SMIRNOFF + v-site support
-  - openff-toolkit-base >=0.10.2
+    # Optimization
+  - pytorch
 
     # Linting
   - black

@@ -56,7 +56,7 @@ def main():
     objective_terms_generator = ESPObjective.compute_objective_terms(
         esp_records=qc_data_records,
         # Here we use AM1-mulliken charges as the base charges to correct.
-        charge_settings=ChargeSettings(theory="am1"),
+        charge_collection=ChargeSettings(theory="am1"),
         bcc_collection=bcc_collection,
         bcc_parameter_keys=bcc_parameters_to_train,
     )

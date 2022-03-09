@@ -73,7 +73,7 @@ def main():
 
     objective_terms_generator = ESPObjective.compute_objective_terms(
         esp_records=[esp_record],
-        charge_settings=ChargeSettings(),
+        charge_collection=ChargeSettings(),
         bcc_collection=bcc_collection,
         bcc_parameter_keys=bcc_parameters_to_train,
         vsite_collection=vsite_collection,

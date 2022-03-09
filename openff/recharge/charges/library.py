@@ -83,7 +83,7 @@ class LibraryChargeCollection(BaseModel):
         """
         from simtk import unit
 
-        return cls(  # [py/call-to-non-callable]
+        return cls(
             parameters=[
                 LibraryChargeParameter(
                     smiles=off_parameter.smirks,
@@ -94,7 +94,7 @@ class LibraryChargeCollection(BaseModel):
                 )
                 for off_parameter in reversed(parameter_handler.parameters)
             ]
-        )
+        )  # [py/call-to-non-callable]
 
     def vectorize(self, keys: List[Tuple[str, Tuple[int, ...]]]) -> numpy.ndarray:
         """Returns a flat vector of the charge increment values associated with each

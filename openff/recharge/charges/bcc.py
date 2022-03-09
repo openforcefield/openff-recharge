@@ -162,9 +162,9 @@ class BCCCollection(BaseModel):
                 BCCParameter(smirks=smirks, value=forward_value, provenance={})
             )
 
-        return cls(  # [py/call-to-non-callable]
+        return cls(
             parameters=bcc_parameters, aromaticity_model=aromaticity_model
-        )
+        )  # [py/call-to-non-callable]
 
     def vectorize(self, smirks: List[str]) -> numpy.ndarray:
         """Returns a flat vector of the charge increment values associated with each

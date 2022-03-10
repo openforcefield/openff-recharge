@@ -1,5 +1,4 @@
-import typing
-from typing import TYPE_CHECKING, List, Tuple
+from typing import TYPE_CHECKING, Dict, List, Tuple, cast
 
 from openff.units import unit
 
@@ -49,17 +48,17 @@ def smiles_to_molecule(smiles: str, guess_stereochemistry: bool = False) -> "Mol
     return molecule
 
 
-def find_ring_bonds(molecule: "Molecule") -> typing.Dict[Tuple[int, int], bool]:
+def find_ring_bonds(molecule: "Molecule") -> Dict[Tuple[int, int], bool]:
     """Finds all bonds that are parts of a ring system."""
 
     is_in_ring = {
-        typing.cast(Tuple[int, int], tuple(sorted(match))): True
+        cast(Tuple[int, int], tuple(sorted(match))): True
         for match in molecule.chemical_environment_matches("[*:1]@[*:2]", unique=True)
     }
 
     for bond in molecule.bonds:
 
-        indices = typing.cast(
+        indices = cast(
             Tuple[int, int], tuple(sorted((bond.atom1_index, bond.atom2_index)))
         )
 

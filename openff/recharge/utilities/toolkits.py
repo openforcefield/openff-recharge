@@ -1,6 +1,5 @@
-import typing
 from enum import Enum
-from typing import TYPE_CHECKING, Dict, List, Tuple
+from typing import TYPE_CHECKING, Dict, List, Tuple, cast
 
 import numpy
 from openff.toolkit.utils import ToolkitUnavailableException
@@ -16,7 +15,7 @@ class VdWRadiiType(Enum):
 
 
 def _bond_key(index_a: int, index_b: int) -> Tuple[int, int]:
-    return typing.cast(Tuple[int, int], tuple(sorted((index_a, index_b))))
+    return cast(Tuple[int, int], tuple(sorted((index_a, index_b))))
 
 
 def _oe_match_smirks(

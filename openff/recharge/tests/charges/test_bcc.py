@@ -1,8 +1,5 @@
-import sys
-
 import numpy
 import pytest
-from openff.utilities.exceptions import MissingOptionalDependency
 
 from openff.recharge.charges import ChargeGenerator, ChargeSettings
 from openff.recharge.charges.bcc import (
@@ -70,16 +67,6 @@ def test_to_smirnoff():
         molecule, conformers, ChargeSettings()
     ) + BCCGenerator.generate(smiles_to_molecule("C"), original_am1bcc_corrections())
     numpy.allclose(numpy.round(expected_charges[:, 0], 3), numpy.round(off_charges, 3))
-
-
-def test_to_smirnoff_missing_dependency(monkeypatch):
-    """Test that the correct custom exception is raised when the
-    OpenFF toolkit cannot be imported."""
-
-    monkeypatch.setitem(sys.modules, "openff.toolkit", None)
-
-    with pytest.raises(MissingOptionalDependency):
-        original_am1bcc_corrections().to_smirnoff()
 
 
 def test_from_smirnoff():

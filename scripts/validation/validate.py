@@ -11,8 +11,10 @@ from openeye import oechem
 from tqdm import tqdm
 
 from openff.recharge.charges.bcc import (
+    BCCCollection,
+    BCCGenerator,
     compare_openeye_parity,
-    original_am1bcc_corrections, BCCGenerator, BCCCollection,
+    original_am1bcc_corrections,
 )
 from openff.recharge.utilities.exceptions import RechargeException
 from openff.recharge.utilities.molecule import smiles_to_molecule
@@ -280,9 +282,7 @@ def coverage_molecules() -> List[str]:
     ]
 
 
-def match_bcc_parameters(
-    smiles: str, bcc_collection: BCCCollection
-) -> List[str]:
+def match_bcc_parameters(smiles: str, bcc_collection: BCCCollection) -> List[str]:
     """Returns the list of bond charge correction SMIRKS patterns which a molecule
     defined by its SMILES pattern will exercise.
 
@@ -300,7 +300,7 @@ def match_bcc_parameters(
 
     corrections = BCCGenerator.applied_corrections(
         smiles_to_molecule(smiles, guess_stereochemistry=True),
-        bcc_collection=bcc_collection
+        bcc_collection=bcc_collection,
     )
     return [correction.smirks for correction in corrections]
 

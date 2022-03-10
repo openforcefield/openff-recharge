@@ -1,9 +1,9 @@
 name: test
 channels:
-  - psi4
   - conda-forge
   - openeye
   - defaults
+  - psi4
 dependencies:
     # Base depends
   - python

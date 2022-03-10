@@ -2,13 +2,11 @@ import typing
 from typing import TYPE_CHECKING, List, Tuple
 
 from openff.units import unit
-from openff.utilities import requires_package
 
 if TYPE_CHECKING:
     from openff.toolkit.topology import Molecule
 
 
-@requires_package("openff.toolkit")
 def smiles_to_molecule(smiles: str, guess_stereochemistry: bool = False) -> "Molecule":
     """Attempts to parse a smiles pattern into a molecule object.
 

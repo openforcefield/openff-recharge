@@ -37,7 +37,7 @@ jobs:
           python-version: ${{ matrix.cfg.python-version }}
           environment-file: devtools/conda-envs/test-env.yaml
 
-          channels: psi4,conda-forge,openeye,defaults
+          channels: conda-forge,openeye,defaults,psi4
 
           mamba-version: "*"
           miniforge-version: latest

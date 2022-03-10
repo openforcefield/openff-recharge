@@ -11,14 +11,13 @@ from openeye import oechem
 from tqdm import tqdm
 
 from openff.recharge.charges.bcc import (
-    BCCParameter,
     compare_openeye_parity,
-    original_am1bcc_corrections,
+    original_am1bcc_corrections, BCCGenerator, BCCCollection,
 )
 from openff.recharge.utilities.exceptions import RechargeException
-from openff.recharge.utilities.openeye import match_smirks, smiles_to_molecule
+from openff.recharge.utilities.molecule import smiles_to_molecule
 
-N_PROCESSES = 4
+N_PROCESSES = 20
 
 output_stream = oechem.oeosstream()
 
@@ -42,7 +41,7 @@ def apply_filter(smiles: str) -> bool:
         Whether to include the molecule or not.
     """
 
-    oe_molecule = smiles_to_molecule(smiles)
+    oe_molecule = smiles_to_molecule(smiles).to_openeye()
     allowed_elements = [1, 6, 7, 8, 9, 16, 17, 35]
 
     return oechem.OECount(oe_molecule, oechem.OEIsHeavy()) <= 25 and all(
@@ -282,31 +281,28 @@ def coverage_molecules() -> List[str]:
 
 
 def match_bcc_parameters(
-    smiles: str, bond_charge_corrections: List[BCCParameter]
+    smiles: str, bcc_collection: BCCCollection
 ) -> List[str]:
     """Returns the list of bond charge correction SMIRKS patterns which a molecule
-    defined by it's SMILES pattern will exercise.
+    defined by its SMILES pattern will exercise.
 
     Parameters
     ----------
     smiles
         The SMILES pattern to match against.
-    bond_charge_corrections
+    bcc_collection
         The bond charge correction parameters to match.
+
     Returns
     -------
         The SMIRKS patterns of the matched bond charge correction parameters
     """
 
-    oe_molecule = smiles_to_molecule(smiles, True)
-
-    matched_smirks = [
-        bond_charge_correction.smirks
-        for bond_charge_correction in bond_charge_corrections
-        if len(match_smirks(bond_charge_correction.smirks, oe_molecule)) > 0
-    ]
-
-    return matched_smirks
+    corrections = BCCGenerator.applied_corrections(
+        smiles_to_molecule(smiles, guess_stereochemistry=True),
+        bcc_collection=bcc_collection
+    )
+    return [correction.smirks for correction in corrections]
 
 
 def map_smiles_to_smirks(smiles: List[str]) -> Dict[str, List[str]]:
@@ -329,7 +325,7 @@ def map_smiles_to_smirks(smiles: List[str]) -> Dict[str, List[str]]:
 
     match_function = functools.partial(
         match_bcc_parameters,
-        bond_charge_corrections=original_am1bcc_corrections().parameters,
+        bcc_collection=original_am1bcc_corrections(),
     )
 
     with Pool(processes=N_PROCESSES) as pool:

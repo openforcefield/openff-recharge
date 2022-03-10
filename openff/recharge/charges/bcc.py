@@ -56,8 +56,6 @@ class BCCCollection(BaseModel):
         description="The model to use when assigning aromaticity.",
     )
 
-    @requires_package("openff.toolkit")
-    @requires_package("simtk")
     def to_smirnoff(self) -> "ChargeIncrementModelHandler":
         """Converts this collection of bond charge correction parameters to
         a SMIRNOFF bond charge increment parameter handler.

@@ -35,8 +35,6 @@ class LibraryChargeCollection(BaseModel):
         ..., description="The library charges to apply."
     )
 
-    @requires_package("openff.toolkit")
-    @requires_package("simtk")
     def to_smirnoff(self) -> "LibraryChargeHandler":
         """Converts this collection of library charge parameters to
         a SMIRNOFF library charge parameter handler.
@@ -170,7 +168,9 @@ class LibraryChargeGenerator:
 
         for parameter in charge_collection.parameters:
 
-            smiles_molecule: Molecule = Molecule.from_mapped_smiles(parameter.smiles)
+            smiles_molecule: Molecule = Molecule.from_mapped_smiles(
+                parameter.smiles, allow_undefined_stereo=True
+            )
 
             are_isomorphic, atom_map = Molecule.are_isomorphic(
                 molecule, smiles_molecule, return_atom_map=True

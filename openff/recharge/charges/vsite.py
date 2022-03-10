@@ -193,8 +193,6 @@ class VirtualSiteCollection(BaseModel):
     def validate_aromaticity_model(cls, value):
         assert value == AromaticityModels.MDL, "only MDL aromaticity model is supported"
 
-    @requires_package("openff.toolkit")
-    @requires_package("simtk")
     def to_smirnoff(self) -> "VirtualSiteHandler":
         """Converts this collection of virtual site parameters to a SMIRNOFF virtual
         site parameter handler.

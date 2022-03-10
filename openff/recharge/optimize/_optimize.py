@@ -712,7 +712,9 @@ class Objective(abc.ABC):
 
         for esp_record in esp_records:
 
-            molecule: Molecule = Molecule.from_mapped_smiles(esp_record.tagged_smiles)
+            molecule: Molecule = Molecule.from_mapped_smiles(
+                esp_record.tagged_smiles, allow_undefined_stereo=True
+            )
             ordered_conformer = esp_record.conformer
 
             fixed_atom_charges = numpy.zeros((molecule.n_atoms, 1))

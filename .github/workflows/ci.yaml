@@ -39,10 +39,6 @@ jobs:
 
           channels: conda-forge,openeye,defaults,psi4
 
-          mamba-version: "*"
-          miniforge-version: latest
-          miniforge-variant: Mambaforge
-
           activate-environment: test
           auto-update-conda: true
           auto-activate-base: false

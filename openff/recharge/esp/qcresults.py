@@ -12,7 +12,7 @@ from openff.recharge.esp import ESPSettings, PCMSettings
 from openff.recharge.esp.storage import MoleculeESPRecord
 from openff.recharge.grids import GridGenerator, GridSettingsType
 from openff.recharge.utilities.exceptions import RechargeException
-from openff.recharge.utilities.openeye import molecule_to_conformers
+from openff.recharge.utilities.molecule import extract_conformers
 
 if TYPE_CHECKING:
     import qcelemental.models
@@ -252,7 +252,7 @@ def from_qcportal_results(
         record object.
     """
 
-    import cmiles.utils
+    from openff.toolkit.topology import Molecule
     from qcelemental.models.results import WavefunctionProperties
 
     # Compute and store the ESP and electric field for each result.
@@ -271,24 +271,15 @@ def from_qcportal_results(
 
     # Convert the OE molecule to a QC molecule and extract the conformer of
     # interest.
-    oe_molecule = cmiles.utils.load_molecule(
-        {
-            "symbols": qc_molecule.symbols,
-            "connectivity": qc_molecule.connectivity,
-            "geometry": qc_molecule.geometry.flatten(),
-            "molecular_charge": qc_molecule.molecular_charge,
-            "molecular_multiplicity": qc_molecule.molecular_multiplicity,
-        },
-        toolkit="openeye",
-    )
+    molecule = Molecule.from_qcschema(qc_molecule.dict(encoding="json"))
 
-    conformers = molecule_to_conformers(oe_molecule)
+    conformers = extract_conformers(molecule)
     assert len(conformers) == 1
 
     conformer = conformers[0]
 
     # Construct the grid to evaluate the ESP / electric field on.
-    grid = GridGenerator.generate(oe_molecule, conformer, grid_settings)
+    grid = GridGenerator.generate(molecule, conformer, grid_settings)
 
     # Retrieve the ESP settings from the record.
     enable_pcm = "pcm" in qc_keyword_set.values
@@ -309,8 +300,8 @@ def from_qcportal_results(
         qc_molecule, density, esp_settings, grid, compute_field
     )
 
-    return MoleculeESPRecord.from_oe_molecule(
-        oe_molecule,
+    return MoleculeESPRecord.from_molecule(
+        molecule,
         conformer=conformer,
         grid_coordinates=grid,
         esp=esp,

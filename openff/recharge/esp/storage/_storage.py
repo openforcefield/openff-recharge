@@ -26,10 +26,9 @@ from openff.recharge.esp.storage.db import (
     DBSoftwareProvenance,
 )
 from openff.recharge.esp.storage.exceptions import IncompatibleDBVersion
-from openff.recharge.utilities.openeye import import_oechem, smiles_to_molecule
 
 if TYPE_CHECKING:
-    from openeye import oechem
+    from openff.toolkit.topology import Molecule
 
     Array = numpy.ndarray
 else:
@@ -100,9 +99,9 @@ class MoleculeESPRecord(BaseModel):
         return self.electric_field * unit.hartree / (unit.bohr * unit.e)
 
     @classmethod
-    def from_oe_molecule(
+    def from_molecule(
         cls,
-        oe_molecule: "oechem.OEMol",
+        molecule: "Molecule",
         conformer: unit.Quantity,
         grid_coordinates: unit.Quantity,
         esp: unit.Quantity,
@@ -114,7 +113,7 @@ class MoleculeESPRecord(BaseModel):
 
         Parameters
         ----------
-        oe_molecule
+        molecule
             The molecule to store in the record.
         conformer
             The coordinates [Angstrom] of this conformer with shape=(n_atoms, 3).
@@ -135,16 +134,9 @@ class MoleculeESPRecord(BaseModel):
             The created record.
         """
 
-        oechem = import_oechem()
-
-        # Work on a copy of the molecule
-        oe_molecule = oechem.OEMol(oe_molecule)
-
-        # Build the tagged SMILES representation of the molecule.
-        for atom in oe_molecule.GetAtoms():
-            atom.SetMapIdx(atom.GetIdx() + 1)
-
-        tagged_smiles = oechem.OECreateIsoSmiString(oe_molecule)
+        tagged_smiles = molecule.to_smiles(
+            isomeric=True, explicit_hydrogens=True, mapped=True
+        )
 
         return MoleculeESPRecord(
             tagged_smiles=tagged_smiles,
@@ -374,15 +366,11 @@ class MoleculeESPStore:
         -------
             The canonical smiles pattern.
         """
+        from openff.toolkit.topology import Molecule
 
-        oechem = import_oechem()
-
-        oe_molecule = smiles_to_molecule(tagged_smiles)
-
-        for atom in oe_molecule.GetAtoms():
-            atom.SetMapIdx(0)
-
-        return oechem.OECreateCanSmiString(oe_molecule)
+        return Molecule.from_smiles(
+            tagged_smiles, allow_undefined_stereo=True
+        ).to_smiles(isomeric=False, explicit_hydrogens=False, mapped=False)
 
     def store(self, *records: MoleculeESPRecord):
         """Store the electrostatic potentials calculated for
@@ -424,15 +412,13 @@ class MoleculeESPStore:
         """Retrieve records stored in this data store, optionally
         according to a set of filters."""
 
-        oechem = import_oechem()
-
         with self._get_session() as db:
 
             db_records = db.query(DBMoleculeRecord)
 
             if smiles is not None:
 
-                smiles = oechem.OECreateCanSmiString(smiles_to_molecule(smiles))
+                smiles = self._tagged_to_canonical_smiles(smiles)
                 db_records = db_records.filter(DBMoleculeRecord.smiles == smiles)
 
             if basis is not None or method is not None or implicit_solvent is not None:

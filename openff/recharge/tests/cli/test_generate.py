@@ -6,11 +6,9 @@ from multiprocessing.pool import Pool
 import numpy
 import pytest
 
-from openff.recharge.charges.exceptions import OEQuacpacError
 from openff.recharge.cli.generate import _compute_esp
 from openff.recharge.cli.generate import generate as generate_cli
 from openff.recharge.conformers import ConformerGenerator, ConformerSettings
-from openff.recharge.conformers.exceptions import OEOmegaError
 from openff.recharge.esp import ESPSettings
 from openff.recharge.esp.exceptions import Psi4Error
 from openff.recharge.esp.psi4 import Psi4ESPGenerator
@@ -53,7 +51,7 @@ def test_generate(runner, monkeypatch):
     assert len(esp_store.retrieve("C")) == 1
 
 
-@pytest.mark.parametrize("error_type", [OEOmegaError, OEQuacpacError])
+@pytest.mark.parametrize("error_type", [RuntimeError])
 def test_compute_esp_oe_error(error_type, caplog, monkeypatch):
     def mock_conformer_generate(*_):
         raise error_type()

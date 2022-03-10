@@ -1,8 +1,7 @@
 import pytest
-from openeye import oechem
 
 from openff.recharge.aromaticity import AromaticityModel, AromaticityModels
-from openff.recharge.utilities.openeye import smiles_to_molecule
+from openff.recharge.utilities.molecule import find_ring_bonds, smiles_to_molecule
 
 
 @pytest.mark.parametrize(
@@ -22,35 +21,33 @@ def test_am1_bcc_aromaticity_simple(smiles):
     expected for simple fused hydrocarbons.
     """
 
-    oe_molecule = smiles_to_molecule(smiles)
-    AromaticityModel.assign(oe_molecule, AromaticityModels.AM1BCC)
+    molecule = smiles_to_molecule(smiles)
 
-    ring_carbons = [
-        atom
-        for atom in oe_molecule.GetAtoms()
-        if atom.GetAtomicNum() == 6 and oechem.OEAtomIsInRingSize(atom, 6)
-    ]
-    ring_indices = {atom.GetIdx() for atom in ring_carbons}
+    ring_bonds = {
+        pair for pair, is_in_ring in find_ring_bonds(molecule).items() if is_in_ring
+    }
+    ring_atoms = {index for pair in ring_bonds for index in pair}
 
-    assert all(atom.IsAromatic() for atom in ring_carbons)
-    assert all(
-        bond.IsAromatic()
-        for bond in oe_molecule.GetBonds()
-        if bond.GetBgnIdx() in ring_indices and bond.GetEndIdx() in ring_indices
+    is_atom_aromatic, is_bond_aromatic = AromaticityModel.apply(
+        molecule, AromaticityModels.AM1BCC
     )
+
+    assert all(is_atom_aromatic[index] for index in ring_atoms)
+    assert all(is_bond_aromatic[pair] for pair in ring_bonds)
 
 
 def test_am1_bcc_aromaticity_ring_size():
     """Checks that the custom AM1BCC aromaticity model behaves as
     expected fused hydrocarbons with varying ring sizes"""
 
-    oe_molecule = smiles_to_molecule("C1CC2=CC=CC3=C2C1=CC=C3")
-    AromaticityModel.assign(oe_molecule, AromaticityModels.AM1BCC)
+    molecule = smiles_to_molecule("C1CC2=CC=CC3=C2C1=CC=C3")
 
-    atoms = {atom.GetIdx(): atom for atom in oe_molecule.GetAtoms()}
+    is_atom_aromatic, is_bond_aromatic = AromaticityModel.apply(
+        molecule, AromaticityModels.AM1BCC
+    )
 
-    assert [not atoms[index].IsAromatic() for index in range(2)]
-    assert [atoms[index].IsAromatic() for index in range(2, 12)]
+    assert [not is_atom_aromatic[index] for index in range(2)]
+    assert [is_atom_aromatic[index] for index in range(2, 12)]
 
 
 @pytest.mark.parametrize(
@@ -59,5 +56,11 @@ def test_am1_bcc_aromaticity_ring_size():
 )
 def test_aromaticity_models(aromaticity_model):
 
-    oe_molecule = smiles_to_molecule("C")
-    AromaticityModel.assign(oe_molecule, aromaticity_model)
+    molecule = smiles_to_molecule("C")
+
+    is_atom_aromatic, is_bond_aromatic = AromaticityModel.apply(
+        molecule, aromaticity_model
+    )
+
+    assert not any(is_atom_aromatic.values())
+    assert not any(is_bond_aromatic.values())

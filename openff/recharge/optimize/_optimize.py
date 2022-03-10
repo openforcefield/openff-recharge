@@ -21,9 +21,7 @@ from openff.recharge.esp.storage import MoleculeESPRecord
 from openff.recharge.utilities.geometry import (
     compute_inverse_distance_matrix,
     compute_vector_field,
-    reorder_conformer,
 )
-from openff.recharge.utilities.openeye import import_oechem
 from openff.recharge.utilities.tensors import (
     TensorType,
     append_zero,
@@ -33,8 +31,8 @@ from openff.recharge.utilities.tensors import (
 )
 
 if TYPE_CHECKING:
+    from openff.toolkit.topology import Molecule
 
-    from openeye.oechem import OEMol
 
 _VSITE_ATTRIBUTES = ("distance", "in_plane_angle", "out_of_plane_angle")
 
@@ -451,13 +449,13 @@ class Objective(abc.ABC):
     @classmethod
     def _compute_library_charge_terms(
         cls,
-        oe_molecule: "OEMol",
+        molecule: "Molecule",
         charge_collection: LibraryChargeCollection,
         charge_parameter_keys: List[Tuple[str, Tuple[int, ...]]],
     ) -> Tuple[numpy.ndarray, numpy.ndarray]:
 
         assignment_matrix = LibraryChargeGenerator.build_assignment_matrix(
-            oe_molecule, charge_collection
+            molecule, charge_collection
         )
 
         flat_collection_keys = [
@@ -496,7 +494,7 @@ class Objective(abc.ABC):
     @classmethod
     def _compute_bcc_charge_terms(
         cls,
-        oe_molecule: "OEMol",
+        molecule: "Molecule",
         bcc_collection: BCCCollection,
         bcc_parameter_keys: List[str],
     ) -> Tuple[numpy.ndarray, numpy.ndarray]:
@@ -513,7 +511,7 @@ class Objective(abc.ABC):
         ]
 
         assignment_matrix = BCCGenerator.build_assignment_matrix(
-            oe_molecule, bcc_collection
+            molecule, bcc_collection
         )
 
         fixed_assignment_matrix = assignment_matrix[:, fixed_parameter_indices]
@@ -533,7 +531,7 @@ class Objective(abc.ABC):
     @classmethod
     def _compute_vsite_coord_terms(
         cls,
-        oe_molecule: "OEMol",
+        molecule: "Molecule",
         conformer: numpy.ndarray,
         vsite_collection: VirtualSiteCollection,
         vsite_coordinate_parameter_keys: List[VirtualSiteGeometryKey],
@@ -545,7 +543,7 @@ class Objective(abc.ABC):
         }
 
         _, assigned_parameter_map = VirtualSiteGenerator._apply_virtual_sites(
-            oe_molecule, vsite_collection
+            molecule, vsite_collection
         )
         assigned_parameters = {
             atom_indices: [parameters_by_key[key] for key in parameter_keys]
@@ -596,7 +594,7 @@ class Objective(abc.ABC):
     @classmethod
     def _compute_vsite_charge_terms(
         cls,
-        oe_molecule: "OEMol",
+        molecule: "Molecule",
         vsite_collection: VirtualSiteCollection,
         vsite_charge_parameter_keys: List[VirtualSiteChargeKey],
     ) -> Tuple[numpy.ndarray, numpy.ndarray]:
@@ -631,7 +629,7 @@ class Objective(abc.ABC):
                 fixed_parameter_values.append(parameter.charge_increments[charge_index])
 
         assignment_matrix = VirtualSiteGenerator.build_charge_assignment_matrix(
-            oe_molecule, vsite_collection
+            molecule, vsite_collection
         )
 
         fixed_assignment_matrix = assignment_matrix[:, fixed_parameter_indices]
@@ -710,20 +708,14 @@ class Objective(abc.ABC):
             contribution to the objective function.
         """
 
-        oechem = import_oechem()
+        from openff.toolkit.topology import Molecule
 
         for esp_record in esp_records:
 
-            oe_molecule = oechem.OEMol()
-            oechem.OESmilesToMol(oe_molecule, esp_record.tagged_smiles)
+            molecule: Molecule = Molecule.from_mapped_smiles(esp_record.tagged_smiles)
+            ordered_conformer = esp_record.conformer
 
-            ordered_conformer = reorder_conformer(oe_molecule, esp_record.conformer)
-
-            # Clear the records index map as these may throw off future steps.
-            for atom in oe_molecule.GetAtoms():
-                atom.SetMapIdx(0)
-
-            fixed_atom_charges = numpy.zeros((oe_molecule.NumAtoms(), 1))
+            fixed_atom_charges = numpy.zeros((molecule.n_atoms, 1))
 
             # Pre-compute the design matrix precursor (e.g inverse distance matrix for
             # ESP) for this molecule as this is an 'expensive' step in the optimization.
@@ -749,7 +741,7 @@ class Objective(abc.ABC):
                 ), "charges generated using `ChargeSettings` cannot be trained"
 
                 fixed_atom_charges += ChargeGenerator.generate(
-                    oe_molecule, [ordered_conformer * unit.angstrom], charge_collection
+                    molecule, [ordered_conformer * unit.angstrom], charge_collection
                 )
 
             elif isinstance(charge_collection, LibraryChargeCollection):
@@ -758,7 +750,7 @@ class Objective(abc.ABC):
                     library_assignment_matrix,
                     library_fixed_charges,
                 ) = cls._compute_library_charge_terms(
-                    oe_molecule,
+                    molecule,
                     charge_collection,
                     charge_parameter_keys,
                 )
@@ -777,7 +769,7 @@ class Objective(abc.ABC):
                     bcc_assignment_matrix,
                     bcc_fixed_charges,
                 ) = cls._compute_bcc_charge_terms(
-                    oe_molecule, bcc_collection, bcc_parameter_keys
+                    molecule, bcc_collection, bcc_parameter_keys
                 )
 
                 fixed_atom_charges += bcc_fixed_charges
@@ -792,31 +784,31 @@ class Objective(abc.ABC):
                     vsite_charge_assignment_matrix,
                     vsite_fixed_charges,
                 ) = cls._compute_vsite_charge_terms(
-                    oe_molecule, vsite_collection, vsite_charge_parameter_keys
+                    molecule, vsite_collection, vsite_charge_parameter_keys
                 )
                 (
                     vsite_coord_assignment_matrix,
                     vsite_fixed_coords,
                     vsite_local_coordinate_frame,
                 ) = cls._compute_vsite_coord_terms(
-                    oe_molecule,
+                    molecule,
                     ordered_conformer,
                     vsite_collection,
                     vsite_coordinate_parameter_keys or [],
                 )
 
-                fixed_atom_charges += vsite_fixed_charges[: oe_molecule.NumAtoms()]
-                vsite_fixed_charges = vsite_fixed_charges[oe_molecule.NumAtoms() :]
+                fixed_atom_charges += vsite_fixed_charges[: molecule.n_atoms]
+                vsite_fixed_charges = vsite_fixed_charges[molecule.n_atoms :]
 
                 atom_charge_assignment_matrix = vsite_charge_assignment_matrix[
-                    : oe_molecule.NumAtoms()
+                    : molecule.n_atoms
                 ]
                 atom_charge_design_matrices.append(
                     design_matrix_precursor @ atom_charge_assignment_matrix
                 )
 
                 vsite_charge_assignment_matrix = vsite_charge_assignment_matrix[
-                    oe_molecule.NumAtoms() :
+                    molecule.n_atoms :
                 ]
 
                 grid_coordinates = esp_record.grid_coordinates

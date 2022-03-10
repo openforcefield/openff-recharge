@@ -128,10 +128,10 @@ class TestLibraryChargeGenerator:
 
         from openff.toolkit.topology import Molecule
 
-        oe_molecule = Molecule.from_mapped_smiles(smiles).to_openeye()
+        molecule = Molecule.from_mapped_smiles(smiles)
 
         assignment_matrix = LibraryChargeGenerator.build_assignment_matrix(
-            oe_molecule, mock_charge_collection
+            molecule, mock_charge_collection
         )
 
         assert expected_value.shape == assignment_matrix.shape
@@ -151,10 +151,10 @@ class TestLibraryChargeGenerator:
 
         from openff.toolkit.topology import Molecule
 
-        oe_molecule = Molecule.from_mapped_smiles(smiles).to_openeye()
+        molecule = Molecule.from_mapped_smiles(smiles)
 
         actual_charges = LibraryChargeGenerator.generate(
-            oe_molecule, mock_charge_collection
+            molecule, mock_charge_collection
         )
 
         assert expected_value.shape == actual_charges.shape

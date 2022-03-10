@@ -9,7 +9,7 @@ from openff.recharge.tests.data import (
     UNIT_CONNOLLY_SPHERE,
     WATER_MSK_GRID,
 )
-from openff.recharge.utilities.openeye import smiles_to_molecule
+from openff.recharge.utilities.molecule import smiles_to_molecule
 
 
 class TestLatticeGridSettings:
@@ -98,7 +98,7 @@ class TestGridGenerator:
     def test_generate_fcc_grid(self):
 
         # Build a simple case monatomic test case.
-        oe_molecule = smiles_to_molecule("[Ar]")
+        molecule = smiles_to_molecule("[Ar]")
         conformer = numpy.array([[0.0, 0.0, 0.0]]) * unit.angstrom
 
         # Select grid the grid settings so the corners of the FCC
@@ -110,20 +110,20 @@ class TestGridGenerator:
             outer_vdw_scale=1.1,
         )
 
-        grid = GridGenerator.generate(oe_molecule, conformer, grid_settings)
+        grid = GridGenerator.generate(molecule, conformer, grid_settings)
 
         assert grid.shape == ARGON_FCC_GRID.shape
         assert numpy.allclose(grid, ARGON_FCC_GRID * unit.angstrom)
 
     def test_generate_msk_grid(self):
 
-        oe_molecule = smiles_to_molecule("O")
+        molecule = smiles_to_molecule("O")
 
         [conformer] = ConformerGenerator.generate(
-            oe_molecule, ConformerSettings(max_conformers=1)
+            molecule, ConformerSettings(max_conformers=1)
         )
 
-        grid = GridGenerator.generate(oe_molecule, conformer, MSKGridSettings())
+        grid = GridGenerator.generate(molecule, conformer, MSKGridSettings())
 
         assert grid.shape == WATER_MSK_GRID.shape
         assert numpy.allclose(grid, WATER_MSK_GRID * unit.angstrom)

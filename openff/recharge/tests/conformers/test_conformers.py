@@ -3,22 +3,23 @@ from typing import Optional
 import pytest
 
 from openff.recharge.conformers import ConformerGenerator, ConformerSettings
-from openff.recharge.utilities.openeye import smiles_to_molecule
+from openff.recharge.utilities.molecule import smiles_to_molecule
 
 
-def test_max_conformers():
-    """Tests the conformer generator returns back a number of conformers less than
+@pytest.mark.parametrize("max_conformers", [1, 2])
+def test_max_conformers(max_conformers):
+    """Tests the conformer generator returns a number of conformers less than
     or equal to the maximum.
     """
-    oe_molecule = smiles_to_molecule("CCOCO")
+    molecule = smiles_to_molecule("CCOCO")
 
     assert (
         len(
             ConformerGenerator.generate(
-                oe_molecule, ConformerSettings(max_conformers=1)
+                molecule, ConformerSettings(max_conformers=max_conformers)
             )
         )
-        == 1
+        == max_conformers
     )
 
 
@@ -29,11 +30,11 @@ def test_generate_conformers(
     method: str, sampling_mode: str, max_conformers: Optional[int]
 ):
     """Tests conformer generator."""
-    oe_molecule = smiles_to_molecule("CO")
+    molecule = smiles_to_molecule("CO")
 
     # noinspection PyTypeChecker
     ConformerGenerator.generate(
-        oe_molecule,
+        molecule,
         ConformerSettings(
             method=method, sampling_mode=sampling_mode, max_conformers=max_conformers
         ),

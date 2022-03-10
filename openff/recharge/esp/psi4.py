@@ -9,10 +9,9 @@ from openff.utilities import get_data_file_path, temporary_cd
 
 from openff.recharge.esp import ESPGenerator, ESPSettings
 from openff.recharge.esp.exceptions import Psi4Error
-from openff.recharge.utilities.openeye import import_oechem
 
 if TYPE_CHECKING:
-    from openeye import oechem
+    from openff.toolkit.topology import Molecule
 
 
 class Psi4ESPGenerator(ESPGenerator):
@@ -23,7 +22,7 @@ class Psi4ESPGenerator(ESPGenerator):
     @classmethod
     def _generate_input(
         cls,
-        oe_molecule: "oechem.OEMol",
+        molecule: "Molecule",
         conformer: unit.Quantity,
         settings: ESPSettings,
     ) -> str:
@@ -31,7 +30,7 @@ class Psi4ESPGenerator(ESPGenerator):
 
         Parameters
         ----------
-        oe_molecule
+        molecule
             The molecule to generate the ESP for.
         conformer
             The conformer of the molecule to generate the ESP for.
@@ -43,16 +42,16 @@ class Psi4ESPGenerator(ESPGenerator):
             The contents of the input file.
         """
 
-        oechem = import_oechem()
+        from simtk import unit as simtk_unit
 
         # Compute the total formal charge on the molecule.
-        formal_charge = sum(atom.GetFormalCharge() for atom in oe_molecule.GetAtoms())
-
-        # Compute the spin multiplicity
-        total_atomic_number = sum(
-            atom.GetAtomicNum() for atom in oe_molecule.GetAtoms()
+        formal_charge = sum(
+            atom.formal_charge.value_in_unit(simtk_unit.elementary_charge)
+            for atom in molecule.atoms
         )
 
+        # Compute the spin multiplicity
+        total_atomic_number = sum(atom.atomic_number for atom in molecule.atoms)
         spin_multiplicity = 1 if (formal_charge + total_atomic_number) % 2 == 0 else 2
 
         # Store the atoms and coordinates in a jinja friendly dict.
@@ -60,12 +59,12 @@ class Psi4ESPGenerator(ESPGenerator):
 
         atoms = [
             {
-                "element": oechem.OEGetAtomicSymbol(atom.GetAtomicNum()),
-                "x": conformer[atom.GetIdx(), 0],
-                "y": conformer[atom.GetIdx(), 1],
-                "z": conformer[atom.GetIdx(), 2],
+                "element": atom.element.symbol,
+                "x": conformer[index, 0],
+                "y": conformer[index, 1],
+                "z": conformer[index, 2],
             }
-            for atom in oe_molecule.GetAtoms()
+            for index, atom in enumerate(molecule.atoms)
         ]
 
         # Format the jinja template
@@ -109,7 +108,7 @@ class Psi4ESPGenerator(ESPGenerator):
     @classmethod
     def _generate(
         cls,
-        oe_molecule: "oechem.OEMol",
+        molecule: "Molecule",
         conformer: unit.Quantity,
         grid: unit.Quantity,
         settings: ESPSettings,
@@ -120,7 +119,7 @@ class Psi4ESPGenerator(ESPGenerator):
         with temporary_cd(directory):
 
             # Store the input file.
-            input_contents = cls._generate_input(oe_molecule, conformer, settings)
+            input_contents = cls._generate_input(molecule, conformer, settings)
 
             with open("input.dat", "w") as file:
                 file.write(input_contents)

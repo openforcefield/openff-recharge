@@ -13,7 +13,7 @@ from openff.recharge.esp.storage.db import (
 )
 from openff.recharge.esp.storage.exceptions import IncompatibleDBVersion
 from openff.recharge.grids import LatticeGridSettings, MSKGridSettings
-from openff.recharge.utilities.openeye import smiles_to_molecule
+from openff.recharge.utilities.molecule import smiles_to_molecule
 
 
 class TestMoleculeESPRecord:
@@ -118,11 +118,11 @@ def test_db_invalid_version(tmp_path):
     assert error_info.value.expected_version == DB_VERSION
 
 
-def test_record_from_oe_mol():
+def test_record_from_molecule():
     """Tests that a ``MoleculeESPRecord`` can be correctly created from
-    an ``OEMol``."""
+    a ``Molecule``."""
 
-    oe_molecule = smiles_to_molecule("C")
+    molecule = smiles_to_molecule("C")
     conformer = numpy.array([[1.0, 0.0, 0.0]])
 
     grid_coordinates = numpy.array([[0.0, 1.0, 0.0]])
@@ -133,8 +133,8 @@ def test_record_from_oe_mol():
         pcm_settings=PCMSettings(), grid_settings=LatticeGridSettings()
     )
 
-    record = MoleculeESPRecord.from_oe_molecule(
-        oe_molecule=oe_molecule,
+    record = MoleculeESPRecord.from_molecule(
+        molecule=molecule,
         conformer=conformer,
         grid_coordinates=grid_coordinates,
         esp=esp,
@@ -346,11 +346,11 @@ def test_retrieve(tmp_path):
     """Tests that records can be retrieved from a store."""
 
     esp_store = MoleculeESPStore(f"{tmp_path}.sqlite")
-    oe_molecule = smiles_to_molecule("C")
+    molecule = smiles_to_molecule("C")
 
     esp_store.store(
-        MoleculeESPRecord.from_oe_molecule(
-            oe_molecule,
+        MoleculeESPRecord.from_molecule(
+            molecule,
             conformer=numpy.array([[index, 0.0, 0.0] for index in range(5)]),
             grid_coordinates=numpy.array([[0.0, 0.0, 0.0]]),
             esp=numpy.array([[0.0]]),
@@ -361,8 +361,8 @@ def test_retrieve(tmp_path):
                 grid_settings=LatticeGridSettings(),
             ),
         ),
-        MoleculeESPRecord.from_oe_molecule(
-            oe_molecule,
+        MoleculeESPRecord.from_molecule(
+            molecule,
             conformer=numpy.array([[index, 0.0, 0.0] for index in range(5)]),
             grid_coordinates=numpy.array([[0.0, 0.0, 0.0]]),
             esp=numpy.array([[0.0]]),
@@ -373,7 +373,7 @@ def test_retrieve(tmp_path):
                 grid_settings=LatticeGridSettings(),
             ),
         ),
-        MoleculeESPRecord.from_oe_molecule(
+        MoleculeESPRecord.from_molecule(
             smiles_to_molecule("CO"),
             conformer=numpy.array([[index, 0.0, 0.0] for index in range(5)]),
             grid_coordinates=numpy.array([[0.0, 0.0, 0.0]]),

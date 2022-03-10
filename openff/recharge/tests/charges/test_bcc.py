@@ -14,7 +14,7 @@ from openff.recharge.charges.bcc import (
 )
 from openff.recharge.charges.exceptions import UnableToAssignChargeError
 from openff.recharge.conformers import ConformerGenerator, ConformerSettings
-from openff.recharge.utilities.openeye import smiles_to_molecule
+from openff.recharge.utilities.molecule import smiles_to_molecule
 
 
 def test_load_original_am1_bcc():
@@ -59,15 +59,15 @@ def test_to_smirnoff():
         for i in range(5)
     ]
 
-    oe_molecule = smiles_to_molecule("C")
+    molecule = smiles_to_molecule("C")
 
     conformers = ConformerGenerator.generate(
-        oe_molecule,
+        molecule,
         ConformerSettings(method="omega", sampling_mode="sparse", max_conformers=1),
     )
 
     expected_charges = ChargeGenerator.generate(
-        oe_molecule, conformers, ChargeSettings()
+        molecule, conformers, ChargeSettings()
     ) + BCCGenerator.generate(smiles_to_molecule("C"), original_am1bcc_corrections())
     numpy.allclose(numpy.round(expected_charges[:, 0], 3), numpy.round(off_charges, 3))
 
@@ -132,7 +132,7 @@ def test_vectorize_collection():
 
 def test_build_assignment_matrix():
 
-    oe_molecule = smiles_to_molecule("C")
+    molecule = smiles_to_molecule("C")
 
     bond_charge_corrections = [
         BCCParameter(smirks="[#6:1]-[#6:2]", value=1.0, provenance={}),
@@ -140,7 +140,7 @@ def test_build_assignment_matrix():
     ]
 
     assignment_matrix = BCCGenerator.build_assignment_matrix(
-        oe_molecule, BCCCollection(parameters=bond_charge_corrections)
+        molecule, BCCCollection(parameters=bond_charge_corrections)
     )
 
     assert assignment_matrix.shape == (5, 2)
@@ -221,10 +221,10 @@ def test_am1_bcc_missing_parameters():
     """Tests that the correct exception is raised when generating partial charges
     for a molecule without conformers and no conformer generator.
     """
-    oe_molecule = smiles_to_molecule("o1cccc1")
+    molecule = smiles_to_molecule("o1cccc1")
 
     with pytest.raises(UnableToAssignChargeError) as error_info:
-        BCCGenerator.generate(oe_molecule, BCCCollection(parameters=[]))
+        BCCGenerator.generate(molecule, BCCCollection(parameters=[]))
 
     assert "could not be assigned a bond charge correction atom type" in str(
         error_info.value
@@ -238,6 +238,6 @@ def test_generate():
     bond_charge_corrections = original_am1bcc_corrections()
 
     # Generate a small molecule
-    oe_molecule = smiles_to_molecule("C")
+    molecule = smiles_to_molecule("C")
 
-    BCCGenerator.generate(oe_molecule, bond_charge_corrections)
+    BCCGenerator.generate(molecule, bond_charge_corrections)

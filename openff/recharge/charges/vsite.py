@@ -1,16 +1,16 @@
 import abc
+import copy
 from collections import defaultdict
 from typing import TYPE_CHECKING, Dict, List, Optional, Tuple, Union, overload
 
 import numpy
 from openff.units import unit
 from openff.utilities import requires_package
-from pydantic import BaseModel, Field, constr
+from pydantic import BaseModel, Field, constr, validator
 from typing_extensions import Literal
 
-from openff.recharge.aromaticity import AromaticityModel, AromaticityModels
+from openff.recharge.aromaticity import AromaticityModels
 from openff.recharge.charges.exceptions import UnableToAssignChargeError
-from openff.recharge.utilities.openeye import import_oechem
 
 if TYPE_CHECKING:
 
@@ -19,7 +19,6 @@ if TYPE_CHECKING:
     except ImportError:
         torch = None
 
-    from openeye.oechem import OEMol
     from openff.toolkit.topology import Molecule
     from openff.toolkit.typing.engines.smirnoff import VirtualSiteHandler
 
@@ -190,6 +189,10 @@ class VirtualSiteCollection(BaseModel):
 
     exclusion_policy: ExclusionPolicy = Field("parents", description="...")
 
+    @validator("aromaticity_model")
+    def validate_aromaticity_model(cls, value):
+        assert value == AromaticityModels.MDL, "only MDL aromaticity model is supported"
+
     @requires_package("openff.toolkit")
     @requires_package("simtk")
     def to_smirnoff(self) -> "VirtualSiteHandler":
@@ -268,6 +271,10 @@ class VirtualSiteCollection(BaseModel):
         """
 
         from simtk import unit
+
+        assert (
+            aromaticity_model == AromaticityModels.MDL
+        ), "only MDL aromaticity model is supported"
 
         parameters = []
 
@@ -398,13 +405,13 @@ class VirtualSiteCollection(BaseModel):
 class VirtualSiteGenerator:
     @classmethod
     def _apply_virtual_sites(
-        cls, oe_molecule: "OEMol", vsite_collection: VirtualSiteCollection
+        cls, molecule: "Molecule", vsite_collection: VirtualSiteCollection
     ) -> Tuple["Molecule", Dict[Tuple[int, ...], List[VirtualSiteKey]]]:
         """Applies a virtual site collection to a molecule.
 
         Parameters
         ----------
-        oe_molecule
+        molecule
             The molecule to build the virtual sites for.
         vsite_collection
             The v-site collection to use to create the virtual sites.
@@ -415,11 +422,9 @@ class VirtualSiteGenerator:
             virtual site back to the parameter that yielded it.
         """
 
-        from openff.toolkit.topology import Molecule
-
         parameter_handler = vsite_collection.to_smirnoff()
 
-        off_topology = Molecule.from_openeye(oe_molecule).to_topology()
+        off_topology = copy.deepcopy(molecule).to_topology()
         parameter_handler.create_openff_virtual_sites(off_topology)
 
         vsite_matches = parameter_handler.find_matches(off_topology)
@@ -499,7 +504,7 @@ class VirtualSiteGenerator:
     @classmethod
     def build_charge_assignment_matrix(
         cls,
-        oe_molecule: "OEMol",
+        molecule: "Molecule",
         vsite_collection: VirtualSiteCollection,
     ) -> numpy.ndarray:
         """Generates a matrix that specifies which v-site charge increments have been
@@ -509,7 +514,7 @@ class VirtualSiteGenerator:
 
         Parameters
         ----------
-        oe_molecule
+        molecule
             The molecule to assign the v-site charge increments to.
         vsite_collection
             The v-site parameters that may be assigned.
@@ -520,15 +525,8 @@ class VirtualSiteGenerator:
             where ...
         """
 
-        oechem = import_oechem()
-
-        # Make a copy of the molecule to assign the aromatic flags to.
-        oe_molecule = oechem.OEMol(oe_molecule)
-        # Assign aromaticity flags to ensure correct smirks matches.
-        AromaticityModel.assign(oe_molecule, vsite_collection.aromaticity_model)
-
         off_molecule, assigned_vsite_keys = cls._apply_virtual_sites(
-            oe_molecule, vsite_collection
+            molecule, vsite_collection
         )
 
         _, all_vsite_keys = cls._build_charge_increment_array(vsite_collection)
@@ -602,14 +600,14 @@ class VirtualSiteGenerator:
     @classmethod
     def generate_charge_increments(
         cls,
-        oe_molecule: "OEMol",
+        molecule: "Molecule",
         vsite_collection: VirtualSiteCollection,
     ) -> numpy.ndarray:
         """Generate a set of charge increments due to virtual sites for a molecule.
 
         Parameters
         ----------
-        oe_molecule
+        molecule
             The molecule to generate the charge increments for.
         vsite_collection
             The virtual site parameters that may be assigned.
@@ -621,7 +619,7 @@ class VirtualSiteGenerator:
         """
 
         assignment_matrix = cls.build_charge_assignment_matrix(
-            oe_molecule, vsite_collection
+            molecule, vsite_collection
         )
 
         generated_corrections = cls.apply_charge_assignment_matrix(
@@ -780,7 +778,7 @@ class VirtualSiteGenerator:
     @classmethod
     def generate_positions(
         cls,
-        oe_molecule: "OEMol",
+        molecule: "Molecule",
         vsite_collection: VirtualSiteCollection,
         conformer: unit.Quantity,
     ) -> unit.Quantity:
@@ -789,7 +787,7 @@ class VirtualSiteGenerator:
 
         Parameters
         ----------
-        oe_molecule
+        molecule
             The molecule to apply virtual sites to.
         vsite_collection
             The virtual site parameters to apply to the molecule
@@ -810,9 +808,7 @@ class VirtualSiteGenerator:
         }
 
         # Extract the values of the assigned parameters.
-        _, assigned_parameter_map = cls._apply_virtual_sites(
-            oe_molecule, vsite_collection
-        )
+        _, assigned_parameter_map = cls._apply_virtual_sites(molecule, vsite_collection)
         assigned_parameters = {
             atom_indices: [vsite_parameters_by_key[key] for key in parameter_keys]
             for atom_indices, parameter_keys in assigned_parameter_map.items()

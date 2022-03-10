@@ -10,7 +10,7 @@ from typing_extensions import Literal
 from openff.recharge.grids import GridGenerator, GridSettingsType
 
 if TYPE_CHECKING:
-    from openeye import oechem
+    from openff.toolkit.topology import Molecule
 
     PositiveFloat = float
 else:
@@ -104,7 +104,7 @@ class ESPGenerator(abc.ABC):
     @abc.abstractmethod
     def _generate(
         cls,
-        oe_molecule: "oechem.OEMol",
+        molecule: "Molecule",
         conformer: unit.Quantity,
         grid: unit.Quantity,
         settings: ESPSettings,
@@ -115,7 +115,7 @@ class ESPGenerator(abc.ABC):
 
         Parameters
         ----------
-        oe_molecule
+        molecule
             The molecule to generate the ESP for.
         conformer
             The conformer of the molecule to generate the ESP for.
@@ -137,7 +137,7 @@ class ESPGenerator(abc.ABC):
     @classmethod
     def generate(
         cls,
-        oe_molecule: "oechem.OEMol",
+        molecule: "Molecule",
         conformer: unit.Quantity,
         settings: ESPSettings,
         directory: str = None,
@@ -147,7 +147,7 @@ class ESPGenerator(abc.ABC):
 
         Parameters
         ----------
-        oe_molecule
+        molecule
             The molecule to generate the ESP for.
         conformer
             The molecule conformer to generate the ESP of.
@@ -168,9 +168,9 @@ class ESPGenerator(abc.ABC):
         if directory is not None and len(directory) > 0:
             os.makedirs(directory, exist_ok=True)
 
-        grid = GridGenerator.generate(oe_molecule, conformer, settings.grid_settings)
+        grid = GridGenerator.generate(molecule, conformer, settings.grid_settings)
         esp, electric_field = cls._generate(
-            oe_molecule, conformer, grid, settings, directory
+            molecule, conformer, grid, settings, directory
         )
 
         return grid, esp, electric_field

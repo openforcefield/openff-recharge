@@ -24,13 +24,14 @@ See the [examples](examples) directory for example scripts to get started with.
 
 The base `openff-recharge` package can be installed using conda as follows:
 
-```
-conda install -c conda-forge -c omnia openff-recharge
+```shell
+conda install -c conda-forge openff-recharge
 ```
 
-Most of the features of the framework currently depend on the OpenEye toolkit:
+If you have access to the OpenEye cheminformatics toolkits we recommend also installing these to speed up 
+certain features such as charge and conformer generation:
 
-```
+```shell
 conda install -c openeye openeye-toolkits
 ``` 
 
@@ -38,15 +39,8 @@ conda install -c openeye openeye-toolkits
 
 ### Optional dependencies
 
-To make the full use of the framework, including the computation of ESP / electric field data and exporting parameters
-to the OpenFF SMIRNOFF format, it is recommended to install the following 
-
-#### [OpenFF Toolkit](https://github.com/openforcefield/openff-toolkit):
-
-```
-# (OPTIONAL) Enable SMIRNOFF and virtual site support.
-conda install -c conda-forge openff-toolkit
-```
+To make the full use of the framework, including the computation of ESP / electric field data, it is recommended to 
+install the following optional dependencies 
 
 #### [Psi4](http://www.psicode.org/)
 

@@ -1,9 +1,9 @@
 name: test
 channels:
+  - psi4
   - conda-forge
   - openeye
   - defaults
-  - psi4
 dependencies:
     # Base depends
   - python
@@ -23,7 +23,7 @@ dependencies:
   - pydantic
   - openff-utilities
   - openff-units
-  - openeye-toolkits
+  - openff-toolkit-base >=0.10.2
 
     # ESP storage
   - sqlalchemy
@@ -34,8 +34,8 @@ dependencies:
 
     ### Optional dependencies.
 
-    # SMIRNOFF + v-site support
-  - openff-toolkit-base >=0.10.2
+  - openeye-toolkits
+  - rdkit
 
     # ESP calculations
   - psi4 >=1.4a3.dev1

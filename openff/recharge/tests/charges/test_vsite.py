@@ -3,7 +3,6 @@ from typing import TYPE_CHECKING
 
 import numpy
 import pytest
-from openff.toolkit.topology import Molecule
 from openff.units import unit
 
 from openff.recharge.charges.exceptions import UnableToAssignChargeError
@@ -16,7 +15,7 @@ from openff.recharge.charges.vsite import (
     VirtualSiteGenerator,
 )
 from openff.recharge.tests import does_not_raise
-from openff.recharge.utilities.openeye import smiles_to_molecule
+from openff.recharge.utilities.molecule import smiles_to_molecule
 
 pytest.importorskip("openff.toolkit")
 
@@ -294,11 +293,9 @@ def test_smirnoff_parity(
 
     from simtk import openmm, unit
 
-    oe_molecule = smiles_to_molecule("N")
+    molecule = smiles_to_molecule("N")
 
-    openmm_system = vsite_force_field.create_openmm_system(
-        Molecule.from_openeye(oe_molecule).to_topology()
-    )
+    openmm_system = vsite_force_field.create_openmm_system(molecule.to_topology())
     openmm_force = [
         force
         for force in openmm_system.getForces()
@@ -315,7 +312,7 @@ def test_smirnoff_parity(
     ).reshape(-1, 1)
 
     recharges = VirtualSiteGenerator.generate_charge_increments(
-        oe_molecule, vsite_collection
+        molecule, vsite_collection
     )
 
     assert openff_charges.shape == recharges.shape
@@ -363,10 +360,10 @@ def test_vectorize_collection_coordinates(vsite_collection):
 
 def test_generator_apply_virtual_sites(vsite_collection):
 
-    oe_molecule = smiles_to_molecule("N")
+    molecule = smiles_to_molecule("N")
 
     molecule, assigned_vsite_keys = VirtualSiteGenerator._apply_virtual_sites(
-        oe_molecule, vsite_collection
+        molecule, vsite_collection
     )
 
     assert molecule.n_virtual_sites == 1
@@ -468,10 +465,10 @@ def test_generator_validate_charge_assignment_matrix(
 )
 def test_generator_charge_assignment_matrix(smiles, expected_matrix, vsite_collection):
 
-    oe_molecule = smiles_to_molecule(smiles)
+    molecule = smiles_to_molecule(smiles)
 
     assignment_matrix = VirtualSiteGenerator.build_charge_assignment_matrix(
-        oe_molecule, vsite_collection
+        molecule, vsite_collection
     )
 
     assert assignment_matrix.shape == expected_matrix.shape
@@ -490,10 +487,10 @@ def test_generator_generate_charge_increments(
     smiles, expected_increments, vsite_collection
 ):
 
-    oe_molecule = smiles_to_molecule(smiles)
+    molecule = smiles_to_molecule(smiles)
 
     actual_increments = VirtualSiteGenerator.generate_charge_increments(
-        oe_molecule, vsite_collection
+        molecule, vsite_collection
     )
 
     assert actual_increments.shape == expected_increments.shape
@@ -580,7 +577,7 @@ def test_generator_convert_local_coordinates(backend):
 
 def test_generator_generate_positions(vsite_collection):
 
-    oe_molecule = smiles_to_molecule("N")
+    molecule = smiles_to_molecule("N")
 
     conformer = (
         numpy.array(
@@ -595,7 +592,7 @@ def test_generator_generate_positions(vsite_collection):
     )
 
     vsite_position = VirtualSiteGenerator.generate_positions(
-        oe_molecule, vsite_collection, conformer
+        molecule, vsite_collection, conformer
     )
 
     assert vsite_position.shape == (1, 3)

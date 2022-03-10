@@ -7,7 +7,7 @@ from pydantic import BaseModel, Field, constr
 from openff.recharge.charges.exceptions import UnableToAssignChargeError
 
 if TYPE_CHECKING:
-    from openeye import oechem
+    from openff.toolkit.topology import Molecule
     from openff.toolkit.typing.engines.smirnoff import LibraryChargeHandler
 
 
@@ -134,7 +134,7 @@ class LibraryChargeGenerator:
     @classmethod
     def build_assignment_matrix(
         cls,
-        oe_molecule: "oechem.OEMol",
+        molecule: "Molecule",
         charge_collection: LibraryChargeCollection,
     ) -> numpy.ndarray:
         """Generates a matrix that specifies which library charge have been
@@ -146,7 +146,7 @@ class LibraryChargeGenerator:
 
         Parameters
         ----------
-        oe_molecule
+        molecule
             The molecule to assign the bond charge corrections to.
         charge_collection
             The library charge parameters that may be assigned.
@@ -160,7 +160,6 @@ class LibraryChargeGenerator:
 
         from openff.toolkit.topology import Molecule
 
-        molecule: Molecule = Molecule.from_openeye(oe_molecule)
         charge_index = 0
 
         n_total_charges = sum(
@@ -227,14 +226,14 @@ class LibraryChargeGenerator:
     @classmethod
     def generate(
         cls,
-        oe_molecule: "oechem.OEMol",
+        molecule: "Molecule",
         charge_collection: LibraryChargeCollection,
     ) -> numpy.ndarray:
         """Generate a set of charge increments for a molecule.
 
         Parameters
         ----------
-        oe_molecule
+        molecule
             The molecule to generate the bond-charge corrections for.
         charge_collection
             The set of library charge parameters which may be assigned.
@@ -246,6 +245,6 @@ class LibraryChargeGenerator:
         """
 
         return cls.apply_assignment_matrix(
-            cls.build_assignment_matrix(oe_molecule, charge_collection),
+            cls.build_assignment_matrix(molecule, charge_collection),
             charge_collection,
         )

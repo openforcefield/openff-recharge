@@ -4,9 +4,7 @@ import pytest
 from openff.recharge.utilities.geometry import (
     compute_inverse_distance_matrix,
     compute_vector_field,
-    reorder_conformer,
 )
-from openff.recharge.utilities.openeye import smiles_to_molecule
 
 try:
     import torch
@@ -55,24 +53,3 @@ def test_compute_vector_field(tensor_type):
 
     assert vector_field.shape == expected_output.shape
     assert numpy.allclose(expected_output, vector_field)
-
-
-def test_reorder_conformer():
-    """Tests that conformers can be correctly re-ordered."""
-
-    # Check the simple case where no re-ordering should occur.
-    oe_molecule = smiles_to_molecule("[C:1]([H:2])([H:3])([H:4])[H:5]")
-    conformer = numpy.array([[index, 0.0, 0.0] for index in range(5)])
-
-    reordered_conformer = reorder_conformer(oe_molecule, conformer)
-    assert numpy.allclose(reordered_conformer, conformer)
-
-    # Check a case where things are actually re-ordered simple case where no
-    # re-ordering should occur.
-    oe_molecule = smiles_to_molecule("[C:5]([H:1])([H:4])([H:2])[H:3]")
-
-    conformer = numpy.array([[index, 0.0, 0.0] for index in range(5)])
-    expected_conformer = conformer[numpy.array([4, 0, 3, 1, 2])]
-
-    reordered_conformer = reorder_conformer(oe_molecule, conformer)
-    assert numpy.allclose(reordered_conformer, expected_conformer)

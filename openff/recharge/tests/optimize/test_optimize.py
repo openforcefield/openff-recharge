@@ -25,7 +25,7 @@ from openff.recharge.optimize import (
     ESPObjectiveTerm,
 )
 from openff.recharge.optimize._optimize import Objective, ObjectiveTerm
-from openff.recharge.utilities.openeye import smiles_to_molecule
+from openff.recharge.utilities.molecule import smiles_to_molecule
 
 try:
     import torch
@@ -40,10 +40,10 @@ BOHR_TO_ANGSTROM = unit.convert(1.0, unit.bohr, unit.angstrom)
 @pytest.fixture()
 def hcl_esp_record() -> MoleculeESPRecord:
 
-    oe_molecule = smiles_to_molecule("[H]Cl")
+    molecule = smiles_to_molecule("[H]Cl")
 
-    return MoleculeESPRecord.from_oe_molecule(
-        oe_molecule,
+    return MoleculeESPRecord.from_molecule(
+        molecule,
         conformer=numpy.array([[-4, 0, 0], [0, 0, 0]]) * BOHR_TO_ANGSTROM,
         grid_coordinates=numpy.array([[-4, 3, 0], [4, 3, 0]]) * BOHR_TO_ANGSTROM,
         esp=numpy.array([[2.0], [2.0]]),
@@ -308,7 +308,7 @@ def test_combine_terms(objective_class, backend, hcl_parameters):
 
     objective_terms_generator = objective_class.compute_objective_terms(
         esp_records=[
-            MoleculeESPRecord.from_oe_molecule(
+            MoleculeESPRecord.from_molecule(
                 smiles_to_molecule("[H]Cl"),
                 conformer=numpy.random.random((2, 3)),
                 grid_coordinates=numpy.random.random((grid_size, 3)),
@@ -354,7 +354,7 @@ def test_combine_terms(objective_class, backend, hcl_parameters):
 
 def test_compute_library_charge_terms():
 
-    oe_molecule = smiles_to_molecule("[H]C#C[H]")
+    molecule = smiles_to_molecule("[H]C#C[H]")
 
     library_charge_collection = LibraryChargeCollection(
         parameters=[
@@ -365,7 +365,7 @@ def test_compute_library_charge_terms():
     )
 
     assignment_matrix, fixed_charges = Objective._compute_library_charge_terms(
-        oe_molecule, library_charge_collection, [("[#1:1][#6:2]#[#6:3][#1:4]", (3, 1))]
+        molecule, library_charge_collection, [("[#1:1][#6:2]#[#6:3][#1:4]", (3, 1))]
     )
 
     assert assignment_matrix.shape == (4, 2)
@@ -379,7 +379,7 @@ def test_compute_library_charge_terms():
 
 def test_compute_bcc_charge_terms():
 
-    oe_molecule = smiles_to_molecule("C#C")
+    molecule = smiles_to_molecule("C#C")
 
     bcc_collection = BCCCollection(
         parameters=[
@@ -389,7 +389,7 @@ def test_compute_bcc_charge_terms():
     )
 
     assignment_matrix, fixed_charges = Objective._compute_bcc_charge_terms(
-        oe_molecule, bcc_collection, ["[#6:1]-[#1:2]"]
+        molecule, bcc_collection, ["[#6:1]-[#1:2]"]
     )
 
     assert assignment_matrix.shape == (4, 1)
@@ -403,7 +403,7 @@ def test_compute_bcc_charge_terms():
 
 def test_compute_vsite_charge_terms():
 
-    oe_molecule = smiles_to_molecule("C#C")
+    molecule = smiles_to_molecule("C#C")
 
     vsite_collection = VirtualSiteCollection(
         parameters=[
@@ -429,7 +429,7 @@ def test_compute_vsite_charge_terms():
     )
 
     assignment_matrix, fixed_charges = Objective._compute_vsite_charge_terms(
-        oe_molecule,
+        molecule,
         vsite_collection,
         [
             ("[#6:1]-[#1:2]", "BondCharge", "EP", 0),
@@ -451,7 +451,7 @@ def test_compute_vsite_charge_terms():
 
 def test_compute_vsite_coord_terms():
 
-    oe_molecule = smiles_to_molecule("C=O")
+    molecule = smiles_to_molecule("C=O")
 
     conformer = numpy.array(
         [
@@ -479,7 +479,7 @@ def test_compute_vsite_coord_terms():
     )
 
     assignment_matrix, fixed_coords, local_frame = Objective._compute_vsite_coord_terms(
-        oe_molecule,
+        molecule,
         conformer,
         vsite_collection,
         [

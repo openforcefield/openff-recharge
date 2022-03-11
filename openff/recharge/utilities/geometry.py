@@ -6,7 +6,6 @@ from openff.recharge.utilities.tensors import inverse_cdist, pairwise_difference
 
 if TYPE_CHECKING:
     import torch
-    from openeye import oechem
 
 
 @overload
@@ -93,21 +92,3 @@ def compute_vector_field(points_a, points_b):
         return directions * inverse_distances_3.T[:, None, :]
     else:
         return directions * inverse_distances_3.transpose(0, 1)[:, None, :]
-
-
-def reorder_conformer(
-    oe_molecule: "oechem.OEMol", conformer: numpy.ndarray
-) -> numpy.ndarray:
-    """Reorder a conformer to match the ordering of the atoms
-    in a molecule. The map index on each atom in the molecule
-    should match the original orderings of the atoms for which
-    the conformer was generated."""
-
-    index_map = {atom.GetIdx(): atom.GetMapIdx() for atom in oe_molecule.GetAtoms()}
-
-    indices = numpy.array(
-        [index_map[index] - 1 for index in range(oe_molecule.NumAtoms())]
-    )
-
-    reordered_conformer = conformer[indices]
-    return reordered_conformer

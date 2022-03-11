@@ -30,9 +30,9 @@ jobs:
 
       - name: Run isort
         run: |
-          isort --recursive --check-only openff
-          isort --recursive --check-only examples
-          isort --recursive --check-only scripts
+          isort --check-only openff
+          isort --check-only examples
+          isort --check-only scripts
 
       - name: Run black
         run: |

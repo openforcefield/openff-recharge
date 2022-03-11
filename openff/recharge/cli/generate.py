@@ -6,14 +6,12 @@ from typing import List
 
 import click
 
-from openff.recharge.charges.exceptions import OEQuacpacError
 from openff.recharge.conformers import ConformerGenerator, ConformerSettings
-from openff.recharge.conformers.exceptions import OEOmegaError
 from openff.recharge.esp import ESPSettings
 from openff.recharge.esp.exceptions import Psi4Error
 from openff.recharge.esp.psi4 import Psi4ESPGenerator
 from openff.recharge.esp.storage import MoleculeESPRecord, MoleculeESPStore
-from openff.recharge.utilities.openeye import smiles_to_molecule
+from openff.recharge.utilities.molecule import smiles_to_molecule
 
 
 def _compute_esp(
@@ -34,12 +32,12 @@ def _compute_esp(
     _logger = logging.getLogger(__name__)
     _logger.info(f"Processing {smiles}")
 
-    oe_molecule = smiles_to_molecule(smiles)
+    molecule = smiles_to_molecule(smiles)
 
     # Generate a set of conformers for the molecule.
     try:
-        conformers = ConformerGenerator.generate(oe_molecule, conformer_settings)
-    except (OEOmegaError, OEQuacpacError):
+        conformers = ConformerGenerator.generate(molecule, conformer_settings)
+    except BaseException:
         _logger.exception(f"Coordinates could not be generated for {smiles}.")
         return []
 
@@ -49,15 +47,15 @@ def _compute_esp(
 
         try:
             grid_coordinates, esp, electric_field = Psi4ESPGenerator.generate(
-                oe_molecule, conformer, settings
+                molecule, conformer, settings
             )
         except Psi4Error:
             _logger.exception(f"Psi4 failed to run for conformer {index} of {smiles}.")
             continue
 
         esp_records.append(
-            MoleculeESPRecord.from_oe_molecule(
-                oe_molecule, conformer, grid_coordinates, esp, electric_field, settings
+            MoleculeESPRecord.from_molecule(
+                molecule, conformer, grid_coordinates, esp, electric_field, settings
             )
         )
 

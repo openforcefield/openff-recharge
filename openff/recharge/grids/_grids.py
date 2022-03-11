@@ -7,11 +7,11 @@ from openff.units import unit
 from pydantic import BaseModel, Field
 from typing_extensions import Literal
 
-from openff.recharge.utilities.openeye import import_oechem
 from openff.recharge.utilities.pydantic import wrapped_float_validator
+from openff.recharge.utilities.toolkits import VdWRadiiType, compute_vdw_radii
 
 if TYPE_CHECKING:
-    from openeye import oechem
+    from openff.toolkit.topology import Molecule
 
     PositiveFloat = float
 else:
@@ -284,7 +284,7 @@ class GridGenerator:
     @classmethod
     def generate(
         cls,
-        oe_molecule: "oechem.OEMol",
+        molecule: "Molecule",
         conformer: unit.Quantity,
         settings: GridSettingsType,
     ) -> unit.Quantity:
@@ -293,7 +293,7 @@ class GridGenerator:
 
         Parameters
         ----------
-        oe_molecule
+        molecule
             The molecule to generate the grid around.
         conformer
             The conformer of the molecule with shape=(n_atoms, 3).
@@ -306,26 +306,15 @@ class GridGenerator:
             The coordinates of the grid with shape=(n_grid_points, 3).
         """
 
-        oechem = import_oechem()
-
         conformer = conformer.to(unit.angstrom).m
 
-        # Only operate on a copy of the molecule.
-        oe_molecule = oechem.OEMol(oe_molecule)
-        # Assign a radius to each atom in the molecule.
-        oechem.OEAssignBondiVdWRadii(oe_molecule)
-
-        # Store the radii in a numpy array.
-        oe_atoms = {atom.GetIdx(): atom for atom in oe_molecule.GetAtoms()}
-
-        radii = numpy.array(
-            [[oe_atoms[index].GetRadius()] for index in range(oe_molecule.NumAtoms())]
-        )
+        vdw_radii = compute_vdw_radii(molecule, radii_type=VdWRadiiType.Bondi)
+        radii_array = numpy.array([[radii] for radii in vdw_radii.m_as(unit.angstrom)])
 
         if isinstance(settings, LatticeGridSettings):
-            coordinates = cls._generate_lattice(conformer, radii, settings)
+            coordinates = cls._generate_lattice(conformer, radii_array, settings)
         elif isinstance(settings, MSKGridSettings):
-            coordinates = cls._generate_msk_shells(conformer, radii, settings)
+            coordinates = cls._generate_msk_shells(conformer, radii_array, settings)
         else:
             raise NotImplementedError()
 

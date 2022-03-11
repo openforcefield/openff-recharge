@@ -1,5 +1,6 @@
 import numpy
 import torch
+from openff.toolkit.topology import Molecule
 
 from openff.recharge.charges import ChargeSettings
 from openff.recharge.charges.bcc import BCCCollection, BCCParameter
@@ -13,7 +14,6 @@ from openff.recharge.esp.psi4 import Psi4ESPGenerator
 from openff.recharge.esp.storage import MoleculeESPRecord
 from openff.recharge.grids import LatticeGridSettings
 from openff.recharge.optimize import ESPObjective
-from openff.recharge.utilities.openeye import smiles_to_molecule
 from openff.recharge.utilities.tensors import to_torch
 
 
@@ -27,10 +27,10 @@ def main():
 
     # Load in the molecule of interest and generate a set of reference QC data to train
     # against.
-    oe_molecule = smiles_to_molecule("c1ccncc1")
+    molecule = Molecule.from_smiles("c1ccncc1")
 
     conformer = ConformerGenerator.generate(
-        oe_molecule, ConformerSettings(max_conformers=1)
+        molecule, ConformerSettings(max_conformers=1)
     )[0]
 
     esp_settings = ESPSettings(
@@ -38,10 +38,10 @@ def main():
     )
 
     grid, esp, electric_field = Psi4ESPGenerator.generate(
-        oe_molecule=oe_molecule, conformer=conformer, settings=esp_settings
+        molecule=molecule, conformer=conformer, settings=esp_settings
     )
-    esp_record = MoleculeESPRecord.from_oe_molecule(
-        oe_molecule, conformer, grid, esp, electric_field, esp_settings
+    esp_record = MoleculeESPRecord.from_molecule(
+        molecule, conformer, grid, esp, electric_field, esp_settings
     )
 
     # Define the parameters to train
@@ -69,7 +69,8 @@ def main():
         ]
     )
     vsite_charge_parameter_keys = [
-        # Only train the nitrogen-vsite charge increment.
+        # Only train the nitrogen-vsite charge increment by specifying 1 as the index
+        # into the `charge_increments` field.
         ("[#6r6:1]@[#7r6:2]@[#6r6:3]", "DivalentLonePair", "EP", 1)
     ]
     vsite_coordinate_parameter_keys = [

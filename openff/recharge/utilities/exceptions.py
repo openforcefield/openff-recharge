@@ -6,39 +6,6 @@ class RechargeException(BaseException):
     """The base exception from which most custom exceptions should inherit."""
 
 
-class MoleculeFromSMILESError(RechargeException):
-    """An exception raised when attempting to create a molecule from a
-    SMILES pattern."""
-
-    def __init__(self, *args, smiles: str, **kwargs):
-        """
-
-        Parameters
-        ----------
-        smiles
-            The SMILES pattern which could not be parsed.
-        """
-
-        super(MoleculeFromSMILESError, self).__init__(*args, **kwargs)
-        self.smiles = smiles
-
-
-class InvalidSMIRKSError(RechargeException):
-    """An exception raised when an invalid SMIRKS pattern is provided."""
-
-    def __init__(self, *args, smirks: str, **kwargs):
-        """
-
-        Parameters
-        ----------
-        smirks
-            The SMIRKS pattern which could not be parsed.
-        """
-
-        super(InvalidSMIRKSError, self).__init__(*args, **kwargs)
-        self.smirks = smirks
-
-
 class UnsupportedSMIRNOFFBCCError(RechargeException, abc.ABC):
     """The base error for when a SMIRNOFF charge increment parameter
     cannot be mapped onto a bond charge correction parameter.

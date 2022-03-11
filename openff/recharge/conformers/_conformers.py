@@ -2,22 +2,15 @@
 import logging
 from typing import TYPE_CHECKING, List, Optional
 
+import numpy
 from openff.units import unit
 from pydantic import BaseModel, Field
 from typing_extensions import Literal
 
-from openff.recharge.charges.exceptions import OEQuacpacError
-from openff.recharge.conformers.exceptions import OEOmegaError
-from openff.recharge.utilities.openeye import (
-    call_openeye,
-    import_oechem,
-    import_oeomega,
-    import_oequacpac,
-    molecule_to_conformers,
-)
+from openff.recharge.conformers.exceptions import ConformerGenerationError
 
 if TYPE_CHECKING:
-    from openeye import oechem
+    from openff.toolkit.topology import Molecule
 
 _logger = logging.getLogger()
 
@@ -45,33 +38,16 @@ class ConformerGenerator:
     """
 
     @classmethod
-    def generate(
+    def _generate_omega_conformers(
         cls,
-        oe_molecule: "oechem.OEMol",
+        molecule: "Molecule",
         settings: ConformerSettings,
     ) -> List[unit.Quantity]:
-        """Generates a set of conformers for a given molecule.
 
-        Notes
-        -----
-        * All operations are performed on a copy of the original molecule so that it
-        will not be mutated by this function.
+        oe_molecule = molecule.to_openeye()
 
-        Parameters
-        ----------
-        oe_molecule
-            The molecule to generate conformers for.
-        settings
-            The settings to generate the conformers according to.
-        """
+        from openeye import oeomega, oequacpac
 
-        oechem = import_oechem()
-        oeomega = import_oeomega()
-        oequacpac = import_oequacpac()
-
-        oe_molecule = oechem.OEMol(oe_molecule)
-
-        # Enable dense sampling of conformers
         if settings.sampling_mode == "sparse":
             omega_options = oeomega.OEOmegaOptions(oeomega.OEOmegaSampling_Sparse)
         elif settings.sampling_mode == "dense":
@@ -83,23 +59,59 @@ class ConformerGenerator:
         omega.SetIncludeInput(False)
         omega.SetCanonOrder(False)
 
-        call_openeye(omega, oe_molecule, exception_type=OEOmegaError)
+        if not omega(oe_molecule):
+            raise ConformerGenerationError("Failed to generate conformers using OMEGA")
 
         if settings.method == "omega-elf10":
 
             # Select a subset of the OMEGA generated conformers using the ELF10 method.
-            charge_engine = oequacpac.OEELFCharges(
-                oequacpac.OEAM1BCCCharges(), 10, 2.0, True
-            )
+            oe_elf_options = oequacpac.OEELFOptions()
+            oe_elf_options.SetElfLimit(10)
+            oe_elf_options.SetPercent(2.0)
 
-            call_openeye(
-                oequacpac.OEAssignCharges,
-                oe_molecule,
-                charge_engine,
-                exception_type=OEQuacpacError,
-            )
+            oe_elf = oequacpac.OEELF(oe_elf_options)
 
-        conformers = molecule_to_conformers(oe_molecule)
+            if not oe_elf.Select(oe_molecule):
+                raise ConformerGenerationError("ELF10 conformer selection failed")
+
+        conformers = []
+
+        for oe_conformer in oe_molecule.GetConfs():
+
+            conformer = numpy.zeros((oe_molecule.NumAtoms(), 3))
+
+            for atom_index, coordinates in oe_conformer.GetCoords().items():
+                conformer[atom_index, :] = coordinates
+
+            conformers.append(conformer * unit.angstrom)
+
+        return conformers
+
+    @classmethod
+    def generate(
+        cls,
+        molecule: "Molecule",
+        settings: ConformerSettings,
+    ) -> List[unit.Quantity]:
+        """Generates a set of conformers for a given molecule.
+
+        Notes
+        -----
+        * All operations are performed on a copy of the original molecule so that it
+        will not be mutated by this function.
+
+        Parameters
+        ----------
+        molecule
+            The molecule to generate conformers for.
+        settings
+            The settings to generate the conformers according to.
+        """
+
+        if "omega" in settings.method:
+            conformers = cls._generate_omega_conformers(molecule, settings)
+        else:
+            raise NotImplementedError()
 
         if settings.max_conformers:
             conformers = conformers[0 : min(settings.max_conformers, len(conformers))]

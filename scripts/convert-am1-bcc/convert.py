@@ -16,8 +16,6 @@ import pandas
 from openeye import oechem
 
 from openff.recharge.charges.bcc import BCCParameter
-from openff.recharge.utilities.exceptions import InvalidSmirksError
-from openff.recharge.utilities.openeye import call_openeye
 
 logging.basicConfig()
 logger = logging.getLogger(__name__)
@@ -79,13 +77,7 @@ def build_bond_charge_corrections(
 
         # Validate the smirks
         query = oechem.OEQMol()
-        call_openeye(
-            oechem.OEParseSmarts,
-            query,
-            smirks,
-            exception_type=InvalidSmirksError,
-            exception_kwargs={"smirks": smirks},
-        )
+        assert oechem.OEParseSmarts(query, smirks)
 
         value = bcc_overrides.get(code, bcc_row["BCC"])
 

@@ -11,16 +11,17 @@ from pydantic import BaseModel, Field, constr
 
 from openff.recharge.aromaticity import AromaticityModel, AromaticityModels
 from openff.recharge.charges import ChargeGenerator, ChargeSettings
-from openff.recharge.charges.exceptions import UnableToAssignChargeError
+from openff.recharge.charges.exceptions import ChargeAssignmentError
 from openff.recharge.conformers import ConformerGenerator, ConformerSettings
 from openff.recharge.utilities.exceptions import (
     UnsupportedBCCSmirksError,
     UnsupportedBCCValueError,
 )
-from openff.recharge.utilities.openeye import import_oechem, match_smirks
+from openff.recharge.utilities.toolkits import match_smirks
 
 if TYPE_CHECKING:
-    from openeye import oechem
+
+    from openff.toolkit.topology import Molecule
     from openff.toolkit.typing.engines.smirnoff.parameters import (
         ChargeIncrementModelHandler,
     )
@@ -55,8 +56,6 @@ class BCCCollection(BaseModel):
         description="The model to use when assigning aromaticity.",
     )
 
-    @requires_package("openff.toolkit")
-    @requires_package("simtk")
     def to_smirnoff(self) -> "ChargeIncrementModelHandler":
         """Converts this collection of bond charge correction parameters to
         a SMIRNOFF bond charge increment parameter handler.
@@ -192,7 +191,7 @@ class BCCGenerator:
     @classmethod
     def _validate_assignment_matrix(
         cls,
-        oe_molecule: "oechem.OEMol",
+        molecule: "Molecule",
         assignment_matrix: numpy.ndarray,
         bcc_counts_matrix: numpy.ndarray,
         bcc_collection: BCCCollection,
@@ -201,7 +200,7 @@ class BCCGenerator:
 
         Parameters
         ----------
-        oe_molecule
+        molecule
             The molecule which the assignment matrix was generated
             for.
         assignment_matrix
@@ -216,14 +215,14 @@ class BCCGenerator:
         """
 
         # Check for unassigned atoms
-        n_atoms = len(list(oe_molecule.GetAtoms()))
+        n_atoms = molecule.n_atoms
 
         unassigned_atoms = numpy.where(~bcc_counts_matrix[:n_atoms].any(axis=1))[0]
 
         if len(unassigned_atoms) > 0:
             unassigned_atom_string = ", ".join(map(str, unassigned_atoms))
 
-            raise UnableToAssignChargeError(
+            raise ChargeAssignmentError(
                 f"Atoms {unassigned_atom_string} could not be assigned a bond "
                 f"charge correction atom type."
             )
@@ -238,7 +237,7 @@ class BCCGenerator:
                 for index in non_zero_assignments
             ]
 
-            raise UnableToAssignChargeError(
+            raise ChargeAssignmentError(
                 f"An internal error occurred. The {correction_smirks} were applied in "
                 f"such a way so that the bond charge corrections alter the total "
                 f"charge of the molecule"
@@ -246,12 +245,11 @@ class BCCGenerator:
 
         # Ensure all bonds have been assigned a BCC.
         n_assignments = bcc_counts_matrix.sum(axis=1)
-        atoms = {atom.GetIdx(): atom for atom in oe_molecule.GetAtoms()}
 
         unassigned_atoms = {
-            index: (len([*atoms[index].GetBonds()]), n_assignments[index])
-            for index in range(len(atoms))
-            if len([*atoms[index].GetBonds()]) != n_assignments[index]
+            index: (len(atom.bonds), n_assignments[index])
+            for index, atom in enumerate(molecule.atoms)
+            if len(atom.bonds) != n_assignments[index]
         }
 
         if len(unassigned_atoms) > 0:
@@ -263,7 +261,7 @@ class BCCGenerator:
                 ]
             )
 
-            raise UnableToAssignChargeError(
+            raise ChargeAssignmentError(
                 f"Bond charge corrections could not be applied to all bonds in the "
                 f"molecule:\n\n{unassigned_atom_string}"
             )
@@ -271,7 +269,7 @@ class BCCGenerator:
     @classmethod
     def build_assignment_matrix(
         cls,
-        oe_molecule: "oechem.OEMol",
+        molecule: "Molecule",
         bcc_collection: BCCCollection,
     ) -> numpy.ndarray:
         """Generates a matrix that specifies which bond charge corrections have been
@@ -284,7 +282,7 @@ class BCCGenerator:
 
         Parameters
         ----------
-        oe_molecule
+        molecule
             The molecule to assign the bond charge corrections to.
         bcc_collection
             The bond charge correction parameters that may be assigned.
@@ -297,19 +295,18 @@ class BCCGenerator:
             to apply.
         """
 
-        oechem = import_oechem()
-
-        # Make a copy of the molecule to assign the aromatic flags to.
-        oe_molecule = oechem.OEMol(oe_molecule)
-        # Assign aromaticity flags to ensure correct smirks matches.
-        AromaticityModel.assign(oe_molecule, bcc_collection.aromaticity_model)
+        is_atom_aromatic, is_bond_aromatic = AromaticityModel.apply(
+            molecule, bcc_collection.aromaticity_model
+        )
 
         bond_charge_corrections = bcc_collection.parameters
 
-        atoms = {atom.GetIdx(): atom for atom in oe_molecule.GetAtoms()}
-
-        assignment_matrix = numpy.zeros((len(atoms), len(bond_charge_corrections)))
-        bcc_counts_matrix = numpy.zeros((len(atoms), len(bond_charge_corrections)))
+        assignment_matrix = numpy.zeros(
+            (molecule.n_atoms, len(bond_charge_corrections))
+        )
+        bcc_counts_matrix = numpy.zeros(
+            (molecule.n_atoms, len(bond_charge_corrections))
+        )
 
         matched_bonds = set()
 
@@ -317,7 +314,13 @@ class BCCGenerator:
 
             bond_correction = bond_charge_corrections[index]
 
-            matches = match_smirks(bond_correction.smirks, oe_molecule, False)
+            matches = match_smirks(
+                bond_correction.smirks,
+                molecule,
+                is_atom_aromatic,
+                is_bond_aromatic,
+                False,
+            )
 
             for matched_indices in matches:
 
@@ -341,7 +344,7 @@ class BCCGenerator:
 
         # Validate the assignments
         cls._validate_assignment_matrix(
-            oe_molecule, assignment_matrix, bcc_counts_matrix, bcc_collection
+            molecule, assignment_matrix, bcc_counts_matrix, bcc_collection
         )
 
         return assignment_matrix
@@ -382,7 +385,7 @@ class BCCGenerator:
 
         if not numpy.isclose(charge_corrections.sum(), 0.0):
 
-            raise UnableToAssignChargeError(
+            raise ChargeAssignmentError(
                 "An internal error occurred. The bond charge corrections were applied "
                 "in such a way so that the total charge of the molecule will be "
                 "altered."
@@ -393,7 +396,7 @@ class BCCGenerator:
     @classmethod
     def applied_corrections(
         cls,
-        *oe_molecules: "oechem.OEMol",
+        *molecules: "Molecule",
         bcc_collection: BCCCollection,
     ) -> List[BCCParameter]:
         """Returns the bond charge corrections which will be applied
@@ -401,7 +404,7 @@ class BCCGenerator:
 
         Parameters
         ----------
-        oe_molecules
+        molecules
             The molecule which the bond charge corrections would be applied to.
         bcc_collection
             The bond charge correction parameters which may be assigned.
@@ -409,9 +412,9 @@ class BCCGenerator:
 
         applied_corrections = []
 
-        for oe_molecule in oe_molecules:
+        for molecule in molecules:
 
-            assignment_matrix = cls.build_assignment_matrix(oe_molecule, bcc_collection)
+            assignment_matrix = cls.build_assignment_matrix(molecule, bcc_collection)
             applied_correction_indices = numpy.where(assignment_matrix.any(axis=0))[0]
 
             applied_corrections.extend(
@@ -426,14 +429,14 @@ class BCCGenerator:
     @classmethod
     def generate(
         cls,
-        oe_molecule: "oechem.OEMol",
+        molecule: "Molecule",
         bcc_collection: BCCCollection,
     ) -> numpy.ndarray:
         """Generate a set of charge increments for a molecule.
 
         Parameters
         ----------
-        oe_molecule
+        molecule
             The molecule to generate the bond-charge corrections for.
         bcc_collection
             The bond charge correction parameters which may be assigned.
@@ -444,7 +447,7 @@ class BCCGenerator:
             molecule.
         """
 
-        assignment_matrix = cls.build_assignment_matrix(oe_molecule, bcc_collection)
+        assignment_matrix = cls.build_assignment_matrix(molecule, bcc_collection)
 
         generated_corrections = cls.apply_assignment_matrix(
             assignment_matrix, bcc_collection
@@ -480,7 +483,7 @@ def original_am1bcc_corrections() -> BCCCollection:
     )
 
 
-def compare_openeye_parity(oe_molecule: "oechem.OEMol") -> bool:
+def compare_openeye_parity(molecule: "Molecule") -> bool:
     """A utility function to compute the bond charge corrections
     on a molecule using both the internal AM1BCC implementation,
     and the OpenEye AM1BCC implementation.
@@ -490,7 +493,7 @@ def compare_openeye_parity(oe_molecule: "oechem.OEMol") -> bool:
 
     Parameters
     ----------
-    oe_molecule
+    molecule
         The molecule to compute the charges of.
 
     Returns
@@ -503,20 +506,20 @@ def compare_openeye_parity(oe_molecule: "oechem.OEMol") -> bool:
 
     # Generate a conformer for the molecule.
     conformers = ConformerGenerator.generate(
-        oe_molecule,
+        molecule,
         ConformerSettings(method="omega", sampling_mode="sparse", max_conformers=1),
     )
 
     # Generate a set of reference charges using the OpenEye implementation
     reference_charges = ChargeGenerator.generate(
-        oe_molecule,
+        molecule,
         conformers,
         ChargeSettings(theory="am1bcc", symmetrize=False, optimize=False),
     )
 
     # Generate a set of charges using this frameworks functions
     am1_charges = ChargeGenerator.generate(
-        oe_molecule,
+        molecule,
         conformers,
         ChargeSettings(theory="am1", symmetrize=False, optimize=False),
     )
@@ -526,7 +529,7 @@ def compare_openeye_parity(oe_molecule: "oechem.OEMol") -> bool:
 
     # Compute the internal BCCs
     assignment_matrix = BCCGenerator.build_assignment_matrix(
-        oe_molecule, bond_charge_corrections
+        molecule, bond_charge_corrections
     )
     charge_corrections = BCCGenerator.apply_assignment_matrix(
         assignment_matrix, bond_charge_corrections
@@ -534,8 +537,7 @@ def compare_openeye_parity(oe_molecule: "oechem.OEMol") -> bool:
 
     implementation_charges = am1_charges + charge_corrections
 
-    # Check that their is no difference between the implemented and
-    # reference charges.
+    # Check that there is no difference between the implemented and reference charges.
     return numpy.allclose(reference_charges, implementation_charges) and numpy.allclose(
         charge_corrections, reference_charge_corrections
     )

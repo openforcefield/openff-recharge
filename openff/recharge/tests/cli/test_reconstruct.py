@@ -10,7 +10,7 @@ from openff.recharge.cli.reconstruct import reconstruct as reconstruct_cli
 from openff.recharge.esp import ESPSettings
 from openff.recharge.esp.storage import MoleculeESPRecord, MoleculeESPStore
 from openff.recharge.grids import LatticeGridSettings
-from openff.recharge.utilities.openeye import smiles_to_molecule
+from openff.recharge.utilities.molecule import smiles_to_molecule
 
 
 def test_retrieve_result_records():
@@ -33,7 +33,7 @@ def test_reconstruct(runner, monkeypatch):
     # Mock the multiprocessing call to return a dummy ESP record for a faster test.
     def mock_imap(_, func, iterable):
         return [
-            MoleculeESPRecord.from_oe_molecule(
+            MoleculeESPRecord.from_molecule(
                 smiles_to_molecule("O"),
                 conformer=numpy.zeros((3, 3)),
                 grid_coordinates=numpy.zeros((1, 3)),

@@ -1,8 +1,5 @@
-import sys
-
 import numpy
 import pytest
-from openff.utilities.exceptions import MissingOptionalDependency
 
 from openff.recharge.charges import ChargeGenerator, ChargeSettings
 from openff.recharge.charges.bcc import (
@@ -12,9 +9,9 @@ from openff.recharge.charges.bcc import (
     compare_openeye_parity,
     original_am1bcc_corrections,
 )
-from openff.recharge.charges.exceptions import UnableToAssignChargeError
+from openff.recharge.charges.exceptions import ChargeAssignmentError
 from openff.recharge.conformers import ConformerGenerator, ConformerSettings
-from openff.recharge.utilities.openeye import smiles_to_molecule
+from openff.recharge.utilities.molecule import smiles_to_molecule
 
 
 def test_load_original_am1_bcc():
@@ -59,27 +56,17 @@ def test_to_smirnoff():
         for i in range(5)
     ]
 
-    oe_molecule = smiles_to_molecule("C")
+    molecule = smiles_to_molecule("C")
 
     conformers = ConformerGenerator.generate(
-        oe_molecule,
+        molecule,
         ConformerSettings(method="omega", sampling_mode="sparse", max_conformers=1),
     )
 
     expected_charges = ChargeGenerator.generate(
-        oe_molecule, conformers, ChargeSettings()
+        molecule, conformers, ChargeSettings()
     ) + BCCGenerator.generate(smiles_to_molecule("C"), original_am1bcc_corrections())
     numpy.allclose(numpy.round(expected_charges[:, 0], 3), numpy.round(off_charges, 3))
-
-
-def test_to_smirnoff_missing_dependency(monkeypatch):
-    """Test that the correct custom exception is raised when the
-    OpenFF toolkit cannot be imported."""
-
-    monkeypatch.setitem(sys.modules, "openff.toolkit", None)
-
-    with pytest.raises(MissingOptionalDependency):
-        original_am1bcc_corrections().to_smirnoff()
 
 
 def test_from_smirnoff():
@@ -132,7 +119,7 @@ def test_vectorize_collection():
 
 def test_build_assignment_matrix():
 
-    oe_molecule = smiles_to_molecule("C")
+    molecule = smiles_to_molecule("C")
 
     bond_charge_corrections = [
         BCCParameter(smirks="[#6:1]-[#6:2]", value=1.0, provenance={}),
@@ -140,7 +127,7 @@ def test_build_assignment_matrix():
     ]
 
     assignment_matrix = BCCGenerator.build_assignment_matrix(
-        oe_molecule, BCCCollection(parameters=bond_charge_corrections)
+        molecule, BCCCollection(parameters=bond_charge_corrections)
     )
 
     assert assignment_matrix.shape == (5, 2)
@@ -206,7 +193,7 @@ def test_apply_assignment():
     # Test with invalid BCCs
     settings.parameters[0].value = 1.0
 
-    with pytest.raises(UnableToAssignChargeError) as error_info:
+    with pytest.raises(ChargeAssignmentError) as error_info:
         BCCGenerator.apply_assignment_matrix(assignment_matrix, settings)
 
     assert "the total charge of the molecule will be altered." in str(error_info.value)
@@ -221,10 +208,10 @@ def test_am1_bcc_missing_parameters():
     """Tests that the correct exception is raised when generating partial charges
     for a molecule without conformers and no conformer generator.
     """
-    oe_molecule = smiles_to_molecule("o1cccc1")
+    molecule = smiles_to_molecule("o1cccc1")
 
-    with pytest.raises(UnableToAssignChargeError) as error_info:
-        BCCGenerator.generate(oe_molecule, BCCCollection(parameters=[]))
+    with pytest.raises(ChargeAssignmentError) as error_info:
+        BCCGenerator.generate(molecule, BCCCollection(parameters=[]))
 
     assert "could not be assigned a bond charge correction atom type" in str(
         error_info.value
@@ -238,6 +225,6 @@ def test_generate():
     bond_charge_corrections = original_am1bcc_corrections()
 
     # Generate a small molecule
-    oe_molecule = smiles_to_molecule("C")
+    molecule = smiles_to_molecule("C")
 
-    BCCGenerator.generate(oe_molecule, bond_charge_corrections)
+    BCCGenerator.generate(molecule, bond_charge_corrections)

@@ -1,3 +1,4 @@
+"""Geometry centric functions such as computing pairwise distances"""
 from typing import TYPE_CHECKING, overload
 
 import numpy

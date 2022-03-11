@@ -16,45 +16,13 @@ when using it in production work.*
 
 ## Getting Started
 
-See the [examples](examples) directory for example scripts to get started with.
+To start using this framework we recommend looking over [the documentation](https://openff-recharge.readthedocs.io/en/latest/index.html),
+especially the [installation](https://openff-recharge.readthedocs.io/en/latest/getting-started/installation.html) and 
+[quick start](https://openff-recharge.readthedocs.io/en/latest/getting-started/quick-start.html) guides.
 
-## Installation
+## License
 
-### Conda installation
-
-The base `openff-recharge` package can be installed using conda as follows:
-
-```shell
-conda install -c conda-forge openff-recharge
-```
-
-If you have access to the OpenEye cheminformatics toolkits we recommend also installing these to speed up 
-certain features such as charge and conformer generation:
-
-```shell
-conda install -c openeye openeye-toolkits
-``` 
-
-***Note:** The OpenEye dependency will be removed in future versions of the framework.*
-
-### Optional dependencies
-
-To make the full use of the framework, including the computation of ESP / electric field data, it is recommended to 
-install the following optional dependencies 
-
-#### [Psi4](http://www.psicode.org/)
-
-```
-# (OPTIONAL) Enable ESP and field computation and reconstruction.
-conda install -c defaults -c psi4 "psi4 >=1.4"
-```
-
-#### [QCPortal](https://github.com/MolSSI/QCPortal)
-
-```
-# (OPTIONAL) Enable reconstructing ESP and field data from QCArchive.
-conda install -c conda-forge qcportal
-```
+The main package is release under the [MIT license](LICENSE). 
 
 ## Copyright
 

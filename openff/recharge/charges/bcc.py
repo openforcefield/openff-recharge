@@ -11,7 +11,7 @@ from pydantic import BaseModel, Field, constr
 
 from openff.recharge.aromaticity import AromaticityModel, AromaticityModels
 from openff.recharge.charges import ChargeGenerator, ChargeSettings
-from openff.recharge.charges.exceptions import UnableToAssignChargeError
+from openff.recharge.charges.exceptions import ChargeAssignmentError
 from openff.recharge.conformers import ConformerGenerator, ConformerSettings
 from openff.recharge.utilities.exceptions import (
     UnsupportedBCCSmirksError,
@@ -222,7 +222,7 @@ class BCCGenerator:
         if len(unassigned_atoms) > 0:
             unassigned_atom_string = ", ".join(map(str, unassigned_atoms))
 
-            raise UnableToAssignChargeError(
+            raise ChargeAssignmentError(
                 f"Atoms {unassigned_atom_string} could not be assigned a bond "
                 f"charge correction atom type."
             )
@@ -237,7 +237,7 @@ class BCCGenerator:
                 for index in non_zero_assignments
             ]
 
-            raise UnableToAssignChargeError(
+            raise ChargeAssignmentError(
                 f"An internal error occurred. The {correction_smirks} were applied in "
                 f"such a way so that the bond charge corrections alter the total "
                 f"charge of the molecule"
@@ -261,7 +261,7 @@ class BCCGenerator:
                 ]
             )
 
-            raise UnableToAssignChargeError(
+            raise ChargeAssignmentError(
                 f"Bond charge corrections could not be applied to all bonds in the "
                 f"molecule:\n\n{unassigned_atom_string}"
             )
@@ -385,7 +385,7 @@ class BCCGenerator:
 
         if not numpy.isclose(charge_corrections.sum(), 0.0):
 
-            raise UnableToAssignChargeError(
+            raise ChargeAssignmentError(
                 "An internal error occurred. The bond charge corrections were applied "
                 "in such a way so that the total charge of the molecule will be "
                 "altered."

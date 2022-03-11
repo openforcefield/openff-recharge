@@ -10,7 +10,7 @@ from pydantic import BaseModel, Field, constr, validator
 from typing_extensions import Literal
 
 from openff.recharge.aromaticity import AromaticityModels
-from openff.recharge.charges.exceptions import UnableToAssignChargeError
+from openff.recharge.charges.exceptions import ChargeAssignmentError
 
 if TYPE_CHECKING:
 
@@ -494,7 +494,7 @@ class VirtualSiteGenerator:
 
         if non_zero_assignments.any():
 
-            raise UnableToAssignChargeError(
+            raise ChargeAssignmentError(
                 "An internal error occurred. The v-site charge increments alter the "
                 "total charge of the molecule"
             )
@@ -587,7 +587,7 @@ class VirtualSiteGenerator:
 
         if not numpy.isclose(charge_corrections.sum(), 0.0):
 
-            raise UnableToAssignChargeError(
+            raise ChargeAssignmentError(
                 "An internal error occurred. The bond charge corrections were applied "
                 "in such a way so that the total charge of the molecule will be "
                 "altered."

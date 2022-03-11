@@ -1,8 +1,10 @@
 from typing import Optional
 
 import pytest
+from openff.toolkit.topology import Molecule
 
 from openff.recharge.conformers import ConformerGenerator, ConformerSettings
+from openff.recharge.conformers.exceptions import ConformerGenerationError
 from openff.recharge.utilities.molecule import smiles_to_molecule
 
 
@@ -21,6 +23,24 @@ def test_max_conformers(max_conformers):
         )
         == max_conformers
     )
+
+
+def test_generate_omega_conformers_error():
+
+    with pytest.raises(
+        ConformerGenerationError, match="Failed to generate conformers using OMEGA"
+    ):
+
+        ConformerGenerator.generate(
+            Molecule.from_smiles("C(S(=O)[O-])(Cl)(Cl)Cl", allow_undefined_stereo=True),
+            ConformerSettings(method="omega", sampling_mode="sparse", max_conformers=1),
+        )
+
+    with pytest.raises(
+        ConformerGenerationError, match="ELF10 conformer selection failed"
+    ):
+
+        ConformerGenerator.generate(Molecule.from_smiles("[Mg]"), ConformerSettings())
 
 
 @pytest.mark.parametrize("method", ["omega", "omega-elf10"])

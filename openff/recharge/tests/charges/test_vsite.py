@@ -5,7 +5,7 @@ import numpy
 import pytest
 from openff.units import unit
 
-from openff.recharge.charges.exceptions import UnableToAssignChargeError
+from openff.recharge.charges.exceptions import ChargeAssignmentError
 from openff.recharge.charges.vsite import (
     BondChargeSiteParameter,
     DivalentLonePairParameter,
@@ -405,7 +405,7 @@ def test_generator_build_charge_array(vsite_collection):
         (
             numpy.array([[1, 2], [0, -2]]),
             pytest.raises(
-                UnableToAssignChargeError,
+                ChargeAssignmentError,
                 match="The v-site charge increments alter the",
             ),
         ),

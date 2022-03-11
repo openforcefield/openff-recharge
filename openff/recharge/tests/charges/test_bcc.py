@@ -9,7 +9,7 @@ from openff.recharge.charges.bcc import (
     compare_openeye_parity,
     original_am1bcc_corrections,
 )
-from openff.recharge.charges.exceptions import UnableToAssignChargeError
+from openff.recharge.charges.exceptions import ChargeAssignmentError
 from openff.recharge.conformers import ConformerGenerator, ConformerSettings
 from openff.recharge.utilities.molecule import smiles_to_molecule
 
@@ -193,7 +193,7 @@ def test_apply_assignment():
     # Test with invalid BCCs
     settings.parameters[0].value = 1.0
 
-    with pytest.raises(UnableToAssignChargeError) as error_info:
+    with pytest.raises(ChargeAssignmentError) as error_info:
         BCCGenerator.apply_assignment_matrix(assignment_matrix, settings)
 
     assert "the total charge of the molecule will be altered." in str(error_info.value)
@@ -210,7 +210,7 @@ def test_am1_bcc_missing_parameters():
     """
     molecule = smiles_to_molecule("o1cccc1")
 
-    with pytest.raises(UnableToAssignChargeError) as error_info:
+    with pytest.raises(ChargeAssignmentError) as error_info:
         BCCGenerator.generate(molecule, BCCCollection(parameters=[]))
 
     assert "could not be assigned a bond charge correction atom type" in str(

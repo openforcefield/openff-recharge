@@ -4,7 +4,7 @@ import numpy
 from openff.utilities import requires_package
 from pydantic import BaseModel, Field, constr
 
-from openff.recharge.charges.exceptions import UnableToAssignChargeError
+from openff.recharge.charges.exceptions import ChargeAssignmentError
 
 if TYPE_CHECKING:
     from openff.toolkit.topology import Molecule
@@ -185,7 +185,7 @@ class LibraryChargeGenerator:
 
             return assignment_matrix
 
-        raise UnableToAssignChargeError(
+        raise ChargeAssignmentError(
             f"Atoms {list(range(molecule.n_atoms))} could not be assigned a library "
             f"charge."
         )

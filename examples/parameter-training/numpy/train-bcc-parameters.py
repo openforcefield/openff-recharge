@@ -1,4 +1,5 @@
 import numpy
+from openff.toolkit.topology import Molecule
 from tqdm import tqdm
 
 from openff.recharge.charges import ChargeSettings
@@ -9,7 +10,6 @@ from openff.recharge.esp.psi4 import Psi4ESPGenerator
 from openff.recharge.esp.storage import MoleculeESPRecord
 from openff.recharge.grids import LatticeGridSettings
 from openff.recharge.optimize import ESPObjective, ESPObjectiveTerm
-from openff.recharge.utilities.openeye import smiles_to_molecule
 
 
 def main():
@@ -25,19 +25,19 @@ def main():
 
     for smiles in tqdm(training_set):
 
-        oe_molecule = smiles_to_molecule(smiles)
+        molecule = Molecule.from_smiles(smiles)
 
         conformers = ConformerGenerator.generate(
-            oe_molecule, ConformerSettings(max_conformers=5)
+            molecule, ConformerSettings(max_conformers=5)
         )
 
         for conformer in tqdm(conformers):
 
             grid, esp, electric_field = Psi4ESPGenerator.generate(
-                oe_molecule=oe_molecule, conformer=conformer, settings=qc_data_settings
+                molecule=molecule, conformer=conformer, settings=qc_data_settings
             )
-            qc_data_record = MoleculeESPRecord.from_oe_molecule(
-                oe_molecule, conformer, grid, esp, electric_field, qc_data_settings
+            qc_data_record = MoleculeESPRecord.from_molecule(
+                molecule, conformer, grid, esp, electric_field, qc_data_settings
             )
 
             qc_data_records.append(qc_data_record)

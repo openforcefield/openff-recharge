@@ -7,6 +7,8 @@ from openff.units import unit
 from pydantic import BaseModel, Field
 from typing_extensions import Literal
 
+from openff.recharge.conformers.exceptions import ConformerGenerationError
+
 if TYPE_CHECKING:
     from openff.toolkit.topology import Molecule
 
@@ -57,7 +59,8 @@ class ConformerGenerator:
         omega.SetIncludeInput(False)
         omega.SetCanonOrder(False)
 
-        assert omega(oe_molecule), "OMEGA failed to execute"
+        if not omega(oe_molecule):
+            raise ConformerGenerationError("Failed to generate conformers using OMEGA")
 
         if settings.method == "omega-elf10":
 
@@ -68,7 +71,8 @@ class ConformerGenerator:
 
             oe_elf = oequacpac.OEELF(oe_elf_options)
 
-            assert oe_elf.Select(oe_molecule), "ELF10 conformer selection failed"
+            if not oe_elf.Select(oe_molecule):
+                raise ConformerGenerationError("ELF10 conformer selection failed")
 
         conformers = []
 

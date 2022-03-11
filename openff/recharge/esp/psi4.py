@@ -1,3 +1,4 @@
+"""Compute ESP and electric field data using Psi4"""
 import os
 import subprocess
 from typing import TYPE_CHECKING, Tuple

@@ -61,7 +61,7 @@ setup(
     # Set up the main CLI entry points
     entry_points={
         'console_scripts': [
-            'recharge=openff.recharge.cli:cli',
+            'openff-recharge=openff.recharge.cli:cli',
         ],
     },
 

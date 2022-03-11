@@ -1,3 +1,5 @@
+"""Generate 3D grids of coordinates around molecules"""
+
 from openff.recharge.grids._grids import (
     GridGenerator,
     GridSettings,
@@ -7,9 +9,9 @@ from openff.recharge.grids._grids import (
 )
 
 __all__ = [
-    GridGenerator,
-    GridSettings,
-    GridSettingsType,
-    LatticeGridSettings,
-    MSKGridSettings,
+    "GridGenerator",
+    "GridSettings",
+    "GridSettingsType",
+    "LatticeGridSettings",
+    "MSKGridSettings",
 ]

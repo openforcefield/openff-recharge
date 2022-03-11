@@ -1,3 +1,5 @@
+"""Generate virtual sites for molecules from a collection of virtual site parameters."""
+
 import abc
 import copy
 from collections import defaultdict

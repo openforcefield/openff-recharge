@@ -1,3 +1,4 @@
+"""Reconstruct ESP and electric field data from existing QC records"""
 import json
 import logging
 import re

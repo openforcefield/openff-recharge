@@ -1,3 +1,4 @@
+"""Exceptions raised when storing ESP and electric field data"""
 from openff.recharge.utilities.exceptions import RechargeException
 
 

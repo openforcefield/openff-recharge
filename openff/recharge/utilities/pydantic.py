@@ -1,5 +1,4 @@
-"""A set of common utilities and types for when building pydantic
-models.
+"""Common utilities and types for when building pydantic models.
 
 Notes
 -----

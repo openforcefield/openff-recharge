@@ -1,4 +1,4 @@
-"""A module containing general exceptions raised by the framework."""
+"""Common exceptions raised by the framework."""
 import abc
 
 

@@ -1,6 +1,4 @@
-"""This module contains classes which will generate partial charges using a combination
-of a cheaper QM method and a set of bond charge corrections.
-"""
+"""Generate bond charge corrections for molecules from a collection of BCC parameters."""
 import json
 import os
 from typing import TYPE_CHECKING, Any, Dict, List, Optional

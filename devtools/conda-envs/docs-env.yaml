@@ -1,0 +1,38 @@
+name: openff-recharge-docs
+channels:
+  - conda-forge
+dependencies:
+    # Base depends
+  - python
+  - pip
+
+    ### Core dependencies.
+
+  - click
+  - tqdm
+  - numpy
+  - jinja2
+  - pydantic
+  - openff-utilities
+  - openff-units
+  - openff-toolkit-base >=0.10.2
+
+    # ESP storage
+  - sqlalchemy
+  - sqlite
+
+    # Python < 3.8
+  - typing-extensions
+
+    ### Documentation dependencies
+
+  - sphinx >=4.4
+  - sphinx-notfound-page
+  - sphinx-click
+  - myst-parser
+  - autodoc-pydantic
+
+  # Dependencies not available on Conda Forge
+  - pip:
+    # Documentation theme
+    - git+https://github.com/openforcefield/openff-sphinx-theme.git@main

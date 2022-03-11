@@ -1,3 +1,4 @@
+"""Objective functions for training against ESP and electric field data"""
 from openff.recharge.optimize._optimize import (
     ElectricFieldObjective,
     ElectricFieldObjectiveTerm,
@@ -6,8 +7,8 @@ from openff.recharge.optimize._optimize import (
 )
 
 __all__ = [
-    ElectricFieldObjective,
-    ElectricFieldObjectiveTerm,
-    ESPObjective,
-    ESPObjectiveTerm,
+    "ElectricFieldObjective",
+    "ElectricFieldObjectiveTerm",
+    "ESPObjective",
+    "ESPObjectiveTerm",
 ]

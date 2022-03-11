@@ -1,5 +1,4 @@
-"""A module containing those exceptions which will be raised when generating
-partial charges for a molecule."""
+"""Exceptions raised when generating charges for a molecule."""
 from openff.recharge.utilities.exceptions import RechargeException
 
 

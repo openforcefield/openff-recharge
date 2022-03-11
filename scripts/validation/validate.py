@@ -61,7 +61,7 @@ def load_molecule(smiles: str) -> Tuple[bool, List[str]]:
 
         return True, [bcc.provenance["code"] for bcc in corrections]
 
-    except BaseException:
+    except BaseException:  # lgtm [py/catch-base-exception]
         return False, []
 
 
@@ -102,7 +102,7 @@ def validate_molecule(smiles: str) -> Tuple[str, bool, bool]:
     except ChargeAssignmentError:
         tqdm.write(f"could not generate charges for {smiles}")
         return smiles, True, False
-    except BaseException:
+    except BaseException:  # lgtm [py/catch-base-exception]
         tqdm.write(f"unexpected error for {smiles}")
         return smiles, True, False
 

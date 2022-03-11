@@ -499,10 +499,12 @@ class Objective(abc.ABC):
         bcc_parameter_keys: List[str],
     ) -> Tuple[numpy.ndarray, numpy.ndarray]:
 
+        flat_collection_keys = [
+            parameter.smirks for parameter in bcc_collection.parameters
+        ]
+
         trainable_parameter_indices = [
-            i
-            for i, parameter in enumerate(bcc_collection.parameters)
-            if parameter.smirks in bcc_parameter_keys
+            flat_collection_keys.index(key) for key in bcc_parameter_keys
         ]
         fixed_parameter_indices = [
             i
@@ -599,43 +601,36 @@ class Objective(abc.ABC):
         vsite_charge_parameter_keys: List[VirtualSiteChargeKey],
     ) -> Tuple[numpy.ndarray, numpy.ndarray]:
 
-        trainable_parameter_indices = []
-
-        fixed_parameter_indices = []
-        fixed_parameter_values = []
-
-        array_counter = -1
-
-        for parameter, charge_index in [
-            (parameter, charge_index)
+        flat_collection_keys = [
+            (parameter.smirks, parameter.type, parameter.name, i)
             for parameter in vsite_collection.parameters
-            for charge_index in range(len(parameter.charge_increments))
-        ]:
+            for i in range(len(parameter.charge_increments))
+        ]
+        flat_collection_values = [
+            charge
+            for parameter in vsite_collection.parameters
+            for charge in parameter.charge_increments
+        ]
 
-            array_counter += 1
-
-            if (
-                parameter.smirks,
-                parameter.type,
-                parameter.name,
-                charge_index,
-            ) in vsite_charge_parameter_keys:
-
-                trainable_parameter_indices.append(array_counter)
-
-            else:
-
-                fixed_parameter_indices.append(array_counter)
-                fixed_parameter_values.append(parameter.charge_increments[charge_index])
+        trainable_parameter_indices = [
+            flat_collection_keys.index(key) for key in vsite_charge_parameter_keys
+        ]
+        fixed_parameter_indices = [
+            i
+            for i in range(len(flat_collection_keys))
+            if i not in trainable_parameter_indices
+        ]
 
         assignment_matrix = VirtualSiteGenerator.build_charge_assignment_matrix(
             molecule, vsite_collection
         )
 
         fixed_assignment_matrix = assignment_matrix[:, fixed_parameter_indices]
-        fixed_parameter_values = numpy.array(fixed_parameter_values)
+        fixed_charge_values = numpy.array(
+            [[flat_collection_values[index]] for index in fixed_parameter_indices]
+        )
 
-        fixed_charges = fixed_assignment_matrix @ fixed_parameter_values
+        fixed_charges = fixed_assignment_matrix @ fixed_charge_values
 
         trainable_assignment_matrix = assignment_matrix[:, trainable_parameter_indices]
 
@@ -657,6 +652,19 @@ class Objective(abc.ABC):
     ) -> Generator[ObjectiveTerm, None, None]:
         """Pre-calculates the terms that contribute to the total objective function.
 
+        This function assumes that the array (/tensor) of values to train will have shape
+        (n_charge_parameter_keys + n_bcc_parameter_keys + vsite_charge_parameter_keys, 1)
+        with the values in the array corresponding to the values pointed to by the keys
+        starting with library charge values (if any), followed by BCCs (if any) and
+        finally any v-site charge increments (if any). See the ``vectorize`` method of
+        the collections for an easy way to generate such an array.
+
+        Notes
+        -----
+        It is critical that the order of the values of the array match the order of the
+        keys provided here otherwise the wrong parameters will be applied to the wrong
+        atoms.
+
         Parameters
         ----------
         esp_records
@@ -677,12 +685,19 @@ class Objective(abc.ABC):
 
             This argument can only be used when the ``charge_collection`` is a library
             charge collection.
+
+            The order of these keys **must** match the order of the charges in the
+            vector of charges being trained. See for e.g.
+            ``LibraryChargeCollection.vectorize``.
         bcc_collection
             A collection of bond charge correction parameters that should perturb the
             base set of charges for each molecule in the ``esp_records`` list.
         bcc_parameter_keys
             A list of SMIRKS patterns that define those parameters in the
             ``bcc_collection`` that should be trained.
+
+            The order of these keys **must** match the order of the charges in the
+            vector of charges being trained. See for e.g. ``BCCCollection.vectorize``.
         vsite_collection
             A collection of virtual site parameters that should create virtual sites
             for each molecule in the ``esp_records`` list and perturb the base charges
@@ -694,6 +709,10 @@ class Objective(abc.ABC):
 
             Here ``idx`` is an index into the ``charge_increments`` field of the
             parameter uniquely identified by the other terms of the key.
+
+            The order of these keys **must** match the order of the charges in the
+            vector of charges being trained. See for e.g.
+            ``VirtualSiteCollection.vectorize_charge_increments``.
         vsite_coordinate_parameter_keys
             A list of tuples of the form ``(smirks, type, name, attr)``) that define
             those local frame coordinate parameters in the ``vsite_collection`` that
@@ -701,6 +720,10 @@ class Objective(abc.ABC):
 
             Here ``attr`` should be one of ``{'distance', 'in_plane_angle',
             'out_of_plane_angle'}``.
+
+            The order of these keys **must** match the order of the charges in the
+            vector of charges being trained. See for e.g.
+            ``VirtualSiteCollection.vectorize_coordinates``.
 
         Returns
         -------

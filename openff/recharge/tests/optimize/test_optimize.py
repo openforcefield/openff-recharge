@@ -2,6 +2,7 @@ from typing import Callable, Tuple, Type
 
 import numpy
 import pytest
+from openff.toolkit.topology import Molecule
 from openff.units import unit
 from typing_extensions import Literal
 
@@ -354,23 +355,30 @@ def test_combine_terms(objective_class, backend, hcl_parameters):
 
 def test_compute_library_charge_terms():
 
-    molecule = smiles_to_molecule("[H]C#C[H]")
+    molecule = Molecule.from_mapped_smiles("[H:1][C:2]#[C:3][F:4]")
 
     library_charge_collection = LibraryChargeCollection(
         parameters=[
             LibraryChargeParameter(
-                smiles="[#1:1][#6:2]#[#6:3][#1:4]", value=[-0.05, 0.05, 0.05, -0.05]
-            )
+                smiles="[#1:1][#6:2]#[#6:3][#9:4]", value=[-0.05, 0.05, 0.05, -0.05]
+            ),
+            LibraryChargeParameter(smiles="[#1:1][#17:2]", value=[0.02, -0.02]),
         ]
     )
 
     assignment_matrix, fixed_charges = Objective._compute_library_charge_terms(
-        molecule, library_charge_collection, [("[#1:1][#6:2]#[#6:3][#1:4]", (3, 1))]
+        molecule,
+        library_charge_collection,
+        [
+            ("[#1:1][#17:2]", (0, 1)),
+            ("[#1:1][#6:2]#[#6:3][#9:4]", (3, 1)),
+        ],
     )
 
-    assert assignment_matrix.shape == (4, 2)
+    assert assignment_matrix.shape == (4, 4)
     assert numpy.allclose(
-        assignment_matrix, numpy.array([[0, 0], [0, 1], [0, 0], [1, 0]])
+        assignment_matrix,
+        numpy.array([[0, 0, 0, 0], [0, 0, 0, 1], [0, 0, 0, 0], [0, 0, 1, 0]]),
     )
 
     assert fixed_charges.shape == (4, 1)
@@ -379,31 +387,32 @@ def test_compute_library_charge_terms():
 
 def test_compute_bcc_charge_terms():
 
-    molecule = smiles_to_molecule("C#C")
+    molecule = Molecule.from_mapped_smiles("[H:1][C:2]#[C:3][F:4]")
 
     bcc_collection = BCCCollection(
         parameters=[
             BCCParameter(smirks="[#6:1]-[#1:2]", value=1.0, provenance={}),
-            BCCParameter(smirks="[#6:1]#[#6:2]", value=2.0, provenance={}),
+            BCCParameter(smirks="[#1]-[#6:1]#[#6:2]-[#9]", value=2.0, provenance={}),
+            BCCParameter(smirks="[#6:2]-[#9:1]", value=3.0, provenance={}),
         ]
     )
 
     assignment_matrix, fixed_charges = Objective._compute_bcc_charge_terms(
-        molecule, bcc_collection, ["[#6:1]-[#1:2]"]
+        molecule, bcc_collection, ["[#6:2]-[#9:1]", "[#6:1]-[#1:2]"]
     )
 
-    assert assignment_matrix.shape == (4, 1)
+    assert assignment_matrix.shape == (4, 2)
     assert numpy.allclose(
-        assignment_matrix, numpy.array([[1.0], [1.0], [-1.0], [-1.0]])
+        assignment_matrix, numpy.array([[0, -1], [0, 1], [-1, 0], [1, 0]])
     )
 
     assert fixed_charges.shape == (4, 1)
-    assert numpy.allclose(fixed_charges, numpy.array([[2], [-2], [0], [0]]))
+    assert numpy.allclose(fixed_charges, numpy.array([[0], [2], [-2], [0]]))
 
 
 def test_compute_vsite_charge_terms():
 
-    molecule = smiles_to_molecule("C#C")
+    molecule = Molecule.from_mapped_smiles("[H:1][C:2]#[C:3][F:4]")
 
     vsite_collection = VirtualSiteCollection(
         parameters=[
@@ -417,7 +426,7 @@ def test_compute_vsite_charge_terms():
                 epsilon=0.0,
             ),
             BondChargeSiteParameter(
-                smirks="[#6:1]#[#6:2]",
+                smirks="[#1][#6:1]#[#6:2][#9]",
                 name="EP",
                 distance=1.0,
                 match="once",
@@ -432,26 +441,26 @@ def test_compute_vsite_charge_terms():
         molecule,
         vsite_collection,
         [
+            ("[#1][#6:1]#[#6:2][#9]", "BondCharge", "EP", 1),
             ("[#6:1]-[#1:2]", "BondCharge", "EP", 0),
-            ("[#6:1]#[#6:2]", "BondCharge", "EP", 1),
         ],
     )
 
-    assert assignment_matrix.shape == (7, 2)
+    assert assignment_matrix.shape == (6, 2)
     assert numpy.allclose(
         assignment_matrix,
-        numpy.array([[1, 0], [1, 1], [0, 0], [0, 0], [0, -1], [-1, 0], [-1, 0]]),
+        numpy.array([[0, 0], [0, 1], [1, 0], [0, 0], [0, -1], [-1, 0]]),
     )
 
-    assert fixed_charges.shape == (7, 1)
+    assert fixed_charges.shape == (6, 1)
     assert numpy.allclose(
-        fixed_charges, numpy.array([[-2.0], [0.0], [1.0], [1.0], [2.0], [-1.0], [-1.0]])
+        fixed_charges, numpy.array([[1.0], [-2.0], [0.0], [0.0], [-1.0], [2.0]])
     )
 
 
 def test_compute_vsite_coord_terms():
 
-    molecule = smiles_to_molecule("C=O")
+    molecule = smiles_to_molecule("FC=O")
 
     conformer = numpy.array(
         [
@@ -474,7 +483,18 @@ def test_compute_vsite_coord_terms():
                 distance=1.0,
                 in_plane_angle=180.0,
                 out_of_plane_angle=45.0,
-            )
+            ),
+            MonovalentLonePairParameter(
+                smirks="[O:1]=[C:2]-[F:3]",
+                name="EP",
+                charge_increments=(0.0, 0.0, 0.0),
+                sigma=0.0,
+                match="once",
+                epsilon=0.0,
+                distance=1.0,
+                in_plane_angle=175.0,
+                out_of_plane_angle=45.0,
+            ),
         ]
     )
 
@@ -483,17 +503,25 @@ def test_compute_vsite_coord_terms():
         conformer,
         vsite_collection,
         [
+            ("[O:1]=[C:2]-[F:3]", "MonovalentLonePair", "EP", "out_of_plane_angle"),
             ("[O:1]=[C:2]-[H:3]", "MonovalentLonePair", "EP", "out_of_plane_angle"),
             ("[O:1]=[C:2]-[H:3]", "MonovalentLonePair", "EP", "distance"),
         ],
     )
 
     assert assignment_matrix.shape == (2, 3)
-    assert numpy.allclose(assignment_matrix, numpy.array([[1, -1, 0], [1, -1, 0]]))
+
+    assert (
+        # Not clear which v-site will be considered the 'first' one.
+        numpy.allclose(assignment_matrix, numpy.array([[-1, -1, 0], [2, -1, 1]]))
+        or numpy.allclose(assignment_matrix, numpy.array([[2, -1, 1], [-1, -1, 0]]))
+    )
 
     assert fixed_coords.shape == (2, 3)
     assert numpy.allclose(
-        fixed_coords, numpy.array([[0.0, 180.0, 0.0], [0.0, 180.0, 0.0]])
+        fixed_coords, numpy.array([[1.0, 175.0, 0.0], [0.0, 180.0, 0.0]])
+    ) or numpy.allclose(
+        fixed_coords, numpy.array([[0.0, 180.0, 0.0], [1.0, 175.0, 0.0]])
     )
 
     assert local_frame.shape == (4, 2, 3)

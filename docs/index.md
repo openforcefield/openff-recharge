@@ -30,6 +30,18 @@ getting-started/cli
 
 :::
 
+:::{toctree}
+---
+maxdepth: 2
+caption: "User Guide"
+glob: True
+hidden: True
+---
+
+users/theory
+
+:::
+
 <!--
 The autosummary directive renders to rST,
 so we must use eval-rst here

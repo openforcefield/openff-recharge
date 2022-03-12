@@ -54,8 +54,12 @@ extensions = [
     "sphinx.ext.doctest",
     "myst_parser",
     "sphinxcontrib.autodoc_pydantic",
+    "sphinxcontrib.bibtex",
     "sphinx_click",
 ]
+
+bibtex_bibfiles = ["references.bib"]
+bibtex_default_style = "unsrt"
 
 intersphinx_mapping = {
     "python": ("https://docs.python.org/3", None),

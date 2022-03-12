@@ -4,6 +4,11 @@
 The OpenFF Recharge framework aims to offer a comprehensive solution for refitting different charge models to 
 QC data, especially electrostatic potential (ESP) and electric field data.
 
+:::{tip}
+For more information about the types of charge model available in the framework, as well as the underlying theory
+that backs this framework, see the [theory chapter](theory_chapter).
+:::
+
 The recommended way to install `openff-recharge` is via the `conda` package manager:
 
 ```shell

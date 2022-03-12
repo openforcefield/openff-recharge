@@ -28,6 +28,7 @@ dependencies:
 
   - sphinx >=4.4
   - sphinx-notfound-page
+  - sphinxcontrib-bibtex
   - sphinx-click
   - myst-parser
   - autodoc-pydantic

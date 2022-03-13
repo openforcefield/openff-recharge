@@ -7,8 +7,8 @@ from matplotlib import pyplot
 from openff.toolkit.topology import Molecule
 from pyro.infer import MCMC, NUTS
 
-from openff.recharge.charges import ChargeSettings
 from openff.recharge.charges.bcc import BCCCollection, BCCParameter
+from openff.recharge.charges.qc import QCChargeSettings
 from openff.recharge.charges.vsite import BondChargeSiteParameter, VirtualSiteCollection
 from openff.recharge.conformers import ConformerGenerator, ConformerSettings
 from openff.recharge.esp import ESPSettings
@@ -73,7 +73,7 @@ def main():
 
     objective_terms_generator = ESPObjective.compute_objective_terms(
         esp_records=[esp_record],
-        charge_collection=ChargeSettings(),
+        charge_collection=QCChargeSettings(),
         bcc_collection=bcc_collection,
         bcc_parameter_keys=bcc_parameters_to_train,
         vsite_collection=vsite_collection,

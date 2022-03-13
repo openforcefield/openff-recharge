@@ -5,14 +5,14 @@ from openff.recharge.esp import ESPSettings
 from openff.recharge.esp.psi4 import Psi4ESPGenerator
 from openff.recharge.esp.storage import MoleculeESPRecord, MoleculeESPStore
 from openff.recharge.grids import LatticeGridSettings
-from openff.recharge.utilities.openeye import smiles_to_molecule
+from openff.recharge.utilities.molecule import smiles_to_molecule
 
 
 def main():
 
     # Load in the molecule that we would like to generate the electrostatic properties
     # for.
-    oe_molecule = smiles_to_molecule("OCC(O)CO")
+    molecule = smiles_to_molecule("OCC(O)CO")
 
     # Define the grid that the electrostatic properties will be trained on and the
     # level of theory to compute the properties at.
@@ -28,7 +28,7 @@ def main():
     # Generate a set of conformers for the molecule. We will compute the ESP and
     # electric field for the molecule in each conformer.
     conformers = ConformerGenerator.generate(
-        oe_molecule, ConformerSettings(max_conformers=10)
+        molecule, ConformerSettings(max_conformers=10)
     )
 
     # Create a database to store the computed electrostatic properties in to make
@@ -41,11 +41,11 @@ def main():
     for conformer in tqdm(conformers):
 
         grid, esp, electric_field = Psi4ESPGenerator.generate(
-            oe_molecule, conformer, esp_settings
+            molecule, conformer, esp_settings
         )
 
-        record = MoleculeESPRecord.from_oe_molecule(
-            oe_molecule, conformer, grid, esp, electric_field, esp_settings
+        record = MoleculeESPRecord.from_molecule(
+            molecule, conformer, grid, esp, electric_field, esp_settings
         )
         records.append(record)
 

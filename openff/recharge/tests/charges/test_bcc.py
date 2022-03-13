@@ -1,7 +1,6 @@
 import numpy
 import pytest
 
-from openff.recharge.charges import ChargeGenerator, ChargeSettings
 from openff.recharge.charges.bcc import (
     BCCCollection,
     BCCGenerator,
@@ -10,6 +9,7 @@ from openff.recharge.charges.bcc import (
     original_am1bcc_corrections,
 )
 from openff.recharge.charges.exceptions import ChargeAssignmentError
+from openff.recharge.charges.qc import QCChargeGenerator, QCChargeSettings
 from openff.recharge.conformers import ConformerGenerator, ConformerSettings
 from openff.recharge.utilities.molecule import smiles_to_molecule
 
@@ -63,8 +63,8 @@ def test_to_smirnoff():
         ConformerSettings(method="omega", sampling_mode="sparse", max_conformers=1),
     )
 
-    expected_charges = ChargeGenerator.generate(
-        molecule, conformers, ChargeSettings()
+    expected_charges = QCChargeGenerator.generate(
+        molecule, conformers, QCChargeSettings()
     ) + BCCGenerator.generate(smiles_to_molecule("C"), original_am1bcc_corrections())
     numpy.allclose(numpy.round(expected_charges[:, 0], 3), numpy.round(off_charges, 3))
 

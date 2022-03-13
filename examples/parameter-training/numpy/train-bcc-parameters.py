@@ -2,8 +2,8 @@ import numpy
 from openff.toolkit.topology import Molecule
 from tqdm import tqdm
 
-from openff.recharge.charges import ChargeSettings
 from openff.recharge.charges.bcc import BCCCollection, BCCParameter
+from openff.recharge.charges.qc import QCChargeSettings
 from openff.recharge.conformers import ConformerGenerator, ConformerSettings
 from openff.recharge.esp import ESPSettings
 from openff.recharge.esp.psi4 import Psi4ESPGenerator
@@ -56,7 +56,7 @@ def main():
     objective_terms_generator = ESPObjective.compute_objective_terms(
         esp_records=qc_data_records,
         # Here we use AM1-mulliken charges as the base charges to correct.
-        charge_collection=ChargeSettings(theory="am1"),
+        charge_collection=QCChargeSettings(theory="am1"),
         bcc_collection=bcc_collection,
         bcc_parameter_keys=bcc_parameters_to_train,
     )

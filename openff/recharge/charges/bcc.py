@@ -8,8 +8,8 @@ from openff.utilities import get_data_file_path, requires_package
 from pydantic import BaseModel, Field, constr
 
 from openff.recharge.aromaticity import AromaticityModel, AromaticityModels
-from openff.recharge.charges import ChargeGenerator, ChargeSettings
 from openff.recharge.charges.exceptions import ChargeAssignmentError
+from openff.recharge.charges.qc import QCChargeGenerator, QCChargeSettings
 from openff.recharge.conformers import ConformerGenerator, ConformerSettings
 from openff.recharge.utilities.exceptions import (
     UnsupportedBCCSmirksError,
@@ -509,17 +509,17 @@ def compare_openeye_parity(molecule: "Molecule") -> bool:
     )
 
     # Generate a set of reference charges using the OpenEye implementation
-    reference_charges = ChargeGenerator.generate(
+    reference_charges = QCChargeGenerator.generate(
         molecule,
         conformers,
-        ChargeSettings(theory="am1bcc", symmetrize=False, optimize=False),
+        QCChargeSettings(theory="am1bcc", symmetrize=False, optimize=False),
     )
 
     # Generate a set of charges using this frameworks functions
-    am1_charges = ChargeGenerator.generate(
+    am1_charges = QCChargeGenerator.generate(
         molecule,
         conformers,
-        ChargeSettings(theory="am1", symmetrize=False, optimize=False),
+        QCChargeSettings(theory="am1", symmetrize=False, optimize=False),
     )
 
     # Determine the values of the OE BCCs

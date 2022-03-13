@@ -5,12 +5,12 @@ import numpy
 from openff.units import unit
 from typing_extensions import Literal
 
-from openff.recharge.charges import ChargeGenerator, ChargeSettings
 from openff.recharge.charges.bcc import BCCCollection, BCCGenerator
 from openff.recharge.charges.library import (
     LibraryChargeCollection,
     LibraryChargeGenerator,
 )
+from openff.recharge.charges.qc import QCChargeGenerator, QCChargeSettings
 from openff.recharge.charges.vsite import (
     VirtualSiteChargeKey,
     VirtualSiteCollection,
@@ -641,7 +641,7 @@ class Objective(abc.ABC):
         cls,
         esp_records: List[MoleculeESPRecord],
         charge_collection: Optional[
-            Union[ChargeSettings, LibraryChargeCollection]
+            Union[QCChargeSettings, LibraryChargeCollection]
         ] = None,
         charge_parameter_keys: Optional[List[Tuple[str, Tuple[int, ...]]]] = None,
         bcc_collection: Optional[BCCCollection] = None,
@@ -760,12 +760,12 @@ class Objective(abc.ABC):
 
             if charge_collection is None:
                 pass
-            elif isinstance(charge_collection, ChargeSettings):
+            elif isinstance(charge_collection, QCChargeSettings):
                 assert (
                     charge_parameter_keys is None
-                ), "charges generated using `ChargeSettings` cannot be trained"
+                ), "charges generated using `QCChargeSettings` cannot be trained"
 
-                fixed_atom_charges += ChargeGenerator.generate(
+                fixed_atom_charges += QCChargeGenerator.generate(
                     molecule, [ordered_conformer * unit.angstrom], charge_collection
                 )
 

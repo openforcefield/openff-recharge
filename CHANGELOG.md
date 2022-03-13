@@ -1,5 +1,20 @@
 # Changelog
 
+## [Unreleased](https://github.com/openforcefield/openff-recharge/tree/HEAD)
+
+[Full Changelog](https://github.com/openforcefield/openff-recharge/compare/0.0.4...HEAD)
+
+**Implemented enhancements:**
+
+- Add initial theory document [\#100](https://github.com/openforcefield/openff-recharge/pull/100) ([SimonBoothroyd](https://github.com/SimonBoothroyd))
+- Add initial documentation [\#99](https://github.com/openforcefield/openff-recharge/pull/99) ([SimonBoothroyd](https://github.com/SimonBoothroyd))
+- Make framework independent of OpenEye [\#97](https://github.com/openforcefield/openff-recharge/pull/97) ([SimonBoothroyd](https://github.com/SimonBoothroyd))
+- Add initial support for arbitrary base charges [\#96](https://github.com/openforcefield/openff-recharge/pull/96) ([SimonBoothroyd](https://github.com/SimonBoothroyd))
+
+**Fixed bugs:**
+
+- Fix optimization term matrix ordering [\#98](https://github.com/openforcefield/openff-recharge/pull/98) ([SimonBoothroyd](https://github.com/SimonBoothroyd))
+
 ## [0.0.4](https://github.com/openforcefield/openff-recharge/tree/0.0.4) (2022-01-20)
 
 [Full Changelog](https://github.com/openforcefield/openff-recharge/compare/0.0.3...0.0.4)
@@ -125,7 +140,7 @@
 - Add SMIRNOFF Support [\#30](https://github.com/openforcefield/openff-recharge/pull/30) ([SimonBoothroyd](https://github.com/SimonBoothroyd))
 - Rename BCC Classes to be More Obvious and Consistent [\#28](https://github.com/openforcefield/openff-recharge/pull/28) ([SimonBoothroyd](https://github.com/SimonBoothroyd))
 - Adds Utility to Re-order Geometry to Match a Tagged Molecule [\#25](https://github.com/openforcefield/openff-recharge/pull/25) ([SimonBoothroyd](https://github.com/SimonBoothroyd))
-- Generalise `BCCGenerator.applied\_corrections` [\#24](https://github.com/openforcefield/openff-recharge/pull/24) ([SimonBoothroyd](https://github.com/SimonBoothroyd))
+- Generalise `BCCGenerator.applied_corrections` [\#24](https://github.com/openforcefield/openff-recharge/pull/24) ([SimonBoothroyd](https://github.com/SimonBoothroyd))
 - Rename inverse\_distance\_matrix [\#21](https://github.com/openforcefield/openff-recharge/pull/21) ([SimonBoothroyd](https://github.com/SimonBoothroyd))
 - Standardise Syntax of ESPGenerator [\#20](https://github.com/openforcefield/openff-recharge/pull/20) ([SimonBoothroyd](https://github.com/SimonBoothroyd))
 - Add Inverse Distance Matrix Utility [\#19](https://github.com/openforcefield/openff-recharge/pull/19) ([SimonBoothroyd](https://github.com/SimonBoothroyd))

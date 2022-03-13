@@ -2,8 +2,8 @@ import numpy
 import torch
 from openff.toolkit.topology import Molecule
 
-from openff.recharge.charges import ChargeSettings
 from openff.recharge.charges.bcc import BCCCollection, BCCParameter
+from openff.recharge.charges.qc import QCChargeSettings
 from openff.recharge.charges.vsite import (
     DivalentLonePairParameter,
     VirtualSiteCollection,
@@ -81,7 +81,7 @@ def main():
     # also the ``ElectricFieldObjective`` objective class.
     objective_terms_generator = ESPObjective.compute_objective_terms(
         esp_records=[esp_record],
-        charge_collection=ChargeSettings(),
+        charge_collection=QCChargeSettings(),
         bcc_collection=bcc_collection,
         bcc_parameter_keys=bcc_parameter_keys,
         vsite_collection=vsite_collection,

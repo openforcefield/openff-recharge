@@ -6,7 +6,7 @@ from openff.toolkit.topology import Molecule
 from openff.units import unit
 from typing_extensions import Literal
 
-from openff.recharge.charges import ChargeGenerator, ChargeSettings
+from openff.recharge.charges.qc import QCChargeGenerator, QCChargeSettings
 
 
 @pytest.fixture(scope="module")
@@ -29,20 +29,20 @@ def test_generate_omega_charges(methane, theory):
 
     molecule, conformer = methane
 
-    default_charges = ChargeGenerator._generate_omega_charges(
-        molecule, conformer, ChargeSettings()
+    default_charges = QCChargeGenerator._generate_omega_charges(
+        molecule, conformer, QCChargeSettings()
     )
     assert default_charges.shape == (5, 1)
     assert not numpy.allclose(default_charges, 0.0)
 
-    asym_charges = ChargeGenerator._generate_omega_charges(
-        molecule, conformer, ChargeSettings(symmetrize=False)
+    asym_charges = QCChargeGenerator._generate_omega_charges(
+        molecule, conformer, QCChargeSettings(symmetrize=False)
     )
     assert len({*default_charges[1:].flatten()}) == 1
     assert len({*asym_charges[1:].flatten()}) == 4
 
-    unopt_charges = ChargeGenerator._generate_omega_charges(
-        molecule, conformer, ChargeSettings(optimize=False)
+    unopt_charges = QCChargeGenerator._generate_omega_charges(
+        molecule, conformer, QCChargeSettings(optimize=False)
     )
     assert not numpy.allclose(default_charges, unopt_charges)
 
@@ -50,7 +50,7 @@ def test_generate_omega_charges(methane, theory):
 @pytest.mark.parametrize("theory", ["am1", "am1bcc"])
 def test_generate_charges(theory: Literal["am1", "am1bcc"], methane, monkeypatch):
     """Ensure that charges can be generated for a simple molecule using
-    the `ChargeGenerator` class."""
+    the `QCChargeGenerator` class."""
 
     molecule, conformer = methane
 
@@ -58,11 +58,11 @@ def test_generate_charges(theory: Literal["am1", "am1bcc"], methane, monkeypatch
         raise NotImplementedError()
 
     monkeypatch.setattr(
-        ChargeGenerator, "_generate_omega_charges", mock_generate_omega_charges
+        QCChargeGenerator, "_generate_omega_charges", mock_generate_omega_charges
     )
 
-    charges = ChargeGenerator.generate(
-        molecule, [conformer * unit.angstrom], ChargeSettings(theory=theory)
+    charges = QCChargeGenerator.generate(
+        molecule, [conformer * unit.angstrom], QCChargeSettings(theory=theory)
     )
     assert charges.shape == (5, 1)
     assert not numpy.allclose(charges, 0.0)

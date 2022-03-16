@@ -272,7 +272,9 @@ def from_qcportal_results(
 
     # Convert the OE molecule to a QC molecule and extract the conformer of
     # interest.
-    molecule = Molecule.from_qcschema(qc_molecule.dict(encoding="json"))
+    molecule = Molecule.from_qcschema(
+        qc_molecule.dict(encoding="json"), allow_undefined_stereo=True
+    )
 
     conformers = extract_conformers(molecule)
     assert len(conformers) == 1

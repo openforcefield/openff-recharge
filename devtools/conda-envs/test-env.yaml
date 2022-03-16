@@ -43,7 +43,6 @@ dependencies:
     # QCFractal integration.
   - qcportal >=0.15
   - h5py <3.2 # Needed as newer packages don't work with QCP for now.
-  - cmiles-base
 
     # Optimization
   - pytorch

@@ -1,8 +1,32 @@
 # Changelog
 
-## [Unreleased](https://github.com/openforcefield/openff-recharge/tree/HEAD)
+## [0.1.3](https://github.com/openforcefield/openff-recharge/tree/0.1.3) (2022-03-16)
 
-[Full Changelog](https://github.com/openforcefield/openff-recharge/compare/0.0.4...HEAD)
+[Full Changelog](https://github.com/openforcefield/openff-recharge/compare/0.1.2...0.1.3)
+
+**Fixed bugs:**
+
+- Drop `cmiles` dependency [\#103](https://github.com/openforcefield/openff-recharge/pull/103) ([SimonBoothroyd](https://github.com/SimonBoothroyd))
+
+## [0.1.2](https://github.com/openforcefield/openff-recharge/tree/0.1.2) (2022-03-16)
+
+[Full Changelog](https://github.com/openforcefield/openff-recharge/compare/0.1.1...0.1.2)
+
+**Fixed bugs:**
+
+- Fix from QC molecule with undefined stereo [\#102](https://github.com/openforcefield/openff-recharge/pull/102) ([SimonBoothroyd](https://github.com/SimonBoothroyd))
+
+## [0.1.1](https://github.com/openforcefield/openff-recharge/tree/0.1.1) (2022-03-13)
+
+[Full Changelog](https://github.com/openforcefield/openff-recharge/compare/0.1.0...0.1.1)
+
+**Implemented enhancements:**
+
+- Refactor QC charge generation into new submodule [\#101](https://github.com/openforcefield/openff-recharge/pull/101) ([SimonBoothroyd](https://github.com/SimonBoothroyd))
+
+## [0.1.0](https://github.com/openforcefield/openff-recharge/tree/0.1.0) (2022-03-12)
+
+[Full Changelog](https://github.com/openforcefield/openff-recharge/compare/0.0.4...0.1.0)
 
 **Implemented enhancements:**
 

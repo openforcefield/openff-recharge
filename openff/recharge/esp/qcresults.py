@@ -221,7 +221,6 @@ def compute_esp(
     return esp * unit.hartree / unit.e, field
 
 
-@requires_package("cmiles")
 @requires_package("qcportal")
 def from_qcportal_results(
     qc_result: "qcportal.models.ResultRecord",

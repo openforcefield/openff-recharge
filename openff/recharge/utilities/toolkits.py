@@ -264,3 +264,103 @@ def apply_mdl_aromaticity_model(
         ToolkitUnavailableException,
     ):
         return _rd_apply_mdl_aromaticity_model(molecule)
+
+
+def _oe_get_atom_symmetries(molecule: "Molecule") -> List[int]:
+
+    from openeye import oechem
+
+    oe_mol = molecule.to_openeye()
+    oechem.OEPerceiveSymmetry(oe_mol)
+
+    symmetry_classes_by_index = {
+        a.GetIdx(): a.GetSymmetryClass() for a in oe_mol.GetAtoms()
+    }
+    return [symmetry_classes_by_index[i] for i in range(molecule.n_atoms)]
+
+
+def _rd_get_atom_symmetries(molecule: "Molecule") -> List[int]:
+
+    from rdkit import Chem
+
+    rd_mol = molecule.to_rdkit()
+    return list(Chem.CanonicalRankAtoms(rd_mol, breakTies=False))
+
+
+def get_atom_symmetries(molecule: "Molecule") -> List[int]:
+    """Returns indices that describe which atoms in a molecule a topologically
+    symmetrical.
+
+    Parameters
+    ----------
+    molecule
+        The molecule of interest.
+
+    Returns
+    -------
+        A list of `n_atom` indices, whereby atoms with the same index are considered
+        to be topologically symmetrical.
+    """
+
+    try:
+        return _oe_get_atom_symmetries(molecule)
+    except (ImportError, ModuleNotFoundError, ToolkitUnavailableException):
+        return _rd_get_atom_symmetries(molecule)
+
+
+def _oe_molecule_to_tagged_smiles(molecule: "Molecule", indices: List[int]) -> str:
+
+    from openeye import oechem
+
+    oe_mol: oechem.OEMol = molecule.to_openeye()
+    oe_atoms: Dict[int, oechem.OEAtomBase] = {
+        oe_atom.GetIdx(): oe_atom for oe_atom in oe_mol.GetAtoms()
+    }
+
+    for i, index in enumerate(indices):
+        oe_atoms[i].SetMapIdx(index)
+
+    return oechem.OEMolToSmiles(oe_mol)
+
+
+def _rd_molecule_to_tagged_smiles(molecule: "Molecule", indices: List[int]) -> str:
+
+    from rdkit import Chem
+
+    rd_mol: Chem.Mol = molecule.to_rdkit()
+    rd_atoms: Dict[int, Chem.Atom] = {
+        rd_atom.GetIdx(): rd_atom for rd_atom in rd_mol.GetAtoms()
+    }
+
+    for i, index in enumerate(indices):
+        rd_atoms[i].SetAtomMapNum(index)
+
+    return Chem.MolToSmiles(rd_mol)
+
+
+def molecule_to_tagged_smiles(molecule: "Molecule", indices: List[int]) -> str:
+    """Returns a SMILES pattern whereby each atom has been tagged with a specified
+    index
+
+    Parameters
+    ----------
+    molecule
+        The molecule of interest.
+    indices
+        The indices to associate with each atom in the molecule.
+
+    Returns
+    -------
+        A list of `n_atom` indices, whereby atoms with the same index are considered
+        to be topologically symmetrical.
+    """
+
+    assert (
+        len(indices) == molecule.n_atoms
+    ), "number of atom indices does not match number of atoms"
+    assert all(index > 0 for index in indices), "all indices must be > 0"
+
+    try:
+        return _oe_molecule_to_tagged_smiles(molecule, indices)
+    except (ImportError, ModuleNotFoundError, ToolkitUnavailableException):
+        return _rd_molecule_to_tagged_smiles(molecule, indices)

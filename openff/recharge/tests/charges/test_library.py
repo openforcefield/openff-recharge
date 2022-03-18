@@ -1,6 +1,7 @@
 import numpy
 import pytest
 
+from openff.recharge.charges.exceptions import ChargeAssignmentError
 from openff.recharge.charges.library import (
     LibraryChargeCollection,
     LibraryChargeGenerator,
@@ -12,8 +13,8 @@ from openff.recharge.charges.library import (
 def mock_charge_collection() -> LibraryChargeCollection:
     return LibraryChargeCollection(
         parameters=[
-            LibraryChargeParameter(smiles="[Cl:1][Cl:2]", value=[0.1, 0.2]),
-            LibraryChargeParameter(smiles="[H:1][O:2][H:3]", value=[0.3, 0.4, 0.5]),
+            LibraryChargeParameter(smiles="[Cl:1][Cl:2]", value=[-0.1, 0.1]),
+            LibraryChargeParameter(smiles="[H:1][O:2][H:3]", value=[0.3, 0.4, -0.7]),
         ]
     )
 
@@ -35,7 +36,7 @@ class TestLibraryChargeCollection:
                 charge.value_in_unit(unit.elementary_charge)
                 for charge in charge_handler.parameters[0].charge
             ],
-            [0.3, 0.4, 0.5],
+            [0.3, 0.4, -0.7],
         )
 
         assert charge_handler.parameters[-1].smirks == "[Cl:1][Cl:2]"
@@ -44,7 +45,7 @@ class TestLibraryChargeCollection:
                 charge.value_in_unit(unit.elementary_charge)
                 for charge in charge_handler.parameters[-1].charge
             ],
-            [0.1, 0.2],
+            [-0.1, 0.1],
         )
 
     def test_from_smirnoff(self):
@@ -86,14 +87,14 @@ class TestLibraryChargeCollection:
     @pytest.mark.parametrize(
         "keys, expected_value",
         [
-            ([("[Cl:1][Cl:2]", (0, 1))], numpy.array([[0.1], [0.2]])),
+            ([("[Cl:1][Cl:2]", (0, 1))], numpy.array([[-0.1], [0.1]])),
             (
                 [("[Cl:1][Cl:2]", (1, 0)), ("[H:1][O:2][H:3]", (0, 1, 2))],
-                numpy.array([[0.2], [0.1], [0.3], [0.4], [0.5]]),
+                numpy.array([[0.1], [-0.1], [0.3], [0.4], [-0.7]]),
             ),
             (
                 [("[H:1][O:2][H:3]", (0, 2, 1)), ("[Cl:1][Cl:2]", (0, 1))],
-                numpy.array([[0.3], [0.5], [0.4], [0.1], [0.2]]),
+                numpy.array([[0.3], [-0.7], [0.4], [-0.1], [0.1]]),
             ),
         ],
     )
@@ -106,6 +107,20 @@ class TestLibraryChargeCollection:
 
 
 class TestLibraryChargeGenerator:
+    def test_validate_assignment_matrix(self, mock_charge_collection):
+
+        from openff.toolkit.topology import Molecule
+
+        molecule = Molecule.from_mapped_smiles("[H:1][O:2][H:3]")
+
+        with pytest.raises(ChargeAssignmentError, match="charges yield a total charge"):
+
+            LibraryChargeGenerator._validate_assignment_matrix(
+                molecule,
+                numpy.array([[0, 0, 1, 2, 3], [0, 0, 4, 5, 6], [0, 0, 7, 8, 9]]),
+                mock_charge_collection,
+            )
+
     @pytest.mark.parametrize(
         "smiles, expected_value",
         [
@@ -137,12 +152,46 @@ class TestLibraryChargeGenerator:
         assert expected_value.shape == assignment_matrix.shape
         assert numpy.allclose(expected_value, assignment_matrix)
 
+    def test_build_assignment_matrix_equivalent_atoms(self):
+
+        from openff.toolkit.topology import Molecule
+
+        molecule = Molecule.from_mapped_smiles("[C:1]([H:3])([H:4])([H:5])[O:2][H:6]")
+
+        charge_collection = LibraryChargeCollection(
+            parameters=[
+                LibraryChargeParameter(
+                    smiles="[C:1]([H:2])([H:2])([H:2])[O:3][H:4]",
+                    value=[0.15, -0.05, -0.2, 0.2],
+                ),
+            ]
+        )
+
+        assignment_matrix = LibraryChargeGenerator.build_assignment_matrix(
+            molecule, charge_collection
+        )
+
+        assert assignment_matrix.shape == (6, 4)
+        assert numpy.allclose(
+            assignment_matrix,
+            numpy.array(
+                [
+                    [1, 0, 0, 0],
+                    [0, 0, 1, 0],
+                    [0, 1, 0, 0],
+                    [0, 1, 0, 0],
+                    [0, 1, 0, 0],
+                    [0, 0, 0, 1],
+                ]
+            ),
+        )
+
     @pytest.mark.parametrize(
         "smiles, expected_value",
         [
-            ("[Cl:1][Cl:2]", numpy.array([[0.1], [0.2]])),
-            ("[H:1][O:2][H:3]", numpy.array([[0.3], [0.4], [0.5]])),
-            ("[H:2][O:1][H:3]", numpy.array([[0.4], [0.3], [0.5]])),
+            ("[Cl:1][Cl:2]", numpy.array([[-0.1], [0.1]])),
+            ("[H:1][O:2][H:3]", numpy.array([[0.3], [0.4], [-0.7]])),
+            ("[H:2][O:1][H:3]", numpy.array([[0.4], [0.3], [-0.7]])),
         ],
     )
     def test_generate(self, mock_charge_collection, smiles, expected_value):

@@ -21,7 +21,9 @@ class LibraryChargeParameter(BaseModel):
     smiles: constr(min_length=1) = Field(
         ...,
         description="An indexed SMILES pattern that encodes and labels the **full** "
-        "molecule that the charges should be applied to.",
+        "molecule that the charges should be applied to. Each index should correspond "
+        "to a value in the ``value`` field. Multiple atoms can be assigned the same "
+        "index in order to indicate that they should have equivalent charges.",
     )
     value: List[float] = Field(..., description="The values [e] of the charges.")
 
@@ -132,6 +134,31 @@ class LibraryChargeGenerator:
     """
 
     @classmethod
+    def _validate_assignment_matrix(
+        cls,
+        molecule: "Molecule",
+        assignment_matrix: numpy.ndarray,
+        charge_collection: LibraryChargeCollection,
+    ):
+        """Ensure that an assignment matrix yields sensible charges on a molecule."""
+
+        from simtk import unit as simtk_unit
+
+        total_charge = cls.apply_assignment_matrix(
+            assignment_matrix, charge_collection
+        ).sum()
+        expected_charge = molecule.total_charge.value_in_unit(
+            simtk_unit.elementary_charge
+        )
+
+        if not numpy.isclose(total_charge, expected_charge):
+
+            raise ChargeAssignmentError(
+                f"The assigned charges yield a total charge ({total_charge:.4f}) that "
+                f"does not match the expected value ({expected_charge:.4f})."
+            )
+
+    @classmethod
     def build_assignment_matrix(
         cls,
         molecule: "Molecule",
@@ -170,7 +197,7 @@ class LibraryChargeGenerator:
 
         for parameter in charge_collection.parameters:
 
-            smiles_molecule: Molecule = Molecule.from_mapped_smiles(
+            smiles_molecule: Molecule = Molecule.from_smiles(
                 parameter.smiles, allow_undefined_stereo=True
             )
 
@@ -182,9 +209,17 @@ class LibraryChargeGenerator:
                 charge_index += len(parameter.value)
                 continue
 
-            for i in range(molecule.n_atoms):
-                assignment_matrix[i, charge_index + atom_map[i]] = 1
+            value_map = {
+                i: smiles_molecule.properties["atom_map"][atom_map[i]] - 1
+                for i in range(smiles_molecule.n_atoms)
+            }
 
+            for i in range(molecule.n_atoms):
+                assignment_matrix[i, charge_index + value_map[i]] = 1
+
+            cls._validate_assignment_matrix(
+                molecule, assignment_matrix, charge_collection
+            )
             return assignment_matrix
 
         raise ChargeAssignmentError(

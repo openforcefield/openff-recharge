@@ -5,12 +5,18 @@ from openff.units import unit
 
 from openff.recharge.utilities.toolkits import (
     _oe_apply_mdl_aromaticity_model,
+    _oe_get_atom_symmetries,
     _oe_match_smirks,
+    _oe_molecule_to_tagged_smiles,
     _rd_apply_mdl_aromaticity_model,
+    _rd_get_atom_symmetries,
     _rd_match_smirks,
+    _rd_molecule_to_tagged_smiles,
     apply_mdl_aromaticity_model,
     compute_vdw_radii,
+    get_atom_symmetries,
     match_smirks,
+    molecule_to_tagged_smiles,
 )
 
 
@@ -248,3 +254,51 @@ def test_apply_mdl_aromaticity_model(
 
     assert is_atom_aromatic == expected_is_atom_aromatic
     assert is_bond_aromatic == expected_is_bond_aromatic
+
+
+@pytest.mark.parametrize(
+    "get_symmetries_func",
+    [_oe_get_atom_symmetries, _rd_get_atom_symmetries, get_atom_symmetries],
+)
+def test_get_atom_symmetries(get_symmetries_func):
+
+    molecule = Molecule.from_mapped_smiles("[H:1][C:2]([H:3])([H:4])[O:5][H:6]")
+
+    try:
+        atom_symmetries = get_symmetries_func(molecule)
+
+    except ModuleNotFoundError as e:
+
+        pytest.skip(f"missing optional dependency - {e.name}")
+        return
+
+    assert len({atom_symmetries[i] for i in (0, 2, 3)}) == 1
+    assert len({atom_symmetries[i] for i in (1, 4, 5)}) == 3
+
+
+@pytest.mark.parametrize(
+    "molecule_to_tagged_smiles_func",
+    [
+        _oe_molecule_to_tagged_smiles,
+        _rd_molecule_to_tagged_smiles,
+        molecule_to_tagged_smiles,
+    ],
+)
+def test_molecule_to_tagged_smiles(molecule_to_tagged_smiles_func):
+
+    molecule = Molecule.from_mapped_smiles("[H:1][C:2]([H:3])([H:4])[O:5][H:6]")
+
+    try:
+        tagged_smiles = molecule_to_tagged_smiles_func(molecule, [1, 2, 1, 1, 3, 4])
+
+    except ModuleNotFoundError as e:
+
+        pytest.skip(f"missing optional dependency - {e.name}")
+        return
+
+    assert tagged_smiles == "[H:1][C:2]([H:1])([H:1])[O:3][H:4]"
+
+    # Do a quick canary test to make sure the toolkit doesn't stop parsing molecules
+    # with duplicate indices correctly
+    recreated_map = Molecule.from_smiles(tagged_smiles).properties["atom_map"]
+    assert len(recreated_map) == 6 and {*recreated_map.values()} == {1, 2, 3, 4}

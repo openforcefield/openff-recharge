@@ -28,7 +28,7 @@ def main():
     # Generate a set of conformers for the molecule. We will compute the ESP and
     # electric field for the molecule in each conformer.
     conformers = ConformerGenerator.generate(
-        molecule, ConformerSettings(max_conformers=10)
+        molecule, ConformerSettings(max_conformers=1)
     )
 
     # Create a database to store the computed electrostatic properties in to make
@@ -40,8 +40,12 @@ def main():
 
     for conformer in tqdm(conformers):
 
-        grid, esp, electric_field = Psi4ESPGenerator.generate(
-            molecule, conformer, esp_settings
+        conformer, grid, esp, electric_field = Psi4ESPGenerator.generate(
+            molecule,
+            conformer,
+            esp_settings,
+            # Minimize the input conformer prior to evaluating the ESP / EF
+            minimize=True,
         )
 
         record = MoleculeESPRecord.from_molecule(

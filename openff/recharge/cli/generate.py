@@ -15,7 +15,10 @@ from openff.recharge.utilities.molecule import smiles_to_molecule
 
 
 def _compute_esp(
-    smiles: str, conformer_settings: ConformerSettings, settings: ESPSettings
+    smiles: str,
+    conformer_settings: ConformerSettings,
+    settings: ESPSettings,
+    minimize_conformer: bool,
 ) -> List[MoleculeESPRecord]:
     """Compute the ESP for a molecule in different conformers.
 
@@ -27,6 +30,9 @@ def _compute_esp(
         The settings to use when generating the conformers.
     settings
         The settings to use when generating the ESP.
+    minimize_conformer
+        Whether to energy minimize the conformer prior to computing the ESP / EF using
+        the same level of theory that the ESP / EF will be computed at.
     """
 
     _logger = logging.getLogger(__name__)
@@ -46,8 +52,13 @@ def _compute_esp(
     for index, conformer in enumerate(conformers):
 
         try:
-            grid_coordinates, esp, electric_field = Psi4ESPGenerator.generate(
-                molecule, conformer, settings
+            (
+                conformer,
+                grid_coordinates,
+                esp,
+                electric_field,
+            ) = Psi4ESPGenerator.generate(
+                molecule, conformer, settings, minimize=minimize_conformer
             )
         except Psi4Error:
             _logger.exception(f"Psi4 failed to run for conformer {index} of {smiles}.")
@@ -87,6 +98,13 @@ def _compute_esp(
     show_default=True,
 )
 @click.option(
+    "--minimize/--no-minimize",
+    default=True,
+    type=bool,
+    help="Whether to energy minimize the conformer prior to computing the ESP / EF.",
+    show_default=True,
+)
+@click.option(
     "--n-procs",
     "n_processors",
     type=int,
@@ -94,7 +112,13 @@ def _compute_esp(
     help="The number of processes to compute the ESP across.",
     show_default=True,
 )
-def generate(smiles: str, esp_settings: str, conf_settings: str, n_processors: int):
+def generate(
+    smiles: str,
+    esp_settings: str,
+    conf_settings: str,
+    minimize: bool,
+    n_processors: int,
+):
 
     logging.basicConfig(level=logging.INFO)
 
@@ -115,6 +139,7 @@ def generate(smiles: str, esp_settings: str, conf_settings: str, n_processors: i
                 _compute_esp,
                 conformer_settings=conformer_settings,
                 settings=esp_settings,
+                minimize_conformer=minimize,
             ),
             smiles,
         ):

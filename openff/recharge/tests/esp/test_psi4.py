@@ -23,7 +23,9 @@ def test_generate_input_base():
     molecule = smiles_to_molecule("[Cl-]")
     conformer = numpy.array([[0.0, 0.0, 0.0]]) * unit.angstrom
 
-    input_contents = Psi4ESPGenerator._generate_input(molecule, conformer, settings)
+    input_contents = Psi4ESPGenerator._generate_input(
+        molecule, conformer, settings, False
+    )
 
     expected_output = "\n".join(
         [
@@ -40,6 +42,7 @@ def test_generate_input_base():
             "",
             "E,wfn = prop('hf', properties = ['GRID_ESP', 'GRID_FIELD'], "
             "return_wfn=True)",
+            "mol.save_xyz_file('final-geometry.xyz',1)",
         ]
     )
 
@@ -49,7 +52,9 @@ def test_generate_input_base():
     molecule = smiles_to_molecule("[B]")
     conformer = numpy.array([[0.0, 0.0, 0.0]]) * unit.angstrom
 
-    input_contents = Psi4ESPGenerator._generate_input(molecule, conformer, settings)
+    input_contents = Psi4ESPGenerator._generate_input(
+        molecule, conformer, settings, True
+    )
 
     expected_output = "\n".join(
         [
@@ -64,8 +69,11 @@ def test_generate_input_base():
             "  basis 6-31g*",
             "}",
             "",
+            "optimize('scf')",
+            "",
             "E,wfn = prop('uhf', properties = ['GRID_ESP', 'GRID_FIELD'], "
             "return_wfn=True)",
+            "mol.save_xyz_file('final-geometry.xyz',1)",
         ]
     )
 
@@ -112,7 +120,9 @@ def test_generate_input_dft_settings(
     molecule = smiles_to_molecule("[Cl-]")
     conformer = numpy.array([[0.0, 0.0, 0.0]]) * unit.angstrom
 
-    input_contents = Psi4ESPGenerator._generate_input(molecule, conformer, settings)
+    input_contents = Psi4ESPGenerator._generate_input(
+        molecule, conformer, settings, False
+    )
 
     expected_output = "\n".join(
         [
@@ -130,6 +140,7 @@ def test_generate_input_dft_settings(
             "",
             "E,wfn = prop('hf', properties = ['GRID_ESP', 'GRID_FIELD'], "
             "return_wfn=True)",
+            "mol.save_xyz_file('final-geometry.xyz',1)",
         ]
     )
 
@@ -150,7 +161,9 @@ def test_generate_input_pcm():
     molecule = smiles_to_molecule("[Cl-]")
     conformer = numpy.array([[0.1, 0.0, 0.0]]) * unit.nanometer
 
-    input_contents = Psi4ESPGenerator._generate_input(molecule, conformer, settings)
+    input_contents = Psi4ESPGenerator._generate_input(
+        molecule, conformer, settings, False
+    )
 
     expected_output = "\n".join(
         [
@@ -185,14 +198,15 @@ def test_generate_input_pcm():
             "",
             "E,wfn = prop('hf', properties = ['GRID_ESP', 'GRID_FIELD'], "
             "return_wfn=True)",
+            "mol.save_xyz_file('final-geometry.xyz',1)",
         ]
     )
 
     assert expected_output == input_contents
 
 
-@pytest.mark.parametrize("enable_pcm", [False, True])
-def test_generate(enable_pcm):
+@pytest.mark.parametrize("enable_pcm, minimize", [(False, True), (True, False)])
+def test_generate(enable_pcm, minimize):
     """Perform a test run of Psi4."""
     pytest.importorskip("psi4")
 
@@ -205,7 +219,7 @@ def test_generate(enable_pcm):
     # Generate a small molecule which should finish fast.
     molecule = smiles_to_molecule("C")
 
-    conformer = (
+    input_conformer = (
         numpy.array(
             [
                 [-0.0000658, -0.0000061, 0.0000215],
@@ -218,13 +232,18 @@ def test_generate(enable_pcm):
         * unit.angstrom
     )
 
-    grid, esp, electric_field = Psi4ESPGenerator.generate(molecule, conformer, settings)
+    output_conformer, grid, esp, electric_field = Psi4ESPGenerator.generate(
+        molecule, input_conformer, settings, minimize=minimize
+    )
 
     assert grid.shape[0] > 0
     assert grid.shape[1] == 3
 
     assert esp.shape == (len(grid), 1)
     assert electric_field.shape == (len(grid), 3)
+
+    assert output_conformer.shape == input_conformer.shape
+    assert numpy.allclose(output_conformer, input_conformer) != minimize
 
     assert not numpy.all(numpy.isclose(esp, 0.0))
     assert not numpy.all(numpy.isclose(electric_field, 0.0))

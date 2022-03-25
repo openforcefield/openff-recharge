@@ -26,6 +26,7 @@ class Psi4ESPGenerator(ESPGenerator):
         molecule: "Molecule",
         conformer: unit.Quantity,
         settings: ESPSettings,
+        minimize: bool,
     ) -> str:
         """Generate the input files for Psi4.
 
@@ -37,6 +38,9 @@ class Psi4ESPGenerator(ESPGenerator):
             The conformer of the molecule to generate the ESP for.
         settings
             The settings to use when generating the ESP.
+        minimize
+            Whether to energy minimize the conformer prior to computing the ESP using
+            the same level of theory that the ESP will be computed at.
 
         Returns
         -------
@@ -86,6 +90,7 @@ class Psi4ESPGenerator(ESPGenerator):
             "method": settings.method,
             "enable_pcm": enable_pcm,
             "dft_settings": settings.psi4_dft_grid_settings.value,
+            "minimize": minimize,
         }
 
         if enable_pcm:
@@ -113,14 +118,17 @@ class Psi4ESPGenerator(ESPGenerator):
         conformer: unit.Quantity,
         grid: unit.Quantity,
         settings: ESPSettings,
-        directory: str = None,
-    ) -> Tuple[unit.Quantity, unit.Quantity]:
+        directory: str,
+        minimize: bool,
+    ) -> Tuple[unit.Quantity, unit.Quantity, unit.Quantity]:
 
         # Perform the calculation in a temporary directory
         with temporary_cd(directory):
 
             # Store the input file.
-            input_contents = cls._generate_input(molecule, conformer, settings)
+            input_contents = cls._generate_input(
+                molecule, conformer, settings, minimize
+            )
 
             with open("input.dat", "w") as file:
                 file.write(input_contents)
@@ -147,4 +155,21 @@ class Psi4ESPGenerator(ESPGenerator):
                 numpy.loadtxt("grid_field.dat") * unit.hartree / (unit.e * unit.bohr)
             )
 
-        return esp, electric_field
+            with open("final-geometry.xyz") as file:
+                output_lines = file.read().splitlines(False)
+
+            final_coordinates = (
+                numpy.array(
+                    [
+                        [
+                            float(coordinate)
+                            for coordinate in coordinate_line.split()[1:]
+                        ]
+                        for coordinate_line in output_lines[2:]
+                        if len(coordinate_line) > 0
+                    ]
+                )
+                * unit.angstrom
+            )
+
+        return final_coordinates, esp, electric_field

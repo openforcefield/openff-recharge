@@ -37,8 +37,8 @@ def main():
         method="hf", basis="6-31G*", grid_settings=LatticeGridSettings(spacing=0.7)
     )
 
-    grid, esp, electric_field = Psi4ESPGenerator.generate(
-        molecule=molecule, conformer=conformer, settings=esp_settings
+    conformer, grid, esp, electric_field = Psi4ESPGenerator.generate(
+        molecule=molecule, conformer=conformer, settings=esp_settings, minimize=True
     )
     esp_record = MoleculeESPRecord.from_molecule(
         molecule, conformer, grid, esp, electric_field, esp_settings

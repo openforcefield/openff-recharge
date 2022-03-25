@@ -40,8 +40,12 @@ def main():
 
     for conformer in tqdm(conformers):
 
-        grid, esp, electric_field = Psi4ESPGenerator.generate(
-            molecule, conformer, esp_settings
+        conformer, grid, esp, electric_field = Psi4ESPGenerator.generate(
+            molecule,
+            conformer,
+            esp_settings,
+            # Minimize the input conformer prior to evaluating the ESP / EF
+            minimize=True,
         )
 
         record = MoleculeESPRecord.from_molecule(

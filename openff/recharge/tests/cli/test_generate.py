@@ -24,8 +24,16 @@ def test_generate(runner, monkeypatch):
     def mock_imap(_, func, iterable):
         return [func(x) for x in iterable]
 
-    def mock_psi4_generate(*_):
-        return numpy.zeros((1, 3)), numpy.zeros((1, 1)), numpy.zeros((1, 3))
+    set_kwargs = {}
+
+    def mock_psi4_generate(*_, **kwargs):
+        set_kwargs.update(kwargs)
+        return (
+            numpy.zeros((5, 3)),
+            numpy.zeros((1, 3)),
+            numpy.zeros((1, 1)),
+            numpy.zeros((1, 3)),
+        )
 
     monkeypatch.setattr(Psi4ESPGenerator, "generate", mock_psi4_generate)
     monkeypatch.setattr(Pool, "imap", mock_imap)
@@ -50,6 +58,8 @@ def test_generate(runner, monkeypatch):
     esp_store = MoleculeESPStore()
     assert len(esp_store.retrieve("C")) == 1
 
+    assert set_kwargs["minimize"] is True
+
 
 @pytest.mark.parametrize("error_type", [RuntimeError])
 def test_compute_esp_oe_error(error_type, caplog, monkeypatch):
@@ -63,6 +73,7 @@ def test_compute_esp_oe_error(error_type, caplog, monkeypatch):
             "C",
             ConformerSettings(),
             ESPSettings(grid_settings=LatticeGridSettings(spacing=1.0)),
+            False,
         )
 
     assert "Coordinates could not be generated for" in caplog.text
@@ -70,7 +81,7 @@ def test_compute_esp_oe_error(error_type, caplog, monkeypatch):
 
 
 def test_compute_esp_psi4_error(caplog, monkeypatch):
-    def mock_psi4_generate(*_):
+    def mock_psi4_generate(*_, **kwargs):
         raise Psi4Error("std_out", "std_err")
 
     monkeypatch.setattr(ConformerGenerator, "generate", lambda *args: [None])
@@ -81,6 +92,7 @@ def test_compute_esp_psi4_error(caplog, monkeypatch):
             "C",
             ConformerSettings(),
             ESPSettings(grid_settings=LatticeGridSettings(spacing=1.0)),
+            False,
         )
 
     assert "Psi4 failed to run for conformer" in caplog.text

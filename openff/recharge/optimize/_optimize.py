@@ -489,7 +489,7 @@ class Objective(abc.ABC):
 
         trainable_assignment_matrix = assignment_matrix[:, trainable_parameter_indices]
 
-        return trainable_assignment_matrix, fixed_charges
+        return trainable_assignment_matrix, fixed_charges.reshape(-1, 1)
 
     @classmethod
     def _compute_bcc_charge_terms(

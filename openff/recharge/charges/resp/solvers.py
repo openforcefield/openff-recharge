@@ -173,12 +173,14 @@ class RESPNonLinearSolver(abc.ABC):
         )
         a_matrix = numpy.block(
             [
-                [design_matrix.T @ design_matrix + b_matrix, constraint_matrix.T],
+                [2.0 * design_matrix.T @ design_matrix + b_matrix, constraint_matrix.T],
                 [constraint_matrix, numpy.zeros([constraint_matrix.shape[0]] * 2)],
             ]
         )
 
-        b_vector = numpy.vstack([design_matrix.T @ reference_values, constraint_values])
+        b_vector = numpy.vstack(
+            [2.0 * design_matrix.T @ reference_values, constraint_values]
+        )
 
         initial_values, *_ = numpy.linalg.lstsq(a_matrix, b_vector, rcond=None)
         return initial_values[: design_matrix.shape[1]]
@@ -330,12 +332,14 @@ class IterativeSolver(RESPNonLinearSolver):
         )
         a_matrix = numpy.block(
             [
-                [design_matrix.T @ design_matrix + b_matrix, constraint_matrix.T],
+                [2.0 * design_matrix.T @ design_matrix + b_matrix, constraint_matrix.T],
                 [constraint_matrix, numpy.zeros([constraint_matrix.shape[0]] * 2)],
             ]
         )
 
-        b_vector = numpy.vstack([design_matrix.T @ reference_values, constraint_values])
+        b_vector = numpy.vstack(
+            [2.0 * design_matrix.T @ reference_values, constraint_values]
+        )
 
         beta_new, *_ = numpy.linalg.lstsq(a_matrix, b_vector, rcond=None)
         return beta_new[: design_matrix.shape[1]]

@@ -29,8 +29,11 @@ def main():
 
     for conformer in tqdm(conformers):
 
-        grid, esp, electric_field = Psi4ESPGenerator.generate(
-            molecule=molecule, conformer=conformer, settings=qc_data_settings
+        conformer, grid, esp, electric_field = Psi4ESPGenerator.generate(
+            molecule=molecule,
+            conformer=conformer,
+            settings=qc_data_settings,
+            minimize=True
         )
         qc_data_record = MoleculeESPRecord.from_molecule(
             molecule, conformer, grid, esp, electric_field, qc_data_settings

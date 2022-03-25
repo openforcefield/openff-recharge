@@ -177,7 +177,7 @@ function
 
 $$
     \mathcal{L} \left( \mathbf{x}_{resp}, \lambda \right)= 
-        \chi^2 \left( \mathbf{x}_{resp} \right) - \lambda \left( \mathbf{C} \mathbf{x}_{resp} - \mathbf{d} \right)
+        \chi^2 \left( \mathbf{x}_{resp} \right) + \lambda \left( \mathbf{C} \mathbf{x}_{resp} - \mathbf{d} \right)
 $$
 
 where $\lambda$ is the lagrange multiplier, and then attempting to solve for
@@ -192,14 +192,14 @@ namely by solving
 
 $$
     \begin{bmatrix} 
-        \mathbf{A}^\intercal\mathbf{A} + \mathbf{B} & \mathbf{C}^\intercal \\ \mathbf{C} & \mathbf{0} 
+        2\mathbf{A}^\intercal\mathbf{A} + \mathbf{B} & \mathbf{C}^\intercal \\ \mathbf{C} & \mathbf{0} 
     \end{bmatrix}
     \begin{bmatrix} 
         \mathbf{x}_{resp} \\ \lambda 
     \end{bmatrix}
         =
     \begin{bmatrix} 
-        \mathbf{A}^\intercal\mathbf{b} \\ \mathbf{d} 
+        2\mathbf{A}^\intercal\mathbf{b} \\ \mathbf{d} 
     \end{bmatrix}
 $$
 
@@ -218,8 +218,9 @@ and $a_i$ is equal to $a$ if $x_i$ corresponds to a value that would be assigned
 
 Following the original RESP paper and corresponding code implementation, the first step in solving the lagrangian 
 is to generate an initial guess for $\mathbf{x}_{resp}$. This is done by replacing the hyperbolic restraint with
-a harmonic one, such that the $\mathbf{B}$ term in the lagrangian is replaced with $2\mathbf{a}$. This reduces the 
-problem to a linear one, and hence can be readily solved for $\mathbf{x}_{resp,0}$.
+a harmonic one, such that the $\mathbf{B}$ term in the lagrangian is replaced with 
+$2\mathbf{I}\begin{bmatrix}a_1 & \dots & a_{n_{resp}}\end{bmatrix}^\intercal$. This reduces the problem to a linear one, 
+and hence can be readily solved for $\mathbf{x}_{resp,0}$.
 
 This initial guess of $\mathbf{x}_{resp,0}$ is then substituted into $\mathbf{B}$ such that the lagrangian again becomes
 linear in $\mathbf{x}_{resp}$, and can be solved for a new value of $\mathbf{x}_{resp,1}$. The process of 

@@ -28,7 +28,7 @@ def main():
     # Generate a set of conformers for the molecule. We will compute the ESP and
     # electric field for the molecule in each conformer.
     conformers = ConformerGenerator.generate(
-        molecule, ConformerSettings(max_conformers=1)
+        molecule, ConformerSettings(max_conformers=10)
     )
 
     # Create a database to store the computed electrostatic properties in to make

@@ -1,18 +1,17 @@
 (resp_chapter)=
 # RESP charges
 
-The OpenFF Recharge framework supports generating RESP charges for molecules in multiple conformers
-{cite}`bayly1993well,cieplak1995application,cornell2002application` in addition to providing the tools needed to fit 
-'charge correction' type models such as AM1BCC. 
+The OpenFF Recharge framework supports generating RESP{cite}`bayly1993well` charges for molecules in multiple conformers 
+in addition to providing the tools needed to fit 'charge correction' type models such as AM1BCC. 
 
-A full overview of the RESP fitting procedure as implemented *in this package* is given here. A full code example for 
-how to compute RESP charges using the framework can be found [in the examples folder].
+A full overview of the RESP fitting procedure as implemented *in this framework* is given here, while a full code 
+example for computing RESP charges can be found [in the examples folder].
 
 [in the examples folder]: https://github.com/openforcefield/openff-recharge/tree/main/examples/resp-charges
 
 ## Assigning topological symmetry
 
-The atoms in the molecule of interest are initially partitioned into four different categories:
+Atoms in the molecule of interest are initially partitioned into four different categories:
 
 ![RESP stages](tables/resp-symmetry.svg)
 
@@ -28,7 +27,7 @@ Atoms are either assigned a category of methyl(ene) carbon / hydrogen (blue) or 
 :::
 
 Further, each atom in the molecule is assigned a *symmetry group*. Atoms with the same symmetry group are considered 
-to be topologically symmetrical and would in general be expected to be assigned the same partial charge value.
+to be topologically symmetrical and would, in general, be expected to be assigned the same partial charge.
 
 :::{figure-md} fig-fragments
 :align: center
@@ -38,21 +37,21 @@ to be topologically symmetrical and would in general be expected to be assigned 
 Topologically symmetrical atoms are grouped by index
 :::
 
-Within OpenFF Recharge the symmetry groups are assigned user either the RDKIT `CanonicalRankAtoms` function with 
-`breakTies=False` or the OpenEye `OEPerceiveSymmetry` functions depending on which toolkit the user has installed. A 
-preference is given to the OpenEye function if both toolkits are installed.
+Symmetry groups are assigned user either the RDKIT `CanonicalRankAtoms` function with `breakTies=False` or the 
+OpenEye `OEPerceiveSymmetry` functions depending on which toolkit is installed. A preference is given to using OpenEye 
+if both toolkits are installed.
 
 ## Creating a charge parameter
 
-RESP charges are represented by the framework as a [library charge parameter](library_charge_section). Namely, as
-both a mapped SMILES pattern and a list of corresponding charges. By encoding which charge values map to which atoms in 
-the molecule using a SMILES pattern, we can easily define store the exact molecule that the RESP charges should be 
-applied to, and also which atoms must have equivalent charges.
+RESP charges are represented within the framework as a [library charge parameter](library_charge_section); namely, as
+both a mapped SMILES pattern and a list of corresponding charges. Encoding which values map to which atoms in the 
+molecule into a SMILES pattern allows us to both easily define the exact molecule that the RESP charges should be 
+applied to, as well tp define which atoms must have equivalent charges.
 
-The created SMILES pattern is required to explicitly contain **all** atoms in the molecule, i.e. no implicit hydrogens, 
-and every one of those explicit atoms must have an accompanying map index. These map indices need not be unique, but 
-rather any atoms, that have the same map index will be assigned the exact same partial charge from a corresponding
-vector of values
+The created SMILES pattern is required to explicitly contain **all** atoms in the molecule, i.e. no implicit hydrogens 
+or partial matches, and every one of those explicit atoms must have an accompanying map index. These map indices need 
+not be unique, but rather, any atoms that have the same map index will be assigned the exact same partial charge from a 
+corresponding vector of values
 
 $$ \mathbf{x}_{resp} = 
   \begin{bmatrix} x_{1} & \dots & x_{n_{resp}} \end{bmatrix}^\intercal
@@ -120,7 +119,7 @@ where here $\mathbf{A}$ is the design matrix defined fully in the [theory chapte
 both the inverse distance from each atom to each grid point as well as the assignment matrix that maps from the 
 equivalized charges $\mathbf{x}_{resp}$ to the full set of charges on each atom in the molecule $\mathbf{q}_{resp}$. 
 
-The second term $\chi_{restr}^2$, corresponds to a hyperbolic pentaly for deviations of $\mathbf{x}_{resp}$ away from 
+The second term $\chi_{restr}^2$, corresponds to a hyperbolic penalty for deviations of $\mathbf{x}_{resp}$ away from 
 zero
 
 $$
@@ -143,9 +142,9 @@ $$
     C_{1k} = \sum_j^{N}T_{jk}
 $$
 
-is the constraint matrix, $\mathbf{T}$ the library charge assignment matrix defined in the 
+forms the constraint matrix, $\mathbf{T}$ the library charge assignment matrix defined in the 
 [theory chapter](applying_models_section), and $\mathbf{d} = \begin{bmatrix} Q \end{bmatrix}$
-is a vector containing the total charge on the molecule.
+is a vector containing the total charge on the molecule $Q$.
 
 ## Two stage RESP
 
@@ -239,6 +238,11 @@ $$
 The [SciPy package] contains built-in functions for minimizing non-linear loss functions, such as the one defined above,
 subject to equality constraints and hence in principle should be able to yield high quality RESP charges with relative 
 ease.
+
+:::{warning}
+This solver is still experimental and may yield different charges than the iterative solver described in the RESP 
+publication.
+:::
 
 An initial guess, $\mathbf{x}_{resp,0}$, is generated in the same fashion as when trying to find a 
 [solution iteratively](minimizing_iteratively_subsection). This, along with the above loss function and matrix form 

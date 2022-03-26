@@ -164,7 +164,7 @@ class RESPNonLinearSolver(abc.ABC):
         b_matrix = (
             2.0
             * numpy.eye(design_matrix.shape[1])
-            @ numpy.array(
+            * numpy.array(
                 [
                     [restraint_a if i in restraint_indices else 0.0]
                     for i in range(design_matrix.shape[1])
@@ -173,14 +173,12 @@ class RESPNonLinearSolver(abc.ABC):
         )
         a_matrix = numpy.block(
             [
-                [2.0 * design_matrix.T @ design_matrix + b_matrix, constraint_matrix.T],
+                [design_matrix.T @ design_matrix + b_matrix, constraint_matrix.T],
                 [constraint_matrix, numpy.zeros([constraint_matrix.shape[0]] * 2)],
             ]
         )
 
-        b_vector = numpy.vstack(
-            [2.0 * design_matrix.T @ reference_values, constraint_values]
-        )
+        b_vector = numpy.vstack([design_matrix.T @ reference_values, constraint_values])
 
         initial_values, *_ = numpy.linalg.lstsq(a_matrix, b_vector, rcond=None)
         return initial_values[: design_matrix.shape[1]]
@@ -317,29 +315,24 @@ class IterativeSolver(RESPNonLinearSolver):
         restraint_indices: List[int],
     ):
 
-        b_matrix = numpy.eye(design_matrix.shape[1]) @ numpy.array(
+        b_matrix = numpy.eye(design_matrix.shape[1]) * numpy.array(
             [
-                [
-                    float(
-                        restraint_a
-                        / numpy.sqrt(value * value + restraint_b * restraint_b)
-                        if i in restraint_indices
-                        else 0.0
-                    )
-                ]
+                float(
+                    restraint_a / numpy.sqrt(value * value + restraint_b * restraint_b)
+                    if i in restraint_indices
+                    else 0.0
+                )
                 for i, value in enumerate(beta)
             ]
         )
         a_matrix = numpy.block(
             [
-                [2.0 * design_matrix.T @ design_matrix + b_matrix, constraint_matrix.T],
+                [design_matrix.T @ design_matrix + b_matrix, constraint_matrix.T],
                 [constraint_matrix, numpy.zeros([constraint_matrix.shape[0]] * 2)],
             ]
         )
 
-        b_vector = numpy.vstack(
-            [2.0 * design_matrix.T @ reference_values, constraint_values]
-        )
+        b_vector = numpy.vstack([design_matrix.T @ reference_values, constraint_values])
 
         beta_new, *_ = numpy.linalg.lstsq(a_matrix, b_vector, rcond=None)
         return beta_new[: design_matrix.shape[1]]

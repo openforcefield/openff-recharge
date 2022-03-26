@@ -66,21 +66,26 @@ class TestRESPNonLinearSolver:
 
         assert numpy.allclose(jacobian, expected_jacobian)
 
-    def test_initial_guess(self):
+    @pytest.mark.parametrize(
+        "restraint_a, expected_value",
+        [
+            (0.0, numpy.array([[0.6], [-0.3]])),
+            (1.0, numpy.array([[0.5698], [-0.2698]])),
+        ],
+    )
+    def test_initial_guess(self, restraint_a, expected_value):
 
         initial_values = RESPNonLinearSolver.initial_guess(
-            design_matrix=numpy.array([[1.0 / 3.0, 2.0 / 3.0], [3.0 / 3.0, 5.0 / 3.0]]),
+            design_matrix=numpy.array([[1.0 / 0.3, 2.0 / 0.3], [3.0 / 0.3, 5.0 / 0.3]]),
             reference_values=numpy.array([[0.0], [1.0]]),
             constraint_matrix=numpy.array([[1, 1]]),
-            constraint_values=numpy.array([[3.0]]),
-            restraint_a=1.0,
+            constraint_values=numpy.array([[0.3]]),
+            restraint_a=restraint_a,
             restraint_indices=[0, 1],
         )
 
-        expected_values = numpy.array([[6.0], [-3.0]])
-
-        assert initial_values.shape == expected_values.shape
-        assert numpy.allclose(initial_values, expected_values)
+        assert initial_values.shape == expected_value.shape
+        assert numpy.allclose(initial_values, expected_value, atol=0.0001)
 
 
 class TestIterativeSolver:
@@ -101,7 +106,7 @@ class TestIterativeSolver:
         )
 
         assert charges.shape == (2, 1)
-        assert numpy.allclose(charges, numpy.array([[3.0], [-3.0]]))
+        assert numpy.allclose(charges, numpy.array([[3.0], [-3.0]]), atol=0.001)
 
 
 class TestSciPySolver:

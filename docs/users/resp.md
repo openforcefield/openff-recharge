@@ -214,7 +214,8 @@ $$
     \end{bmatrix}
 $$
 
-and $a_i$ is equal to $a$ if $x_i$ corresponds to a value that would be assigned to a heavy atom, or $0$ otherwise.
+and $a_i = a \times C_{1i}$ if $x_i$ corresponds to a value that would be assigned to a heavy atom, or $0$ 
+otherwise.
 
 Following the original RESP paper and corresponding code implementation, the first step in solving the lagrangian 
 is to generate an initial guess for $\mathbf{x}_{resp}$. This is done by replacing the hyperbolic restraint with
@@ -229,7 +230,7 @@ until convergence in the predicted charges is reached. Namely, until
 
 $$
 
-\dfrac{1}{n_{resp}}\sqrt{\|\mathbf{x}_{resp,i-1}-\mathbf{x}_{resp,i}\|^2} < 0.1\times 10^{-5} 
+\dfrac{1}{n_{resp}}\|\mathbf{x}_{resp,i-1}-\mathbf{x}_{resp,i}\| < 0.1\times 10^{-5} 
 
 $$
 

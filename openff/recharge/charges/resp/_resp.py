@@ -475,7 +475,7 @@ def generate_resp_charge_parameter(
     resp_parameter_2 = molecule_to_resp_library_charge(
         molecule,
         equivalize_within_methyl_hydrogens=True,
-        equivalize_within_methyl_carbons=False,
+        equivalize_within_methyl_carbons=True,
         equivalize_within_other_hydrogen_atoms=True,
         equivalize_within_other_heavy_atoms=True,
     )

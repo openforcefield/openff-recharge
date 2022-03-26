@@ -21,6 +21,7 @@ class RESPNonLinearSolver(abc.ABC):
         beta: numpy.ndarray,
         design_matrix: numpy.ndarray,
         reference_values: numpy.ndarray,
+        constraint_matrix: numpy.ndarray,
         restraint_a: float,
         restraint_b: float,
         restraint_indices: List[int],
@@ -38,6 +39,10 @@ class RESPNonLinearSolver(abc.ABC):
             shape=(n_grid_points, n_values)
         reference_values
             The reference ESP values with shape=(n_grid_points, 1).
+        constraint_matrix
+            A matrix that when right multiplied by the vector of charge values should
+            yield a vector that is equal to ``constraint_values`` with
+            shape=(n_constraints, n_values).
         restraint_a
             The a term in the hyperbolic RESP restraint function.
         restraint_b
@@ -56,7 +61,9 @@ class RESPNonLinearSolver(abc.ABC):
         delta = design_matrix @ beta - reference_values
         chi_esp_sqr = (delta * delta).sum()
 
-        beta_restrained = beta[restraint_indices]
+        beta_restrained = (
+            constraint_matrix[0, restraint_indices] * beta[restraint_indices]
+        )
         chi_restraint_sqr = (
             restraint_a
             * (
@@ -75,6 +82,7 @@ class RESPNonLinearSolver(abc.ABC):
         beta: numpy.ndarray,
         design_matrix: numpy.ndarray,
         reference_values: numpy.ndarray,
+        constraint_matrix: numpy.ndarray,
         restraint_a: float,
         restraint_b: float,
         restraint_indices: List[int],
@@ -91,6 +99,10 @@ class RESPNonLinearSolver(abc.ABC):
             shape=(n_grid_points, n_values)
         reference_values
             The reference ESP values with shape=(n_grid_points, 1).
+        constraint_matrix
+            A matrix that when right multiplied by the vector of charge values should
+            yield a vector that is equal to ``constraint_values`` with
+            shape=(n_constraints, n_values).
         restraint_a
             The a term in the hyperbolic RESP restraint function.
         restraint_b
@@ -114,7 +126,9 @@ class RESPNonLinearSolver(abc.ABC):
                 0.0
                 if i not in restraint_indices
                 else float(
-                    beta[i] / numpy.sqrt(beta[i] * beta[i] + restraint_b * restraint_b)
+                    constraint_matrix[0, i]
+                    * beta[i]
+                    / numpy.sqrt(beta[i] * beta[i] + restraint_b * restraint_b)
                 )
                 for i in range(len(beta))
             ]
@@ -166,7 +180,11 @@ class RESPNonLinearSolver(abc.ABC):
             * numpy.eye(design_matrix.shape[1])
             * numpy.array(
                 [
-                    [restraint_a if i in restraint_indices else 0.0]
+                    [
+                        constraint_matrix[0, i] * restraint_a
+                        if i in restraint_indices
+                        else 0.0
+                    ]
                     for i in range(design_matrix.shape[1])
                 ]
             )
@@ -318,7 +336,9 @@ class IterativeSolver(RESPNonLinearSolver):
         b_matrix = numpy.eye(design_matrix.shape[1]) * numpy.array(
             [
                 float(
-                    restraint_a / numpy.sqrt(value * value + restraint_b * restraint_b)
+                    constraint_matrix[0, i]
+                    * restraint_a
+                    / numpy.sqrt(value * value + restraint_b * restraint_b)
                     if i in restraint_indices
                     else 0.0
                 )
@@ -377,12 +397,7 @@ class IterativeSolver(RESPNonLinearSolver):
 
             beta_difference = beta_new - beta_current
 
-            if (
-                1.0
-                / len(beta_new)
-                * numpy.sqrt((beta_difference * beta_difference).sum())
-                < tolerance
-            ):
+            if numpy.linalg.norm(beta_difference) / len(beta_new) < tolerance:
                 return beta_new
 
             beta_current = beta_new
@@ -427,6 +442,7 @@ class SciPySolver(RESPNonLinearSolver):
             self.loss,
             design_matrix=design_matrix,
             reference_values=reference_values,
+            constraint_matrix=constraint_matrix,
             restraint_a=restraint_a,
             restraint_b=restraint_b,
             restraint_indices=restraint_indices,
@@ -435,6 +451,7 @@ class SciPySolver(RESPNonLinearSolver):
             self.jacobian,
             design_matrix=design_matrix,
             reference_values=reference_values,
+            constraint_matrix=constraint_matrix,
             restraint_a=restraint_a,
             restraint_b=restraint_b,
             restraint_indices=restraint_indices,

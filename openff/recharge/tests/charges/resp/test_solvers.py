@@ -18,6 +18,7 @@ class TestRESPNonLinearSolver:
             beta=numpy.array([[3.0], [-3.0]]),
             design_matrix=numpy.array([[1.0 / 3.0, 2.0 / 3.0], [3.0 / 3.0, 5.0 / 3.0]]),
             reference_values=numpy.array([[1.0], [2.0]]),
+            constraint_matrix=numpy.array([[1, 1]]),
             restraint_a=6.0,
             restraint_b=4.0,
             restraint_indices=[1],
@@ -34,6 +35,7 @@ class TestRESPNonLinearSolver:
 
         kwargs = dict(
             design_matrix=numpy.array([[1.0 / 3.0, 2.0 / 3.0], [3.0 / 3.0, 5.0 / 3.0]]),
+            constraint_matrix=numpy.array([[1, 1]]),
             reference_values=numpy.array([[1.0], [2.0]]),
             restraint_a=6.0,
             restraint_b=4.0,

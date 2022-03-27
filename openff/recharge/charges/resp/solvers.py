@@ -147,7 +147,7 @@ class RESPNonLinearSolver(abc.ABC):
         restraint_indices: List[int],
     ) -> numpy.ndarray:
         """Compute an initial guess of the charge values by solving the lagrangian
-        constrained ``Ax + b`` equations where here ``A`` does not contain any
+        constrained ``Ax + b`` equations using harmonic rather than hyperbolic
         restraints.
 
         Parameters

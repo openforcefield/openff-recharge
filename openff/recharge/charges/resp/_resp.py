@@ -358,20 +358,19 @@ def generate_resp_charge_parameter(
 
     Notes
     -----
-    * Methyl(ene) carbons are detected as an carbon matched by '[#6X4H3,#6H4,#6X4H2:1]',
+    * Methyl(ene) carbons are detected as any carbon matched by '[#6X4H3,#6H4,#6X4H2:1]',
       methyl(ene) hydrogens are any hydrogen attached to a methyl(ene) carbon, otherwise
       the atom is treated as any other heavy atom / hydrogen.
-    * Non-methyl(ene) heavy atoms and hydrogens will be equivalized in stage 1 of the fit
-      both within and between multiple conformers, and fixed in stage 2.
-    * Methyl(ene) carbons will be equivalized in stage 1 of the fit both within and
-      between multiple conformers in stage 1 of the fit, while they will only be
-      equivalized between conformers in stage 2 of the fit.
-    * Methyl(ene) hydrogens will not be equivalized in stage 1 of the fit, but will be
-      equivalized both within and between conformers in stage 2 of the fit.
-      between multiple conformers in stage 1 of the fit, while they will only be
-      equivalized between conformers in stage 2 of the fit.
-    * A value of b=0.1 is used for the hyperbolic restraints in both stages, while a
-      value of a=0.0005 and 0.001 will be used for stages 1 and 2 respectively.
+    * All heavy atom charge and non-methyl(ene) hydrogen charge will be equivalized in
+      stage 1 of the fit both within and between multiple conformers, while methyl(ene)
+      hydrogen charge will not be either within or between multiple conformers.
+    * All methyl(ene) charges (both carbon and hydrogen) will be equivalized both within
+      and between multiple conformers in stage 2 of the fit.
+    * All atom charge will be free to vary during stage 1 of the fit, while only
+      methyl(ene) charges (both carbon and hydrogen) will be free to vary during stage 2.
+    * A value of b=0.1 is used for the hyperbolic restraints applied to all heavy atom
+      charges in both stages, while a value of a=0.0005 and 0.001 will be used for
+      stages 1 and 2 respectively.
 
     Parameters
     ----------
@@ -409,11 +408,10 @@ def generate_resp_charge_parameter(
     ###################################################################################
     #                                       STAGE 1                                   #
     #                                                                                 #
-    # * HYDROGEN        : constrain equiv within=[?] between=[?] conformers fixed=[x] #
-    # * METHYL(ENE) H   : constrain equiv within=[x] between=[x] conformers fixed=[x] #
-    #                                                                                 #
-    # * HEAVY ATOMS     : constrain equiv within=[✓] between=[✓] conformers fixed=[x] #
     # * METHYL(ENE) C   : constrain equiv within=[✓] between=[✓] conformers fixed=[x] #
+    # * METHYL(ENE) H   : constrain equiv within=[x] between=[x] conformers fixed=[x] #
+    # * HEAVY ATOMS     : constrain equiv within=[✓] between=[✓] conformers fixed=[x] #
+    # * HYDROGEN        : constrain equiv within=[✓] between=[✓] conformers fixed=[x] #
     #                                                                                 #
     ###################################################################################
 
@@ -462,11 +460,10 @@ def generate_resp_charge_parameter(
     ###################################################################################
     #                                       STAGE 2                                   #
     #                                                                                 #
-    # * HYDROGEN        : constrain equiv within=[-] between=[-] conformers fixed=[✓] #
+    # * METHYL(ENE) C   : constrain equiv within=[✓] between=[✓] conformers fixed=[x] #
     # * METHYL(ENE) H   : constrain equiv within=[✓] between=[✓] conformers fixed=[x] #
-    #                                                                                 #
     # * HEAVY ATOMS     : constrain equiv within=[-] between=[-] conformers fixed=[✓] #
-    # * METHYL(ENE) C   : constrain equiv within=[x] between=[✓] conformers fixed=[x] #
+    # * HYDROGEN        : constrain equiv within=[-] between=[-] conformers fixed=[✓] #
     #                                                                                 #
     ###################################################################################
 

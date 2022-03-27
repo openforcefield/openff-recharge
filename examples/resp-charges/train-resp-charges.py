@@ -38,7 +38,7 @@ def main():
     resp_solver = IterativeSolver()
     # While by default the iterative approach to finding the set of charges that minimize
     # the RESP loss function as described in the original papers is used, others such as
-    # on that calls out to SciPy are available, e.g.
+    # an experimental one that calls out to SciPy are available, e.g.
     # resp_solver = SciPySolver(method="SLSQP")
 
     resp_charge_parameter = generate_resp_charge_parameter(

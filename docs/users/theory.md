@@ -10,6 +10,7 @@ A key feature of this framework is being able to apply different types of charge
 currently three types of parameter available based upon the [SMIRNOFF] specification: library charges, bond charge
 corrections, and virtual sites.
 
+(library_charge_section)=
 ### Library charges 
 
 A library charge is used to assign a set of specific partial charges to each atom in a molecule. It is a combination of 
@@ -124,6 +125,7 @@ The full set of coordinates for the molecule thus becomes
 
 $$\mathbf{r} = \begin{bmatrix} \mathbf{r}^{atom} \\ \mathbf{r}^{v\text{-}site}\end{bmatrix}$$
 
+(applying_models_section)=
 ## Applying charge models
 
 In general, the vectors of charge parameters described above can be applied to a given molecule through the construction
@@ -175,6 +177,7 @@ The full set of charges for the molecule thus becomes
 
 $$\mathbf{q} = \begin{bmatrix} \mathbf{q}^{atom} \\ \mathbf{q}^{v\text{-}site} \end{bmatrix}$$
 
+(train_to_qc_section)=
 ## Training to electronic property data
 
 The charge parameters described above can be trained against electronic property data, namely the electrostatic 
@@ -192,11 +195,11 @@ where the summation is over $K$ molecules in a given conformation, $O_{ref}$ is 
 property computed using some reference (normally an accurate QM) method, and $\mathbf{q}_i$ and $\mathbf{r}_i$ are the
 charge and coordinates (including both atom and v-site values) of molecule $i$ .
 
-The value of $O$ can be written more generally as $O\left(\mathbf{q},\mathbf{r}\right) = \mathbf{X} \mathbf{q}$. In the 
+The value of $O$ can be written more generally as $O\left(\mathbf{q},\mathbf{r}\right) = \mathbf{A} \mathbf{q}$. In the 
 case of training against ESP data that has been computed on a grid of $M$ points
 
 $$
-    \mathbf{X} = \begin{bmatrix}
+    \mathbf{A} = \begin{bmatrix}
     \dfrac{1}{|\mathbf{d}_{1,1}|} & \dots  & \dfrac{1}{|\mathbf{d}_{1,N}|} \\
     \vdots                                 & \ddots & \vdots                                  \\
     \dfrac{1}{|\mathbf{d}_{M,1}|} & \dots. & \dfrac{1}{|\mathbf{d}_{M,N}|} \\
@@ -206,18 +209,40 @@ $$
 where $\mathbf{d}_{i,j}$ is the a vector from atom $j$ to grid point $i$, while when training against electric field data
 
 $$
-    \mathbf{X} = \begin{bmatrix}
+    \mathbf{A} = \begin{bmatrix}
     \dfrac{\mathbf{\hat{d}}_{1,1}}{|\mathbf{d}_{1,1}|} & \dots  & \dfrac{\mathbf{\hat{d}}_{1,N}}{|\mathbf{d}_{1,N}|} \\
     \vdots                                 & \ddots & \vdots                                  \\
     \dfrac{\mathbf{\hat{d}}_{M,1}}{|\mathbf{d}_{M,1}|} & \dots. & \dfrac{\mathbf{\hat{d}}_{M,N}}{|\mathbf{d}_{M,N}|} \\
 \end{bmatrix}
 $$
 
-Adopting the language of [regression analysis], we refer in this framework to the combination of $\mathbf{X}$ and the 
+Adopting the language of [regression analysis], we refer in this framework to the combination of $\mathbf{A}$ and the 
 assignment matrices as a **design matrix**.
+
+In cases where observables have been computed for multiple molecules in multiple conformers, we can simply combine
+the individual design matrices and observable vectors for molecule $i$ in conformer $j$ as
+
+$$
+\mathbf{A} = 
+\begin{bmatrix}
+    \mathbf{A}_{11} \\ \mathbf{A}_{12} \\ \vdots \\
+\end{bmatrix}
+$$
+
+and
+
+$$
+O = 
+\begin{bmatrix}
+    O_{11} \\ O_{12} \\ \vdots \\
+\end{bmatrix}
+$$
+
+## References
 
 :::{bibliography}
 :style: unsrt
+:filter: docname in docnames
 :::
 
 [SMIRNOFF]: https://openforcefield.github.io/standards/standards/smirnoff/

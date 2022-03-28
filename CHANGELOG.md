@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.2.0](https://github.com/openforcefield/openff-recharge/tree/0.2.0) (2022-03-28)
+
+[Full Changelog](https://github.com/openforcefield/openff-recharge/compare/0.1.3...0.2.0)
+
+**Implemented enhancements:**
+
+- Add option to minimize conformer with psi4 [\#107](https://github.com/openforcefield/openff-recharge/pull/107) ([SimonBoothroyd](https://github.com/SimonBoothroyd))
+- Initial support for generating RESP charges [\#106](https://github.com/openforcefield/openff-recharge/pull/106) ([SimonBoothroyd](https://github.com/SimonBoothroyd))
+- Support library charges with duplicate indices [\#105](https://github.com/openforcefield/openff-recharge/pull/105) ([SimonBoothroyd](https://github.com/SimonBoothroyd))
+- Add symmetry and SMILES tagging utilities [\#104](https://github.com/openforcefield/openff-recharge/pull/104) ([SimonBoothroyd](https://github.com/SimonBoothroyd))
+
 ## [0.1.3](https://github.com/openforcefield/openff-recharge/tree/0.1.3) (2022-03-16)
 
 [Full Changelog](https://github.com/openforcefield/openff-recharge/compare/0.1.2...0.1.3)

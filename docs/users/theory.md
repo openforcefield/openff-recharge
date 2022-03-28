@@ -132,7 +132,7 @@ In general, the vectors of charge parameters described above can be applied to a
 of an *assignment matrix* {cite}`jakalian2000fast`. The assignment matrix
 
 $$
-    \mathbf{T}=\begin{bmatrix}
+    \mathbf{T}_{\square}=\begin{bmatrix}
       T_{1,1} & \dots  & T_{1,\gamma_{\square}} \\
       \vdots  & \ddots & \vdots  \\
       T_{N,1} & \dots. & T_{N,\gamma_{\square}} \\
@@ -154,7 +154,8 @@ For a given charge model that is some combination of library charges, BCCs, and 
 will be
 
 $$ 
-\mathbf{q}^{atom} = \begin{bmatrix} \mathbf{T}_{lib} & \mathbf{T}_{bcc} & \mathbf{T}_{v\text{-}site} \end{bmatrix} 
+\mathbf{q}^{atom} = \mathbf{T}\mathbf{p} = 
+                 \begin{bmatrix} \mathbf{T}_{lib} & \mathbf{T}_{bcc} & \mathbf{T}_{v\text{-}site} \end{bmatrix} 
                  \begin{bmatrix} \mathbf{p}_{lib} \\ \mathbf{p}_{bcc} \\ \mathbf{p}_{v\text{-}site} \end{bmatrix}
 $$
 
@@ -163,9 +164,11 @@ derive a base set of charges $q_{base}$, to be perturbed from some QM calculatio
 instead be
 
 $$ 
-\mathbf{q}^{atom} = \mathbf{q}_{base}
+\mathbf{q}^{atom} = \mathbf{q}_{base} + \mathbf{T}\mathbf{p} = 
+                   \mathbf{q}_{base}
                  + \begin{bmatrix} \mathbf{T}_{bcc} & \mathbf{T}_{v\text{-}site} \end{bmatrix} 
                    \begin{bmatrix} \mathbf{p}_{bcc} \\ \mathbf{p}_{v\text{-}site} \end{bmatrix}
+
 $$
 
 If the charge model contains virtual site parameters, the charge on each virtual site is similarly computed by applying 
@@ -195,11 +198,11 @@ where the summation is over $K$ molecules in a given conformation, $O_{ref}$ is 
 property computed using some reference (normally an accurate QM) method, and $\mathbf{q}_i$ and $\mathbf{r}_i$ are the
 charge and coordinates (including both atom and v-site values) of molecule $i$ .
 
-The value of $O$ can be written more generally as $O\left(\mathbf{q},\mathbf{r}\right) = \mathbf{A} \mathbf{q}$. In the 
+The value of $O$ can be written more generally as $O\left(\mathbf{q},\mathbf{r}\right) = \mathbf{X} \mathbf{q}$. In the 
 case of training against ESP data that has been computed on a grid of $M$ points
 
 $$
-    \mathbf{A} = \begin{bmatrix}
+    \mathbf{X} = \begin{bmatrix}
     \dfrac{1}{|\mathbf{d}_{1,1}|} & \dots  & \dfrac{1}{|\mathbf{d}_{1,N}|} \\
     \vdots                                 & \ddots & \vdots                                  \\
     \dfrac{1}{|\mathbf{d}_{M,1}|} & \dots. & \dfrac{1}{|\mathbf{d}_{M,N}|} \\
@@ -209,15 +212,32 @@ $$
 where $\mathbf{d}_{i,j}$ is the a vector from atom $j$ to grid point $i$, while when training against electric field data
 
 $$
-    \mathbf{A} = \begin{bmatrix}
+    \mathbf{X} = \begin{bmatrix}
     \dfrac{\mathbf{\hat{d}}_{1,1}}{|\mathbf{d}_{1,1}|} & \dots  & \dfrac{\mathbf{\hat{d}}_{1,N}}{|\mathbf{d}_{1,N}|} \\
     \vdots                                 & \ddots & \vdots                                  \\
     \dfrac{\mathbf{\hat{d}}_{M,1}}{|\mathbf{d}_{M,1}|} & \dots. & \dfrac{\mathbf{\hat{d}}_{M,N}}{|\mathbf{d}_{M,N}|} \\
 \end{bmatrix}
 $$
 
-Adopting the language of [regression analysis], we refer in this framework to the combination of $\mathbf{A}$ and the 
-assignment matrices as a **design matrix**.
+Adopting the language of [regression analysis], we define the **design matrix** as the combination of 
+$\mathbf{X}$ and the assignment matrix:
+
+$$
+\mathbf{A}=\mathbf{X}\mathbf{T}
+$$
+
+such that
+
+$$
+\mathbf{A}\mathbf{p} = \mathbf{b}
+$$
+
+forms the system of equations that must be solved to find the values of our charge parameters where here
+$\mathbf{b}=O\left(\mathbf{q},\mathbf{r}\right)$ or if using fixed base charges rather than library charges
+
+$$
+\mathbf{A}\mathbf{p} = \mathbf{b} - \mathbf{X}\mathbf{q}_{base}
+$$
 
 In cases where observables have been computed for multiple molecules in multiple conformers, we can simply combine
 the individual design matrices and observable vectors for molecule $i$ in conformer $j$ as
@@ -232,9 +252,9 @@ $$
 and
 
 $$
-O = 
+\mathbf{b} = 
 \begin{bmatrix}
-    O_{11} \\ O_{12} \\ \vdots \\
+    \mathbf{b}_{11} \\ \mathbf{b}_{12} \\ \vdots \\
 \end{bmatrix}
 $$
 

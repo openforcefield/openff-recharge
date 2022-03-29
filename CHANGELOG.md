@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.2.1](https://github.com/openforcefield/openff-recharge/tree/0.2.1) (2022-03-29)
+
+[Full Changelog](https://github.com/openforcefield/openff-recharge/compare/0.2.0...0.2.1)
+
+**Fixed bugs:**
+
+- Fix generating dummy RESP initial charges [\#108](https://github.com/openforcefield/openff-recharge/pull/108) ([SimonBoothroyd](https://github.com/SimonBoothroyd))
+
 ## [0.2.0](https://github.com/openforcefield/openff-recharge/tree/0.2.0) (2022-03-28)
 
 [Full Changelog](https://github.com/openforcefield/openff-recharge/compare/0.1.3...0.2.0)

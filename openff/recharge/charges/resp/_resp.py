@@ -1,4 +1,3 @@
-from collections import defaultdict
 from typing import TYPE_CHECKING, Dict, List, Optional, Tuple
 
 import numpy
@@ -32,13 +31,8 @@ def _generate_dummy_values(smiles: str) -> List[float]:
     total_charge = molecule.total_charge.value_in_unit(simtk_unit.elementary_charge)
     per_atom_charge = total_charge / molecule.n_atoms
 
-    n_times_applied = defaultdict(int)
-
-    for map_index in molecule.properties["atom_map"].values():
-        n_times_applied[map_index - 1] += 1
-
-    values = [per_atom_charge / n_times_applied[i] for i in range(len(n_times_applied))]
-    return values
+    n_values = len(set(molecule.properties["atom_map"].values()))
+    return [per_atom_charge] * n_values
 
 
 def molecule_to_resp_library_charge(

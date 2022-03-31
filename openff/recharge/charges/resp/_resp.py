@@ -1,3 +1,4 @@
+import functools
 from typing import TYPE_CHECKING, Dict, List, Optional, Tuple
 
 import numpy
@@ -345,6 +346,19 @@ def generate_resp_systems_of_equations(
     )
 
 
+@functools.lru_cache(10000)
+def _canonicalize_smiles(smiles: str) -> str:
+    """Attempts to canonicalize a SMILES pattern, stripping any map indices in the
+    process
+    """
+
+    from openff.toolkit.topology import Molecule
+
+    return Molecule.from_smiles(smiles, allow_undefined_stereo=True).to_smiles(
+        mapped=False
+    )
+
+
 def generate_resp_charge_parameter(
     qc_data_records: List[MoleculeESPRecord], solver: Optional[RESPNonLinearSolver]
 ) -> LibraryChargeParameter:
@@ -384,10 +398,7 @@ def generate_resp_charge_parameter(
     solver = IterativeSolver() if solver is None else solver
 
     unique_smiles = {
-        Molecule.from_smiles(
-            record.tagged_smiles, allow_undefined_stereo=True
-        ).to_smiles(isomeric=False, explicit_hydrogens=True, mapped=False)
-        for record in qc_data_records
+        _canonicalize_smiles(record.tagged_smiles) for record in qc_data_records
     }
     assert (
         len(unique_smiles) == 1

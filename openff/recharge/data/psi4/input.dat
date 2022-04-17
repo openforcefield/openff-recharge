@@ -47,5 +47,5 @@ pcm = {
 optimize('scf')
 {%- endif %}
 
-E,wfn = prop('{%- if spin == 2 %}u{% endif %}{{ method }}', properties = ['GRID_ESP', 'GRID_FIELD'], return_wfn=True)
+E,wfn = prop('{%- if spin == 2 %}u{% endif %}{{ method }}', properties = {{ properties }}, return_wfn=True)
 mol.save_xyz_file('final-geometry.xyz',1)

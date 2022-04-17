@@ -110,7 +110,9 @@ class ESPGenerator(abc.ABC):
         settings: ESPSettings,
         directory: str,
         minimize: bool,
-    ) -> Tuple[unit.Quantity, unit.Quantity, unit.Quantity]:
+        compute_esp: bool,
+        compute_field: bool,
+    ) -> Tuple[unit.Quantity, Optional[unit.Quantity], Optional[unit.Quantity]]:
         """The implementation of the public ``generate`` function which
         should return the ESP for the provided conformer.
 
@@ -130,6 +132,10 @@ class ESPGenerator(abc.ABC):
         minimize
             Whether to energy minimize the conformer prior to computing the ESP using
             the same level of theory that the ESP will be computed at.
+        compute_esp
+            Whether to compute the ESP at each grid point.
+        compute_field
+            Whether to compute the field at each grid point.
 
         Returns
         -------
@@ -148,7 +154,11 @@ class ESPGenerator(abc.ABC):
         settings: ESPSettings,
         directory: str = None,
         minimize: bool = False,
-    ) -> Tuple[unit.Quantity, unit.Quantity, unit.Quantity, unit.Quantity]:
+        compute_esp: bool = True,
+        compute_field: bool = True,
+    ) -> Tuple[
+        unit.Quantity, unit.Quantity, Optional[unit.Quantity], Optional[unit.Quantity]
+    ]:
         """Generate the electrostatic potential (ESP) on a grid defined by
         a provided set of settings.
 
@@ -166,6 +176,10 @@ class ESPGenerator(abc.ABC):
         minimize
             Whether to energy minimize the conformer prior to computing the ESP using
             the same level of theory that the ESP will be computed at.
+        compute_esp
+            Whether to compute the ESP at each grid point.
+        compute_field
+            Whether to compute the field at each grid point.
 
         Returns
         -------
@@ -181,7 +195,14 @@ class ESPGenerator(abc.ABC):
 
         grid = GridGenerator.generate(molecule, conformer, settings.grid_settings)
         conformer, esp, electric_field = cls._generate(
-            molecule, conformer, grid, settings, directory, minimize
+            molecule,
+            conformer,
+            grid,
+            settings,
+            directory,
+            minimize,
+            compute_esp,
+            compute_field,
         )
 
         return conformer, grid, esp, electric_field

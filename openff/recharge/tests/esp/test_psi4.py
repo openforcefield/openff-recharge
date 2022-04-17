@@ -11,7 +11,16 @@ from openff.recharge.grids import LatticeGridSettings
 from openff.recharge.utilities.molecule import smiles_to_molecule
 
 
-def test_generate_input_base():
+@pytest.mark.parametrize(
+    "compute_esp, compute_field, expected_properties",
+    [
+        (False, False, "[]"),
+        (True, False, "['GRID_ESP']"),
+        (False, True, "['GRID_FIELD']"),
+        (True, True, "['GRID_ESP', 'GRID_FIELD']"),
+    ],
+)
+def test_generate_input_base(compute_esp, compute_field, expected_properties):
     """Test that the correct input is generated from the
     jinja template."""
     pytest.importorskip("psi4")
@@ -24,7 +33,7 @@ def test_generate_input_base():
     conformer = numpy.array([[0.0, 0.0, 0.0]]) * unit.angstrom
 
     input_contents = Psi4ESPGenerator._generate_input(
-        molecule, conformer, settings, False
+        molecule, conformer, settings, False, compute_esp, compute_field
     )
 
     expected_output = "\n".join(
@@ -40,7 +49,7 @@ def test_generate_input_base():
             "  basis 6-31g*",
             "}",
             "",
-            "E,wfn = prop('hf', properties = ['GRID_ESP', 'GRID_FIELD'], "
+            f"E,wfn = prop('hf', properties = {expected_properties}, "
             "return_wfn=True)",
             "mol.save_xyz_file('final-geometry.xyz',1)",
         ]
@@ -53,7 +62,7 @@ def test_generate_input_base():
     conformer = numpy.array([[0.0, 0.0, 0.0]]) * unit.angstrom
 
     input_contents = Psi4ESPGenerator._generate_input(
-        molecule, conformer, settings, True
+        molecule, conformer, settings, True, compute_esp, compute_field
     )
 
     expected_output = "\n".join(
@@ -71,7 +80,7 @@ def test_generate_input_base():
             "",
             "optimize('scf')",
             "",
-            "E,wfn = prop('uhf', properties = ['GRID_ESP', 'GRID_FIELD'], "
+            f"E,wfn = prop('uhf', properties = {expected_properties}, "
             "return_wfn=True)",
             "mol.save_xyz_file('final-geometry.xyz',1)",
         ]
@@ -121,7 +130,7 @@ def test_generate_input_dft_settings(
     conformer = numpy.array([[0.0, 0.0, 0.0]]) * unit.angstrom
 
     input_contents = Psi4ESPGenerator._generate_input(
-        molecule, conformer, settings, False
+        molecule, conformer, settings, False, True, True
     )
 
     expected_output = "\n".join(
@@ -162,7 +171,7 @@ def test_generate_input_pcm():
     conformer = numpy.array([[0.1, 0.0, 0.0]]) * unit.nanometer
 
     input_contents = Psi4ESPGenerator._generate_input(
-        molecule, conformer, settings, False
+        molecule, conformer, settings, False, True, True
     )
 
     expected_output = "\n".join(
@@ -247,6 +256,42 @@ def test_generate(enable_pcm, minimize):
 
     assert not numpy.all(numpy.isclose(esp, 0.0))
     assert not numpy.all(numpy.isclose(electric_field, 0.0))
+
+
+def test_generate_no_properties():
+    """Perform a test run of Psi4."""
+    pytest.importorskip("psi4")
+
+    # Define the settings to use.
+    settings = ESPSettings(grid_settings=LatticeGridSettings(spacing=2.0))
+
+    # Generate a small molecule which should finish fast.
+    molecule = smiles_to_molecule("C")
+
+    input_conformer = (
+        numpy.array(
+            [
+                [-0.0000658, -0.0000061, 0.0000215],
+                [-0.0566733, 1.0873573, -0.0859463],
+                [0.6194599, -0.3971111, -0.8071615],
+                [-1.0042799, -0.4236047, -0.0695677],
+                [0.4415590, -0.2666354, 0.9626540],
+            ]
+        )
+        * unit.angstrom
+    )
+
+    output_conformer, grid, esp, electric_field = Psi4ESPGenerator.generate(
+        molecule,
+        input_conformer,
+        settings,
+        minimize=False,
+        compute_esp=False,
+        compute_field=False,
+    )
+
+    assert esp is None
+    assert electric_field is None
 
 
 def test_ps4_error():

@@ -1,7 +1,7 @@
 """Compute ESP and electric field data using Psi4"""
 import os
 import subprocess
-from typing import TYPE_CHECKING, Tuple
+from typing import TYPE_CHECKING, Optional, Tuple
 
 import jinja2
 import numpy
@@ -27,6 +27,8 @@ class Psi4ESPGenerator(ESPGenerator):
         conformer: unit.Quantity,
         settings: ESPSettings,
         minimize: bool,
+        compute_esp: bool,
+        compute_field: bool,
     ) -> str:
         """Generate the input files for Psi4.
 
@@ -41,6 +43,10 @@ class Psi4ESPGenerator(ESPGenerator):
         minimize
             Whether to energy minimize the conformer prior to computing the ESP using
             the same level of theory that the ESP will be computed at.
+        compute_esp
+            Whether to compute the ESP at each grid point.
+        compute_field
+            Whether to compute the field at each grid point.
 
         Returns
         -------
@@ -82,6 +88,13 @@ class Psi4ESPGenerator(ESPGenerator):
 
         enable_pcm = settings.pcm_settings is not None
 
+        properties = []
+
+        if compute_esp:
+            properties.append("GRID_ESP")
+        if compute_field:
+            properties.append("GRID_FIELD")
+
         template_inputs = {
             "charge": formal_charge,
             "spin": spin_multiplicity,
@@ -91,6 +104,7 @@ class Psi4ESPGenerator(ESPGenerator):
             "enable_pcm": enable_pcm,
             "dft_settings": settings.psi4_dft_grid_settings.value,
             "minimize": minimize,
+            "properties": str(properties),
         }
 
         if enable_pcm:
@@ -120,14 +134,16 @@ class Psi4ESPGenerator(ESPGenerator):
         settings: ESPSettings,
         directory: str,
         minimize: bool,
-    ) -> Tuple[unit.Quantity, unit.Quantity, unit.Quantity]:
+        compute_esp: bool,
+        compute_field: bool,
+    ) -> Tuple[unit.Quantity, Optional[unit.Quantity], Optional[unit.Quantity]]:
 
         # Perform the calculation in a temporary directory
         with temporary_cd(directory):
 
             # Store the input file.
             input_contents = cls._generate_input(
-                molecule, conformer, settings, minimize
+                molecule, conformer, settings, minimize, compute_esp, compute_field
             )
 
             with open("input.dat", "w") as file:
@@ -150,10 +166,18 @@ class Psi4ESPGenerator(ESPGenerator):
             if exit_code != 0:
                 raise Psi4Error(std_output.decode(), std_error.decode())
 
-            esp = numpy.loadtxt("grid_esp.dat").reshape(-1, 1) * unit.hartree / unit.e
-            electric_field = (
-                numpy.loadtxt("grid_field.dat") * unit.hartree / (unit.e * unit.bohr)
-            )
+            esp, electric_field = None, None
+
+            if compute_esp:
+                esp = (
+                    numpy.loadtxt("grid_esp.dat").reshape(-1, 1) * unit.hartree / unit.e
+                )
+            if compute_field:
+                electric_field = (
+                    numpy.loadtxt("grid_field.dat")
+                    * unit.hartree
+                    / (unit.e * unit.bohr)
+                )
 
             with open("final-geometry.xyz") as file:
                 output_lines = file.read().splitlines(False)

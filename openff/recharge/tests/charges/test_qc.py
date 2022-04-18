@@ -4,7 +4,6 @@ import numpy
 import pytest
 from openff.toolkit.topology import Molecule
 from openff.units import unit
-from typing_extensions import Literal
 
 from openff.recharge.charges.exceptions import ChargeAssignmentError
 from openff.recharge.charges.qc import (
@@ -103,19 +102,12 @@ def test_generate_omega_charges(methane, theory):
     assert not numpy.allclose(default_charges, unopt_charges)
 
 
-@pytest.mark.parametrize("theory", ["am1", "am1bcc"])
-def test_generate_charges(theory: Literal["am1", "am1bcc"], methane, monkeypatch):
+@pytest.mark.parametrize("theory", ["am1", "am1bcc", "GFN1-xTB"])
+def test_generate_charges(theory: QCChargeTheory, methane):
     """Ensure that charges can be generated for a simple molecule using
     the `QCChargeGenerator` class."""
 
     molecule, conformer = methane
-
-    def mock_generate_omega_charges(*args, **kwargs):
-        raise NotImplementedError()
-
-    monkeypatch.setattr(
-        QCChargeGenerator, "_generate_omega_charges", mock_generate_omega_charges
-    )
 
     charges = QCChargeGenerator.generate(
         molecule, [conformer * unit.angstrom], QCChargeSettings(theory=theory)

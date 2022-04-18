@@ -13,7 +13,7 @@ from openff.recharge.utilities.toolkits import get_atom_symmetries
 if TYPE_CHECKING:
     from openff.toolkit.topology import Molecule
 
-QCChargeTheory = Literal["am1", "am1bcc", "GFN0-xTB", "GFN1-xTB", "GFN2-xTB"]
+QCChargeTheory = Literal["am1", "am1bcc", "GFN1-xTB", "GFN2-xTB"]
 
 
 class QCChargeSettings(BaseModel):
@@ -264,11 +264,13 @@ class QCChargeGenerator:
 
         for conformer in conformers:
 
-            conformer = conformer[: molecule.n_atoms].m_as(unit.angstrom)
+            conformer = conformer[: molecule.n_atoms]
 
             if settings.theory in {"am1", "am1bcc"}:
                 conformer_charges.append(
-                    cls._generate_am1_charges(molecule, conformer, settings)
+                    cls._generate_am1_charges(
+                        molecule, conformer.m_as(unit.angstrom), settings
+                    )
                 )
             elif settings.theory.lower().endswith("xtb"):
                 conformer_charges.append(

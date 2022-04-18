@@ -40,6 +40,12 @@ dependencies:
     # ESP calculations
   - psi4 >=1.4a3.dev1
 
+    # XTB charges
+  - xtb-python
+  - geometric
+  - qcengine
+  - qcelemental
+
     # QCFractal integration.
   - qcportal >=0.15
   - h5py <3.2 # Needed as newer packages don't work with QCP for now.

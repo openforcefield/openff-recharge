@@ -1,9 +1,9 @@
 name: test
 channels:
+  - psi4
   - conda-forge
   - openeye
   - defaults
-  - psi4
 dependencies:
     # Base depends
   - python
@@ -39,6 +39,12 @@ dependencies:
 
     # ESP calculations
   - psi4 >=1.4a3.dev1
+
+    # XTB charges
+  - xtb-python
+  - geometric
+  - qcengine
+  - qcelemental
 
     # QCFractal integration.
   - qcportal >=0.15

@@ -37,12 +37,15 @@ jobs:
           python-version: ${{ matrix.cfg.python-version }}
           environment-file: devtools/conda-envs/test-env.yaml
 
-          channels: conda-forge,openeye,defaults,psi4
+          channels: psi4,conda-forge,openeye,defaults
 
           activate-environment: test
           auto-update-conda: true
           auto-activate-base: false
           show-channel-urls: true
+          miniforge-version: latest
+          miniforge-variant: Mambaforge
+          use-mamba: true
 
       - name: License OpenEye
         shell: bash -l {0}

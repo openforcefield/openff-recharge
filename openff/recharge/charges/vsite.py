@@ -434,7 +434,9 @@ class VirtualSiteGenerator:
 
             vsite_parameter = vsite_match.parameter_type
             vsite_key = (
-                vsite_parameter.smirks, vsite_parameter.type, vsite_parameter.name
+                vsite_parameter.smirks,
+                vsite_parameter.type,
+                vsite_parameter.name,
             )
 
             parent_atom_index = vsite_match.environment_match.reference_atom_indices[
@@ -449,8 +451,7 @@ class VirtualSiteGenerator:
 
         return off_molecule, {
             parent_atom_index: {
-                key: [*orientations]
-                for key, orientations in keys.items()
+                key: [*orientations] for key, orientations in keys.items()
             }
             for parent_atom_index, keys in assigned_vsite_keys.items()
         }
@@ -650,7 +651,9 @@ class VirtualSiteGenerator:
     def build_local_coordinate_frames(
         cls,
         conformer: numpy.ndarray,
-        assigned_parameters: List[Tuple[VirtualSiteParameterType, List[Tuple[int, ...]]]],
+        assigned_parameters: List[
+            Tuple[VirtualSiteParameterType, List[Tuple[int, ...]]]
+        ],
     ) -> numpy.ndarray:
         """Builds an orthonormal coordinate frame for each virtual particle
         based on the type of virtual site and the coordinates of the parent atoms.
@@ -839,10 +842,7 @@ class VirtualSiteGenerator:
         ]
 
         local_frame_coordinates = numpy.vstack(
-            [
-                parameter.local_frame_coordinates
-                for parameter, _ in assigned_parameters
-            ]
+            [parameter.local_frame_coordinates for parameter, _ in assigned_parameters]
         )
 
         # Construct the global cartesian coordinates of the v-sites.

@@ -23,7 +23,7 @@ dependencies:
   - pydantic
   - openff-utilities
   - openff-units
-  - openff-toolkit-base >=0.10.2
+  - openff-toolkit-base >=0.10.5
 
     # ESP storage
   - sqlalchemy

@@ -73,7 +73,7 @@ def vsite_force_field() -> "ForceField":
             "name": "EP",
             "type": "BondCharge",
             "distance": 0.7 * unit.nanometers,
-            "match": "once",
+            "match": "all_permutations",
             "charge_increment1": 0.2 * unit.elementary_charge,
             "charge_increment2": 0.1 * unit.elementary_charge,
             "sigma": 1.0 * unit.angstrom,
@@ -82,15 +82,15 @@ def vsite_force_field() -> "ForceField":
     )
     vsite_handler.add_parameter(
         parameter_kwargs={
-            "smirks": "[#1:1]-[#8X2H2+0:2]-[#1:3]",
+            "smirks": "[#1:2]-[#8X2H2+0:1]-[#1:3]",
             "name": "EP",
             "type": "MonovalentLonePair",
             "distance": -0.0106 * unit.nanometers,
             "outOfPlaneAngle": 90.0 * unit.degrees,
             "inPlaneAngle": numpy.pi * unit.radians,
-            "match": "once",
-            "charge_increment1": 1.0552 * 0.5 * unit.elementary_charge,
-            "charge_increment2": 0.0 * unit.elementary_charge,
+            "match": "all_permutations",
+            "charge_increment1": 0.0 * unit.elementary_charge,
+            "charge_increment2": 1.0552 * 0.5 * unit.elementary_charge,
             "charge_increment3": 1.0552 * 0.5 * unit.elementary_charge,
             "sigma": 0.0 * unit.nanometers,
             "epsilon": 0.5 * unit.kilojoules_per_mole,
@@ -98,14 +98,14 @@ def vsite_force_field() -> "ForceField":
     )
     vsite_handler.add_parameter(
         parameter_kwargs={
-            "smirks": "[#1:1]-[#8X2H2+0:2]-[#1:3]",
+            "smirks": "[#1:2]-[#8X2H2+0:1]-[#1:3]",
             "name": "EP",
             "type": "DivalentLonePair",
             "distance": -0.0106 * unit.nanometers,
             "outOfPlaneAngle": 0.1 * unit.degrees,
             "match": "all_permutations",
-            "charge_increment1": 1.0552 * 0.5 * unit.elementary_charge,
-            "charge_increment2": 0.0 * unit.elementary_charge,
+            "charge_increment1": 0.0 * unit.elementary_charge,
+            "charge_increment2": 1.0552 * 0.5 * unit.elementary_charge,
             "charge_increment3": 1.0552 * 0.5 * unit.elementary_charge,
             "sigma": 1.0 * unit.angstrom,
             "epsilon": 0.5 * unit.kilojoules_per_mole,
@@ -113,13 +113,13 @@ def vsite_force_field() -> "ForceField":
     )
     vsite_handler.add_parameter(
         parameter_kwargs={
-            "smirks": "[#1:1][#7:2]([#1:3])[#1:4]",
+            "smirks": "[#1:2][#7:1]([#1:3])[#1:4]",
             "name": "EP",
             "type": "TrivalentLonePair",
             "distance": 0.5 * unit.nanometers,
             "match": "once",
-            "charge_increment1": 0.0 * unit.elementary_charge,
-            "charge_increment2": 0.2 * unit.elementary_charge,
+            "charge_increment1": 0.2 * unit.elementary_charge,
+            "charge_increment2": 0.0 * unit.elementary_charge,
             "charge_increment3": 0.0 * unit.elementary_charge,
             "charge_increment4": 0.0 * unit.elementary_charge,
             "sigma": 1.0 * unit.angstrom,
@@ -251,16 +251,16 @@ def test_from_smirnoff(vsite_force_field):
     assert bond_charge.smirks == "[#6:2]=[#8:1]"
     assert bond_charge.name == "EP"
     assert numpy.isclose(bond_charge.distance, 7.0)
-    assert bond_charge.match == "once"
+    assert bond_charge.match == "all-permutations"
     assert len(bond_charge.charge_increments) == 2
     assert numpy.isclose(bond_charge.sigma, 1.0)
     assert numpy.isclose(bond_charge.epsilon, 2.0)
 
     monovalent: MonovalentLonePairParameter = vsite_parameters["MonovalentLonePair"]
-    assert monovalent.smirks == "[#1:1]-[#8X2H2+0:2]-[#1:3]"
+    assert monovalent.smirks == "[#1:2]-[#8X2H2+0:1]-[#1:3]"
     assert monovalent.name == "EP"
     assert numpy.isclose(monovalent.distance, -0.106)
-    assert monovalent.match == "once"
+    assert monovalent.match == "all-permutations"
     assert len(monovalent.charge_increments) == 3
     assert numpy.isclose(monovalent.sigma, 0.0)
     assert numpy.isclose(monovalent.epsilon, 0.5)
@@ -268,7 +268,7 @@ def test_from_smirnoff(vsite_force_field):
     assert numpy.isclose(monovalent.in_plane_angle, 180.0)
 
     divalent: DivalentLonePairParameter = vsite_parameters["DivalentLonePair"]
-    assert divalent.smirks == "[#1:1]-[#8X2H2+0:2]-[#1:3]"
+    assert divalent.smirks == "[#1:2]-[#8X2H2+0:1]-[#1:3]"
     assert divalent.name == "EP"
     assert numpy.isclose(divalent.distance, -0.106)
     assert divalent.match == "all-permutations"
@@ -278,7 +278,7 @@ def test_from_smirnoff(vsite_force_field):
     assert numpy.isclose(divalent.out_of_plane_angle, 0.1)
 
     trivalent: TrivalentLonePairParameter = vsite_parameters["TrivalentLonePair"]
-    assert trivalent.smirks == "[#1:1][#7:2]([#1:3])[#1:4]"
+    assert trivalent.smirks == "[#1:2][#7:1]([#1:3])[#1:4]"
     assert trivalent.name == "EP"
     assert numpy.isclose(trivalent.distance, 5.0)
     assert trivalent.match == "once"
@@ -324,8 +324,8 @@ def test_vectorize_collection_charge_increments(vsite_collection):
     parameter_vector = vsite_collection.vectorize_charge_increments(
         parameter_keys=[
             ("[#6:2]=[#8:1]", "BondCharge", "EP", 1),
-            ("[#1:1]-[#8X2H2+0:2]-[#1:3]", "DivalentLonePair", "EP", 0),
-            ("[#1:1][#7:2]([#1:3])[#1:4]", "TrivalentLonePair", "EP", 1),
+            ("[#1:2]-[#8X2H2+0:1]-[#1:3]", "DivalentLonePair", "EP", 1),
+            ("[#1:2][#7:1]([#1:3])[#1:4]", "TrivalentLonePair", "EP", 0),
         ],
     )
     assert parameter_vector.shape == (3, 1)
@@ -336,15 +336,15 @@ def test_vectorize_collection_coordinates(vsite_collection):
 
     parameter_vector = vsite_collection.vectorize_coordinates(
         parameter_keys=[
-            ("[#1:1][#7:2]([#1:3])[#1:4]", "TrivalentLonePair", "EP", "distance"),
+            ("[#1:2][#7:1]([#1:3])[#1:4]", "TrivalentLonePair", "EP", "distance"),
             (
-                "[#1:1]-[#8X2H2+0:2]-[#1:3]",
+                "[#1:2]-[#8X2H2+0:1]-[#1:3]",
                 "MonovalentLonePair",
                 "EP",
                 "in_plane_angle",
             ),
             (
-                "[#1:1]-[#8X2H2+0:2]-[#1:3]",
+                "[#1:2]-[#8X2H2+0:1]-[#1:3]",
                 "MonovalentLonePair",
                 "EP",
                 "out_of_plane_angle",
@@ -372,7 +372,9 @@ def test_generator_apply_virtual_sites(vsite_collection):
     assert len(orientations) == 1
 
     assert assigned_vsite_keys == {
-        orientations[0]: [("[#1:1][#7:2]([#1:3])[#1:4]", "TrivalentLonePair", "EP")]
+        orientations[0][0]: {
+            ("[#1:2][#7:1]([#1:3])[#1:4]", "TrivalentLonePair", "EP"): [(0, 1, 2, 3)]
+        }
     }
 
 
@@ -438,7 +440,7 @@ def test_generator_validate_charge_assignment_matrix(
                     # Two v-sites added because DivalentLonePair set to all permutations
                     numpy.zeros((5, 4)),
                     numpy.array(
-                        [[0, 2, 0], [1, 0, 1], [1, 0, 1], [-1, -1, -1], [-1, -1, -1]]
+                        [[2, 0, 0], [0, 1, 1], [0, 1, 1], [-1, -1, -1], [-1, -1, -1]]
                     ),
                     numpy.zeros((5, 5)),
                 ]
@@ -450,8 +452,8 @@ def test_generator_validate_charge_assignment_matrix(
                 [
                     numpy.array(
                         [
-                            [0, 1, 0, 0],
                             [1, 0, 0, 0],
+                            [0, 1, 0, 0],
                             [0, 0, 1, 0],
                             [0, 0, 0, 1],
                             [-1, -1, -1, -1],
@@ -520,7 +522,7 @@ def test_generator_local_coordinate_frames():
         out_of_plane_angle=45.0,
     )
 
-    assigned_parameters = {(0, 1, 2): [parameter], (0, 1, 3): [parameter]}
+    assigned_parameters = [(parameter, [(0, 1, 2), (0, 1, 3)])]
 
     actual_coordinate_frames = VirtualSiteGenerator.build_local_coordinate_frames(
         conformer, assigned_parameters

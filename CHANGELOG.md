@@ -1,5 +1,37 @@
 # Changelog
 
+## [0.3.1](https://github.com/openforcefield/openff-recharge/tree/0.3.1) (2022-04-20)
+
+[Full Changelog](https://github.com/openforcefield/openff-recharge/compare/0.3.0...0.3.1)
+
+**Implemented enhancements:**
+
+- Update to OpenFF Toolkit 0.10.5 [\#115](https://github.com/openforcefield/openff-recharge/pull/115) ([SimonBoothroyd](https://github.com/SimonBoothroyd))
+
+## [0.3.0](https://github.com/openforcefield/openff-recharge/tree/0.3.0) (2022-04-18)
+
+[Full Changelog](https://github.com/openforcefield/openff-recharge/compare/0.2.3...0.3.0)
+
+**Implemented enhancements:**
+
+- Add support for XTB charges [\#114](https://github.com/openforcefield/openff-recharge/pull/114) ([SimonBoothroyd](https://github.com/SimonBoothroyd))
+
+## [0.2.3](https://github.com/openforcefield/openff-recharge/tree/0.2.3) (2022-04-17)
+
+[Full Changelog](https://github.com/openforcefield/openff-recharge/compare/0.2.2...0.2.3)
+
+**Implemented enhancements:**
+
+- Add option to not generate ESP / electric field [\#113](https://github.com/openforcefield/openff-recharge/pull/113) ([SimonBoothroyd](https://github.com/SimonBoothroyd))
+
+## [0.2.2](https://github.com/openforcefield/openff-recharge/tree/0.2.2) (2022-03-31)
+
+[Full Changelog](https://github.com/openforcefield/openff-recharge/compare/0.2.1...0.2.2)
+
+**Fixed bugs:**
+
+- Fix stereochemistry dropped by RESP parameter [\#110](https://github.com/openforcefield/openff-recharge/pull/110) ([SimonBoothroyd](https://github.com/SimonBoothroyd))
+
 ## [0.2.1](https://github.com/openforcefield/openff-recharge/tree/0.2.1) (2022-03-29)
 
 [Full Changelog](https://github.com/openforcefield/openff-recharge/compare/0.2.0...0.2.1)

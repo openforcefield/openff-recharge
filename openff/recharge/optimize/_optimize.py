@@ -1,4 +1,5 @@
 import abc
+from collections import defaultdict
 from typing import TYPE_CHECKING, Generator, List, Optional, Tuple, Type, TypeVar, Union
 
 import numpy
@@ -547,18 +548,26 @@ class Objective(abc.ABC):
         _, assigned_parameter_map = VirtualSiteGenerator._apply_virtual_sites(
             molecule, vsite_collection
         )
-        assigned_parameters = {
-            atom_indices: [parameters_by_key[key] for key in parameter_keys]
-            for atom_indices, parameter_keys in assigned_parameter_map.items()
-        }
+
+        assigned_parameters = defaultdict(list)
+
+        for _, parameter_keys in assigned_parameter_map.items():
+            for parameter_key, orientations in parameter_keys.items():
+                assigned_parameters[parameter_key].extend(orientations)
+
+        assigned_parameters = [
+            (parameters_by_key[parameter_key], orientations)
+            for parameter_key, orientations in assigned_parameters.items()
+        ]
 
         local_coordinate_parameters = []
         local_coordinate_indices = []
 
         for atom_indices, parameter_key, parameter in [
-            (atom_indices, parameter_key, parameters_by_key[parameter_key])
-            for atom_indices, parameter_keys in assigned_parameter_map.items()
-            for parameter_key in parameter_keys
+            (orientation, parameter_key, parameters_by_key[parameter_key])
+            for parent_atom_index, parameter_keys in assigned_parameter_map.items()
+            for parameter_key, orientations in parameter_keys.items()
+            for orientation in orientations
         ]:
 
             local_coordinate_parameters.append(

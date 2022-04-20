@@ -67,7 +67,7 @@ def hcl_parameters() -> Tuple[BCCCollection, VirtualSiteCollection]:
                 smirks="[#17:1]-[#1:2]",
                 name="EP",
                 distance=4.0 * BOHR_TO_ANGSTROM,
-                match="once",
+                match="all-permutations",
                 charge_increments=(0.5, 0.1),
                 sigma=1.0,
                 epsilon=0.0,
@@ -417,11 +417,11 @@ def test_compute_vsite_charge_terms():
     vsite_collection = VirtualSiteCollection(
         parameters=[
             BondChargeSiteParameter(
-                smirks="[#6:1]-[#1:2]",
+                smirks="[#6:2]-[#1:1]",
                 name="EP",
                 distance=-0.1,
-                match="once",
-                charge_increments=(0.0, 1.0),
+                match="all-permutations",
+                charge_increments=(1.0, 0.0),
                 sigma=1.0,
                 epsilon=0.0,
             ),
@@ -429,7 +429,7 @@ def test_compute_vsite_charge_terms():
                 smirks="[#1][#6:1]#[#6:2][#9]",
                 name="EP",
                 distance=1.0,
-                match="once",
+                match="all-permutations",
                 charge_increments=(-2.0, -2.0),
                 sigma=1.0,
                 epsilon=0.0,
@@ -442,19 +442,19 @@ def test_compute_vsite_charge_terms():
         vsite_collection,
         [
             ("[#1][#6:1]#[#6:2][#9]", "BondCharge", "EP", 1),
-            ("[#6:1]-[#1:2]", "BondCharge", "EP", 0),
+            ("[#6:2]-[#1:1]", "BondCharge", "EP", 1),
         ],
     )
 
     assert assignment_matrix.shape == (6, 2)
     assert numpy.allclose(
         assignment_matrix,
-        numpy.array([[0, 0], [0, 1], [1, 0], [0, 0], [0, -1], [-1, 0]]),
+        numpy.array([[0, 0], [0, 1], [1, 0], [0, 0], [-1, 0], [0, -1]]),
     )
 
     assert fixed_charges.shape == (6, 1)
     assert numpy.allclose(
-        fixed_charges, numpy.array([[1.0], [-2.0], [0.0], [0.0], [-1.0], [2.0]])
+        fixed_charges, numpy.array([[1.0], [-2.0], [0.0], [0.0], [2.0], [-1.0]])
     )
 
 
@@ -475,10 +475,10 @@ def test_compute_vsite_coord_terms():
         parameters=[
             MonovalentLonePairParameter(
                 smirks="[O:1]=[C:2]-[H:3]",
-                name="EP",
+                name="EP1",
                 charge_increments=(0.0, 0.0, 0.0),
                 sigma=0.0,
-                match="once",
+                match="all-permutations",
                 epsilon=0.0,
                 distance=1.0,
                 in_plane_angle=180.0,
@@ -486,10 +486,10 @@ def test_compute_vsite_coord_terms():
             ),
             MonovalentLonePairParameter(
                 smirks="[O:1]=[C:2]-[F:3]",
-                name="EP",
+                name="EP2",
                 charge_increments=(0.0, 0.0, 0.0),
                 sigma=0.0,
-                match="once",
+                match="all-permutations",
                 epsilon=0.0,
                 distance=1.0,
                 in_plane_angle=175.0,
@@ -503,9 +503,9 @@ def test_compute_vsite_coord_terms():
         conformer,
         vsite_collection,
         [
-            ("[O:1]=[C:2]-[F:3]", "MonovalentLonePair", "EP", "out_of_plane_angle"),
-            ("[O:1]=[C:2]-[H:3]", "MonovalentLonePair", "EP", "out_of_plane_angle"),
-            ("[O:1]=[C:2]-[H:3]", "MonovalentLonePair", "EP", "distance"),
+            ("[O:1]=[C:2]-[F:3]", "MonovalentLonePair", "EP2", "out_of_plane_angle"),
+            ("[O:1]=[C:2]-[H:3]", "MonovalentLonePair", "EP1", "out_of_plane_angle"),
+            ("[O:1]=[C:2]-[H:3]", "MonovalentLonePair", "EP1", "distance"),
         ],
     )
 

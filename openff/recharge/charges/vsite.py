@@ -140,7 +140,7 @@ class DivalentLonePairParameter(_VirtualSiteParameter):
 
     @classmethod
     def local_frame_weights(cls) -> numpy.ndarray:
-        return numpy.array([[0.0, 1.0, 0.0], [0.5, -1.0, 0.5], [1.0, -1.0, 0.0]])
+        return numpy.array([[1.0, 0.0, 0.0], [-1.0, 0.5, 0.5], [-1.0, 1.0, 0.0]])
 
     @property
     def local_frame_coordinates(self) -> numpy.ndarray:
@@ -156,9 +156,9 @@ class TrivalentLonePairParameter(_VirtualSiteParameter):
     def local_frame_weights(cls) -> numpy.ndarray:
         return numpy.array(
             [
-                [0.0, 1.0, 0.0, 0.0],
-                [1.0 / 3.0, -1.0, 1.0 / 3.0, 1.0 / 3.0],
-                [1.0, -1.0, 0.0, 0.0],
+                [1.0, 0.0, 0.0, 0.0],
+                [-1.0, 1.0 / 3.0, 1.0 / 3.0, 1.0 / 3.0],
+                [-1.0, 1.0, 0.0, 0.0],
             ]
         )
 
@@ -406,7 +406,7 @@ class VirtualSiteGenerator:
     @classmethod
     def _apply_virtual_sites(
         cls, molecule: "Molecule", vsite_collection: VirtualSiteCollection
-    ) -> Tuple["Molecule", Dict[Tuple[int, ...], List[VirtualSiteKey]]]:
+    ) -> Tuple["Molecule", Dict[int, Dict[VirtualSiteKey, List[Tuple[int, ...]]]]]:
         """Applies a virtual site collection to a molecule.
 
         Parameters
@@ -428,21 +428,31 @@ class VirtualSiteGenerator:
         parameter_handler.create_openff_virtual_sites(off_topology)
 
         vsite_matches = parameter_handler.find_matches(off_topology)
-        assigned_vsite_keys = defaultdict(set)
+        assigned_vsite_keys = defaultdict(lambda: defaultdict(list))
 
-        for atom_indices in vsite_matches:
-            for vsite_match in vsite_matches[atom_indices]:
+        for vsite_match in vsite_matches:
 
-                vsite_parameter = vsite_match.parameter_type
+            vsite_parameter = vsite_match.parameter_type
+            vsite_key = (
+                vsite_parameter.smirks, vsite_parameter.type, vsite_parameter.name
+            )
 
-                assigned_vsite_keys[atom_indices].add(
-                    (vsite_parameter.smirks, vsite_parameter.type, vsite_parameter.name)
-                )
+            parent_atom_index = vsite_match.environment_match.reference_atom_indices[
+                vsite_parameter.parent_index
+            ]
+
+            assigned_vsite_keys[parent_atom_index][vsite_key].append(
+                vsite_match.environment_match.reference_atom_indices
+            )
 
         off_molecule = next(off_topology.reference_molecules)
 
         return off_molecule, {
-            atom_indices: [*keys] for atom_indices, keys in assigned_vsite_keys.items()
+            parent_atom_index: {
+                key: [*orientations]
+                for key, orientations in keys.items()
+            }
+            for parent_atom_index, keys in assigned_vsite_keys.items()
         }
 
     @classmethod
@@ -525,6 +535,8 @@ class VirtualSiteGenerator:
             where ...
         """
 
+        from openff.toolkit.typing.engines.smirnoff import VirtualSiteHandler
+
         off_molecule, assigned_vsite_keys = cls._apply_virtual_sites(
             molecule, vsite_collection
         )
@@ -543,7 +555,13 @@ class VirtualSiteGenerator:
         ]:
 
             vsite_index = vsite_particle.molecule_particle_index
-            vsite_parameter_keys = assigned_vsite_keys[vsite_particle.orientation]
+
+            type_parent_index = VirtualSiteHandler.VirtualSiteType.type_to_parent_index(
+                vsite_particle.virtual_site.type
+            )
+            parent_atom_index = vsite_particle.orientation[type_parent_index]
+
+            vsite_parameter_keys = assigned_vsite_keys[parent_atom_index]
 
             for vsite_parameter_key in vsite_parameter_keys:
 
@@ -632,7 +650,7 @@ class VirtualSiteGenerator:
     def build_local_coordinate_frames(
         cls,
         conformer: numpy.ndarray,
-        assigned_parameters: Dict[Tuple[int, ...], List[VirtualSiteParameterType]],
+        assigned_parameters: List[Tuple[VirtualSiteParameterType, List[Tuple[int, ...]]]],
     ) -> numpy.ndarray:
         """Builds an orthonormal coordinate frame for each virtual particle
         based on the type of virtual site and the coordinates of the parent atoms.
@@ -650,7 +668,7 @@ class VirtualSiteGenerator:
         assigned_parameters
             A dictionary of the form ``assigned_parameters[atom_indices] = parameters``
             where ``atom_indices`` is a tuple of indices corresponding to the atoms
-            that the virtual site is connected to, and ``parameters`` is a list of the
+            that the virtual site is orientated on, and ``parameters`` is a list of the
             parameters that describe the virtual sites.
 
         Returns
@@ -664,12 +682,12 @@ class VirtualSiteGenerator:
 
         stacked_frames = [[], [], [], []]
 
-        for parent_indices, vsite_parameter in (
-            (parent_indices, vsite_parameter)
-            for parent_indices, vsite_parameters in assigned_parameters.items()
-            for vsite_parameter in vsite_parameters
+        for orientation, vsite_parameter in (
+            (orientation, vsite_parameter)
+            for vsite_parameter, orientations in assigned_parameters
+            for orientation in orientations
         ):
-            parent_coordinates = conformer[parent_indices, :]
+            parent_coordinates = conformer[orientation, :]
 
             weighted_coordinates = (
                 vsite_parameter.local_frame_weights() @ parent_coordinates
@@ -809,16 +827,21 @@ class VirtualSiteGenerator:
 
         # Extract the values of the assigned parameters.
         _, assigned_parameter_map = cls._apply_virtual_sites(molecule, vsite_collection)
-        assigned_parameters = {
-            atom_indices: [vsite_parameters_by_key[key] for key in parameter_keys]
-            for atom_indices, parameter_keys in assigned_parameter_map.items()
-        }
+        assigned_parameters = defaultdict(list)
+
+        for _, parameter_keys in assigned_parameter_map.items():
+            for parameter_key, orientations in parameter_keys.items():
+                assigned_parameters[parameter_key].extend(orientations)
+
+        assigned_parameters = [
+            (vsite_parameters_by_key[parameter_key], orientations)
+            for parameter_key, orientations in assigned_parameters.items()
+        ]
 
         local_frame_coordinates = numpy.vstack(
             [
                 parameter.local_frame_coordinates
-                for parent_indices, parameters in assigned_parameters.items()
-                for parameter in parameters
+                for parameter, _ in assigned_parameters
             ]
         )
 

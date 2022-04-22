@@ -74,7 +74,7 @@ jobs:
           pytest -v --cov=openff openff/recharge/tests/ --cov-report=xml
 
       - name: CodeCov
-        uses: codecov/codecov-action@v3.0.0
+        uses: codecov/codecov-action@v3.1.0
         with:
           file: ./coverage.xml
           fail_ci_if_error: true

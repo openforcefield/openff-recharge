@@ -208,7 +208,7 @@ class QCChargeGenerator:
         if settings.theory == "am1" and settings.optimize and settings.symmetrize:
             charge_method = "am1-mulliken"
         elif settings.theory == "am1bcc" and settings.optimize and settings.symmetrize:
-            charge_method = "am1-mulliken"
+            charge_method = "am1bcc"
         elif (
             settings.theory == "am1bcc"
             and not settings.optimize

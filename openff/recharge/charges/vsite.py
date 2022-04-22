@@ -842,7 +842,11 @@ class VirtualSiteGenerator:
         ]
 
         local_frame_coordinates = numpy.vstack(
-            [parameter.local_frame_coordinates for parameter, _ in assigned_parameters]
+            [
+                parameter.local_frame_coordinates
+                for parameter, orientations in assigned_parameters
+                for _ in orientations
+            ]
         )
 
         # Construct the global cartesian coordinates of the v-sites.

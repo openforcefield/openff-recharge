@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.3.2](https://github.com/openforcefield/openff-recharge/tree/0.3.2) (2022-04-22)
+
+[Full Changelog](https://github.com/openforcefield/openff-recharge/compare/0.3.1...0.3.2)
+
+**Fixed bugs:**
+
+- Fix generating position of multiple v-sites [\#116](https://github.com/openforcefield/openff-recharge/pull/116) ([SimonBoothroyd](https://github.com/SimonBoothroyd))
+
 ## [0.3.1](https://github.com/openforcefield/openff-recharge/tree/0.3.1) (2022-04-20)
 
 [Full Changelog](https://github.com/openforcefield/openff-recharge/compare/0.3.0...0.3.1)

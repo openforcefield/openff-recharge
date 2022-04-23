@@ -296,7 +296,10 @@ class ObjectiveTerm(abc.ABC):
         else:
             atom_contribution = 0.0
 
-        if self.vsite_local_coordinate_frame is not None:
+        if (
+            self.vsite_local_coordinate_frame is not None
+            and self.vsite_local_coordinate_frame.shape[1] > 0
+        ):
 
             trainable_coordinates = append_zero(vsite_coordinate_parameters.flatten())[
                 self.vsite_coord_assignment_matrix
@@ -548,6 +551,14 @@ class Objective(abc.ABC):
         _, assigned_parameter_map = VirtualSiteGenerator._apply_virtual_sites(
             molecule, vsite_collection
         )
+
+        if len(assigned_parameter_map) == 0:
+
+            return (
+                numpy.zeros((0, 3)),
+                numpy.zeros((0, 3)),
+                numpy.zeros((4, 0, 3)),
+            )
 
         assigned_parameters = defaultdict(list)
 

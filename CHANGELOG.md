@@ -1,5 +1,13 @@
 # Changelog
 
+## [Unreleased](https://github.com/openforcefield/openff-recharge/tree/HEAD)
+
+[Full Changelog](https://github.com/openforcefield/openff-recharge/compare/0.3.2...HEAD)
+
+**Fixed bugs:**
+
+- Fix generating AM1BCC charges using the `QCChargeGenerator` [\#118](https://github.com/openforcefield/openff-recharge/pull/118) ([SimonBoothroyd](https://github.com/SimonBoothroyd))
+
 ## [0.3.2](https://github.com/openforcefield/openff-recharge/tree/0.3.2) (2022-04-22)
 
 [Full Changelog](https://github.com/openforcefield/openff-recharge/compare/0.3.1...0.3.2)

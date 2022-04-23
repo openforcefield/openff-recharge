@@ -1,8 +1,16 @@
 # Changelog
 
-## [Unreleased](https://github.com/openforcefield/openff-recharge/tree/HEAD)
+## [0.3.4](https://github.com/openforcefield/openff-recharge/tree/0.3.4) (2022-04-23)
 
-[Full Changelog](https://github.com/openforcefield/openff-recharge/compare/0.3.2...HEAD)
+[Full Changelog](https://github.com/openforcefield/openff-recharge/compare/0.3.3...0.3.4)
+
+**Fixed bugs:**
+
+- Fix exception when objective term matches no v-sites [\#119](https://github.com/openforcefield/openff-recharge/pull/119) ([SimonBoothroyd](https://github.com/SimonBoothroyd))
+
+## [0.3.3](https://github.com/openforcefield/openff-recharge/tree/0.3.3) (2022-04-22)
+
+[Full Changelog](https://github.com/openforcefield/openff-recharge/compare/0.3.2...0.3.3)
 
 **Fixed bugs:**
 

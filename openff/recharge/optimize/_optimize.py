@@ -549,6 +549,14 @@ class Objective(abc.ABC):
             molecule, vsite_collection
         )
 
+        if len(assigned_parameter_map) == 0:
+
+            return (
+                numpy.zeros((0, 3)),
+                numpy.zeros((0, 3)),
+                numpy.zeros((4, 0, 3)),
+            )
+
         assigned_parameters = defaultdict(list)
 
         for _, parameter_keys in assigned_parameter_map.items():

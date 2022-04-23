@@ -635,6 +635,33 @@ def test_compute_esp_objective_terms_no_v_site(hcl_esp_record, hcl_parameters):
     assert objective_term.vsite_fixed_coords.shape == (0, 3)
     assert objective_term.vsite_local_coordinate_frame.shape == (4, 0, 3)
 
+    bcc_charge_parameters = bcc_collection.vectorize(["[#17:1]-[#1:2]"])
+    charge_parameters = numpy.vstack(
+        [
+            bcc_charge_parameters,
+            vsite_collection.vectorize_charge_increments(
+                [("[#35:1]-[#1:2]", "BondCharge", "EP", 0)]
+            ),
+        ]
+    )
+    coordinate_parameters = vsite_collection.vectorize_coordinates(
+        [("[#35:1]-[#1:2]", "BondCharge", "EP", "distance")]
+    )
+
+    loss = objective_term.loss(charge_parameters, coordinate_parameters)
+    loss_no_v_site = next(
+        iter(
+            ESPObjective.compute_objective_terms(
+                [hcl_esp_record],
+                None,
+                bcc_collection=bcc_collection,
+                bcc_parameter_keys=["[#17:1]-[#1:2]"],
+            )
+        )
+    ).loss(bcc_charge_parameters, None)
+
+    assert numpy.isclose(loss, loss_no_v_site)
+
 
 def test_compute_field_objective_terms(hcl_esp_record, hcl_parameters):
 

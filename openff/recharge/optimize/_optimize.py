@@ -296,7 +296,10 @@ class ObjectiveTerm(abc.ABC):
         else:
             atom_contribution = 0.0
 
-        if self.vsite_local_coordinate_frame is not None:
+        if (
+            self.vsite_local_coordinate_frame is not None
+            and self.vsite_local_coordinate_frame.shape[1] > 0
+        ):
 
             trainable_coordinates = append_zero(vsite_coordinate_parameters.flatten())[
                 self.vsite_coord_assignment_matrix

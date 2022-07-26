@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING, Dict, List, Tuple, cast
 import numpy
 from openff.toolkit.utils import ToolkitUnavailableException
 from openff.units import unit
-from openff.utilities import MissingOptionalDependency
+from openff.utilities import MissingOptionalDependencyError
 
 if TYPE_CHECKING:
     from openff.toolkit.topology import Molecule
@@ -146,7 +146,7 @@ def match_smirks(
         )
     except (
         ModuleNotFoundError,
-        MissingOptionalDependency,
+        MissingOptionalDependencyError,
         ToolkitUnavailableException,
     ):
         return _rd_match_smirks(
@@ -260,7 +260,7 @@ def apply_mdl_aromaticity_model(
         return _oe_apply_mdl_aromaticity_model(molecule)
     except (
         ModuleNotFoundError,
-        MissingOptionalDependency,
+        MissingOptionalDependencyError,
         ToolkitUnavailableException,
     ):
         return _rd_apply_mdl_aromaticity_model(molecule)

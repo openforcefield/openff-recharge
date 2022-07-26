@@ -85,9 +85,9 @@ def extract_conformers(molecule: "Molecule") -> List[unit.Quantity]:
         with shape=(n_atoms, 3).
     """
 
-    from simtk import unit as simtk_unit
+    from openff.units import unit
 
     return [
-        conformer.value_in_unit(simtk_unit.angstrom) * unit.angstrom
+        conformer.m_as(unit.angstrom) * unit.angstrom
         for conformer in molecule.conformers
     ]

@@ -4,7 +4,7 @@ from glob import glob
 import numpy
 from openff.toolkit.topology import Molecule
 from openff.units import unit
-from simtk import unit as simtk_unit
+from openff.units import unit
 
 from openff.recharge.charges.library import (
     LibraryChargeCollection,
@@ -31,7 +31,7 @@ def main():
 
         respyte_charges = numpy.round(
             numpy.array(
-                molecule.partial_charges.value_in_unit(simtk_unit.elementary_charge)
+                molecule.partial_charges.m_as(unit.elementary_charge)
             ),
             4,
         )

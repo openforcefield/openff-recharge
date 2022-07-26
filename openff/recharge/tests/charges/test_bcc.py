@@ -28,33 +28,28 @@ def test_to_smirnoff():
 
     pytest.importorskip("openff.toolkit")
 
-    from openff.toolkit.topology import Molecule
-    from openff.toolkit.typing.engines.smirnoff.parameters import ElectrostaticsHandler
-    from simtk import unit
-    from simtk.openmm import System
+    from openff.interchange import Interchange
+    from openff.toolkit import ForceField, Molecule
+    from openff.toolkit.typing.engines.smirnoff.parameters import (
+        ChargeIncrementModelHandler,
+        ElectrostaticsHandler,
+    )
 
-    smirnoff_handler = original_am1bcc_corrections().to_smirnoff()
+    smirnoff_handler: ChargeIncrementModelHandler = (
+        original_am1bcc_corrections().to_smirnoff()
+    )
     assert smirnoff_handler is not None
 
-    off_molecule = Molecule.from_smiles("C(H)(H)(H)(H)")
-
-    off_topology = off_molecule.to_topology()
-    off_topology._ref_mol_to_charge_method = {off_molecule: None}
-
-    omm_system = System()
+    off_topology = Molecule.from_smiles("C(H)(H)(H)(H)").to_topology()
 
     # noinspection PyTypeChecker
-    ElectrostaticsHandler(method="PME", version="0.3").create_force(
-        omm_system, off_topology
-    )
-    smirnoff_handler.create_force(omm_system, off_topology)
+    force_field = ForceField()
+    electrostatics_handler = ElectrostaticsHandler(version="0.4")
+    force_field.register_parameter_handler(electrostatics_handler)
+    force_field.register_parameter_handler(smirnoff_handler)
 
-    off_charges = [
-        omm_system.getForce(0)
-        .getParticleParameters(i)[0]
-        .value_in_unit(unit.elementary_charge)
-        for i in range(5)
-    ]
+    out = Interchange.from_smirnoff(force_field, off_topology)
+    found_charges = [c.m for c in out["Electrostatics"].get_charges().values()]
 
     molecule = smiles_to_molecule("C")
 
@@ -66,7 +61,9 @@ def test_to_smirnoff():
     expected_charges = QCChargeGenerator.generate(
         molecule, conformers, QCChargeSettings()
     ) + BCCGenerator.generate(smiles_to_molecule("C"), original_am1bcc_corrections())
-    numpy.allclose(numpy.round(expected_charges[:, 0], 3), numpy.round(off_charges, 3))
+    numpy.allclose(
+        numpy.round(expected_charges[:, 0], 3), numpy.round(found_charges, 3)
+    )
 
 
 def test_from_smirnoff():
@@ -78,7 +75,7 @@ def test_from_smirnoff():
     from openff.toolkit.typing.engines.smirnoff.parameters import (
         ChargeIncrementModelHandler,
     )
-    from simtk import unit
+    from openff.units import unit
 
     bcc_value = 0.1 * unit.elementary_charge
 

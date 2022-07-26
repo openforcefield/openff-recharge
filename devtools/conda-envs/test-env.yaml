@@ -1,59 +1,63 @@
-name: test
+name: openff-recharge-test
 channels:
+  - jaimergp/label/unsupported-cudatoolkit-shim
   - psi4
+  - defaults
   - conda-forge
   - openeye
-  - defaults
 dependencies:
     # Base depends
-  - python
-  - pip
+  - conda-forge::python
+  - conda-forge::pip
 
     # Testing
-  - pytest
-  - pytest-cov
-  - codecov
+  - conda-forge::pytest
+  - conda-forge::pytest-cov
+  - conda-forge::codecov
 
     ### Core dependencies.
 
-  - click
-  - tqdm
-  - numpy
-  - jinja2
-  - pydantic
-  - openff-utilities >=0.1.5
-  - openff-units
-  - openff-toolkit-base >=0.10.5
+  - conda-forge::click
+  - conda-forge::tqdm
+  - conda-forge::numpy
+  - conda-forge::jinja2
+  - conda-forge::pydantic
+  - conda-forge::openff-toolkit-base >=0.11.0
+  - conda-forge::openff-interchange-base >=0.2.0
 
     # ESP storage
-  - sqlalchemy
-  - sqlite
+  - conda-forge::sqlalchemy
+  - conda-forge::sqlite
 
     # Python < 3.8
-  - typing-extensions
+  - conda-forge::typing-extensions
 
     ### Optional dependencies.
 
-  - openeye-toolkits
-  - rdkit
+  - openeye::openeye-toolkits
+  - conda-forge::rdkit
 
     # ESP calculations
-  - psi4 >=1.4a3.dev1
+  - psi4 >=1.4
 
     # XTB charges
-  - xtb-python
-  - geometric
-  - qcengine
-  - qcelemental
+  - conda-forge::xtb-python
+  - conda-forge::geometric
+  - conda-forge::qcengine
+  - conda-forge::qcelemental
 
     # QCFractal integration.
-  - qcportal >=0.15
+  - conda-forge::qcportal >=0.15
+    # https://github.com/openforcefield/openff-bespokefit/issues/162#issuecomment-1108840723
   - h5py <3.2 # Needed as newer packages don't work with QCP for now.
 
     # Optimization
-  - pytorch
+  - pytorch-cpu
 
     # Linting
-  - black
-  - isort
-  - flake8
+  - conda-forge::black
+  - conda-forge::isort
+  - conda-forge::flake8
+
+    # Channel constraint to avoid pulling down old builds from psi4 channel
+  - conda-forge::pint

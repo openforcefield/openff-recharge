@@ -73,7 +73,7 @@ class QCChargeGenerator:
             for bond in molecule.bonds
         }
 
-        symbols = numpy.array([atom.element.symbol.strip() for atom in molecule.atoms])
+        symbols = numpy.array([atom.symbol.strip() for atom in molecule.atoms])
 
         actual_connectivity = {
             tuple(sorted(connection))
@@ -98,6 +98,7 @@ class QCChargeGenerator:
         settings: QCChargeSettings,
     ):
 
+        from openff.units import unit
         from qcelemental.models.common_models import DriverEnum, Model
         from qcelemental.models.procedures import (
             OptimizationInput,
@@ -108,10 +109,9 @@ class QCChargeGenerator:
         )
         from qcelemental.models.results import AtomicInput, AtomicResult
         from qcengine import compute, compute_procedure
-        from simtk import unit as openmm_unit
 
         molecule = copy.deepcopy(molecule)
-        molecule._conformers = [conformer.m_as(unit.angstrom) * openmm_unit.angstrom]
+        molecule._conformers = [conformer.m_as(unit.angstrom) * unit.angstrom]
 
         qc_molecule = molecule.to_qcschema()
 
@@ -203,7 +203,7 @@ class QCChargeGenerator:
         settings: QCChargeSettings,
     ):
 
-        from simtk import unit as simtk_unit
+        from openff.units import unit
 
         if settings.theory == "am1" and settings.optimize and settings.symmetrize:
             charge_method = "am1-mulliken"
@@ -220,11 +220,9 @@ class QCChargeGenerator:
 
         if charge_method:
             molecule.assign_partial_charges(
-                charge_method, use_conformers=[conformer * simtk_unit.angstrom]
+                charge_method, use_conformers=[conformer * unit.angstrom]
             )
-            return numpy.array(
-                [*molecule.partial_charges.value_in_unit(simtk_unit.elementary_charge)]
-            )
+            return numpy.array([*molecule.partial_charges.m_as(unit.elementary_charge)])
 
         return cls._generate_omega_charges(molecule, conformer, settings)
 

@@ -16,14 +16,14 @@ from openff.recharge.charges.qc import (
 @pytest.fixture(scope="module")
 def methane() -> Tuple[Molecule, numpy.ndarray]:
 
-    from simtk import unit as simtk_unit
+    from openff.units import unit
 
     molecule: Molecule = Molecule.from_mapped_smiles(
         "[C:1]([H:2])([H:3])([H:4])([H:5])"
     )
     molecule.generate_conformers(n_conformers=1)
 
-    conformer = molecule.conformers[0].value_in_unit(simtk_unit.angstrom)
+    conformer = molecule.conformers[0].m_as(unit.angstrom)
 
     return molecule, conformer
 

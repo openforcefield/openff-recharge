@@ -2,7 +2,6 @@ import numpy
 import pytest
 from openff.toolkit.topology import Molecule
 from openff.toolkit.utils import UndefinedStereochemistryError
-from openff.units import unit
 
 from openff.recharge.tests import does_not_raise
 from openff.recharge.utilities.molecule import (
@@ -60,13 +59,13 @@ def test_extract_conformers():
     """Test that the `molecule_to_conformers` function returns
     a non-zero numpy array of the correct shape."""
 
-    from simtk import unit as simtk_unit
+    from openff.units import unit
 
     molecule = Molecule.from_smiles("[H][H]")
     molecule._conformers = []
 
     conformer = numpy.array([[-1.0, 0.0, 0.0], [1.0, 0.0, 0.0]])
-    molecule.add_conformer(conformer * simtk_unit.angstrom)
+    molecule.add_conformer(conformer * unit.angstrom)
 
     conformers = extract_conformers(molecule)
     assert len(conformers) == 1

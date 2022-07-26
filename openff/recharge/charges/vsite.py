@@ -7,7 +7,6 @@ from typing import TYPE_CHECKING, Dict, List, Optional, Tuple, Union, overload
 
 import numpy
 from openff.units import unit
-from openff.utilities import requires_package
 from pydantic import BaseModel, Field, constr, validator
 from typing_extensions import Literal
 
@@ -205,7 +204,6 @@ class VirtualSiteCollection(BaseModel):
         """
 
         from openff.toolkit.typing.engines.smirnoff import VirtualSiteHandler
-        from simtk import unit
 
         # noinspection PyTypeChecker
         parameter_handler = VirtualSiteHandler(
@@ -248,7 +246,6 @@ class VirtualSiteCollection(BaseModel):
         return parameter_handler
 
     @classmethod
-    @requires_package("simtk")
     def from_smirnoff(
         cls,
         parameter_handler: "VirtualSiteHandler",
@@ -270,7 +267,7 @@ class VirtualSiteCollection(BaseModel):
             The converted virtual site collection.
         """
 
-        from simtk import unit
+        from openff.units import unit
 
         assert (
             aromaticity_model == AromaticityModels.MDL
@@ -283,15 +280,13 @@ class VirtualSiteCollection(BaseModel):
             base_kwargs = dict(
                 smirks=smirnoff_parameter.smirks,
                 name=smirnoff_parameter.name,
-                distance=smirnoff_parameter.distance.value_in_unit(unit.angstrom),
+                distance=smirnoff_parameter.distance.m_as(unit.angstrom),
                 charge_increments=tuple(
-                    charge.value_in_unit(unit.elementary_charge)
+                    charge.m_as(unit.elementary_charge)
                     for charge in smirnoff_parameter.charge_increment
                 ),
-                sigma=smirnoff_parameter.sigma.value_in_unit(unit.angstrom),
-                epsilon=smirnoff_parameter.epsilon.value_in_unit(
-                    unit.kilojoules_per_mole
-                ),
+                sigma=smirnoff_parameter.sigma.m_as(unit.angstrom),
+                epsilon=smirnoff_parameter.epsilon.m_as(unit.kilojoules_per_mole),
                 match=smirnoff_parameter.match.replace("_", "-").lower(),
             )
 
@@ -302,19 +297,17 @@ class VirtualSiteCollection(BaseModel):
 
                 parameter = MonovalentLonePairParameter(
                     **base_kwargs,
-                    out_of_plane_angle=smirnoff_parameter.outOfPlaneAngle.value_in_unit(
+                    out_of_plane_angle=smirnoff_parameter.outOfPlaneAngle.m_as(
                         unit.degrees
                     ),
-                    in_plane_angle=smirnoff_parameter.inPlaneAngle.value_in_unit(
-                        unit.degrees
-                    ),
+                    in_plane_angle=smirnoff_parameter.inPlaneAngle.m_as(unit.degrees),
                 )
 
             elif smirnoff_parameter.type == "DivalentLonePair":
 
                 parameter = DivalentLonePairParameter(
                     **base_kwargs,
-                    out_of_plane_angle=smirnoff_parameter.outOfPlaneAngle.value_in_unit(
+                    out_of_plane_angle=smirnoff_parameter.outOfPlaneAngle.m_as(
                         unit.degrees
                     ),
                 )
@@ -425,26 +418,28 @@ class VirtualSiteGenerator:
         parameter_handler = vsite_collection.to_smirnoff()
 
         off_topology = copy.deepcopy(molecule).to_topology()
-        parameter_handler.create_openff_virtual_sites(off_topology)
+        # parameter_handler.create_openff_virtual_sites(off_topology)
 
         vsite_matches = parameter_handler.find_matches(off_topology)
         assigned_vsite_keys = defaultdict(lambda: defaultdict(list))
 
-        for vsite_match in vsite_matches:
+        for vsite_key, vsite_match in vsite_matches.items():
 
-            vsite_parameter = vsite_match.parameter_type
+            assert len(vsite_match) == 1
+
+            vsite_parameter = vsite_match[0].parameter_type
             vsite_key = (
                 vsite_parameter.smirks,
                 vsite_parameter.type,
                 vsite_parameter.name,
             )
 
-            parent_atom_index = vsite_match.environment_match.reference_atom_indices[
+            parent_atom_index = vsite_match[0].environment_match.reference_atom_indices[
                 vsite_parameter.parent_index
             ]
 
             assigned_vsite_keys[parent_atom_index][vsite_key].append(
-                vsite_match.environment_match.reference_atom_indices
+                vsite_match[0].environment_match.reference_atom_indices
             )
 
         off_molecule = next(off_topology.reference_molecules)

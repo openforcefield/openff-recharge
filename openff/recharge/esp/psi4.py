@@ -53,12 +53,9 @@ class Psi4ESPGenerator(ESPGenerator):
             The contents of the input file.
         """
 
-        from simtk import unit as simtk_unit
-
         # Compute the total formal charge on the molecule.
         formal_charge = sum(
-            atom.formal_charge.value_in_unit(simtk_unit.elementary_charge)
-            for atom in molecule.atoms
+            atom.formal_charge.m_as(unit.elementary_charge) for atom in molecule.atoms
         )
 
         # Compute the spin multiplicity
@@ -70,7 +67,7 @@ class Psi4ESPGenerator(ESPGenerator):
 
         atoms = [
             {
-                "element": atom.element.symbol,
+                "element": atom.symbol,
                 "x": conformer[index, 0],
                 "y": conformer[index, 1],
                 "z": conformer[index, 2],

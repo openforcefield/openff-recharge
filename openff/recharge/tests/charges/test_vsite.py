@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING
 import numpy
 import pytest
 from openff.toolkit.topology import Molecule
+from openff.toolkit.typing.engines.smirnoff import ElectrostaticsHandler
 from openff.units import unit
 
 from openff.recharge.charges.exceptions import ChargeAssignmentError
@@ -26,7 +27,7 @@ if TYPE_CHECKING:
 
 def _vsite_handler_to_string(vsite_handler: "VirtualSiteHandler") -> str:
     from openff.toolkit.typing.engines.smirnoff import ForceField
-    from simtk import unit
+    from openff.units import unit
 
     force_field = ForceField()
 
@@ -42,13 +43,16 @@ def _vsite_handler_to_string(vsite_handler: "VirtualSiteHandler") -> str:
             if not isinstance(attribute, unit.Quantity):
                 continue
 
-            attribute = attribute.in_unit_system(unit.md_unit_system)
+            if attribute.units.is_compatible_with(unit.angstrom):
+                attribute = attribute.to(unit.angstrom)
+            elif attribute.units.is_compatible_with(unit.kilojoule_per_mole):
+                attribute = attribute.to(unit.kilocalorie_per_mole)
+            elif attribute.units.is_compatible_with(unit.radian):
+                attribute = attribute.to(unit.degree)
 
-            attribute = (
-                numpy.round(
-                    attribute.value_in_unit_system(unit.md_unit_system), decimals=6
-                )
-                * attribute.unit
+            attribute = unit.Quantity(
+                numpy.round(attribute.m, decimals=6),
+                attribute.units,
             )
 
             setattr(parameter, attribute_name, attribute)
@@ -60,9 +64,11 @@ def _vsite_handler_to_string(vsite_handler: "VirtualSiteHandler") -> str:
 def vsite_force_field() -> "ForceField":
 
     from openff.toolkit.typing.engines.smirnoff import ForceField
-    from simtk import unit
+    from openff.units import unit
 
     force_field = ForceField()
+
+    force_field.register_parameter_handler(ElectrostaticsHandler(version=0.4))
 
     vsite_handler: "VirtualSiteHandler" = force_field.get_parameter_handler(
         "VirtualSites"
@@ -290,8 +296,8 @@ class TestVirtualSiteCollection:
     def test_smirnoff_parity(
         self, vsite_force_field: "ForceField", vsite_collection: VirtualSiteCollection
     ):
-
-        from simtk import openmm, unit
+        import openmm
+        from openff.units import unit
 
         molecule = smiles_to_molecule("N")
 
@@ -304,9 +310,7 @@ class TestVirtualSiteCollection:
 
         openff_charges = numpy.array(
             [
-                openmm_force.getParticleParameters(i)[0].value_in_unit(
-                    unit.elementary_charge
-                )
+                openmm_force.getParticleParameters(i)[0].m_as(unit.elementary_charge)
                 for i in range(openmm_force.getNumParticles())
             ]
         ).reshape(-1, 1)
@@ -366,8 +370,6 @@ class TestVirtualSiteGenerator:
         molecule, assigned_vsite_keys = VirtualSiteGenerator._apply_virtual_sites(
             molecule, vsite_collection
         )
-
-        assert molecule.n_virtual_sites == 1
 
         orientations = molecule.virtual_sites[0].orientations
         assert len(orientations) == 1

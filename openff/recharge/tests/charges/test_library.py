@@ -162,7 +162,7 @@ class TestLibraryChargeCollection:
 
         pytest.importorskip("openff.toolkit")
 
-        from simtk import unit
+        from openff.units import unit
 
         charge_handler = mock_charge_collection.to_smirnoff()
 
@@ -171,7 +171,7 @@ class TestLibraryChargeCollection:
         assert charge_handler.parameters[0].smirks == "[H:1][O:2][H:3]"
         assert numpy.allclose(
             [
-                charge.value_in_unit(unit.elementary_charge)
+                charge.m_as(unit.elementary_charge)
                 for charge in charge_handler.parameters[0].charge
             ],
             [0.3, 0.4, -0.7],
@@ -180,7 +180,7 @@ class TestLibraryChargeCollection:
         assert charge_handler.parameters[-1].smirks == "[Cl:1][Cl:2]"
         assert numpy.allclose(
             [
-                charge.value_in_unit(unit.elementary_charge)
+                charge.m_as(unit.elementary_charge)
                 for charge in charge_handler.parameters[-1].charge
             ],
             [-0.1, 0.1],
@@ -191,7 +191,7 @@ class TestLibraryChargeCollection:
         pytest.importorskip("openff.toolkit")
 
         from openff.toolkit.typing.engines.smirnoff import LibraryChargeHandler
-        from simtk import unit
+        from openff.units import unit
 
         # noinspection PyTypeChecker
         charge_handler = LibraryChargeHandler(version="0.3")

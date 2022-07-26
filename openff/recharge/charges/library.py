@@ -3,7 +3,6 @@ from collections import defaultdict
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple
 
 import numpy
-from openff.utilities import requires_package
 from pydantic import BaseModel, Field, constr, validator
 
 from openff.recharge.charges.exceptions import ChargeAssignmentError
@@ -59,7 +58,7 @@ class LibraryChargeParameter(BaseModel):
 
         try:
             from openff.toolkit.topology import Molecule
-            from simtk import unit as simtk_unit
+            from openff.units import unit
         except (ImportError, ModuleNotFoundError):
             return value
 
@@ -70,7 +69,7 @@ class LibraryChargeParameter(BaseModel):
             f"expected {n_expected} charges, " f"found {len(value)}"
         )
 
-        total_charge = molecule.total_charge.value_in_unit(simtk_unit.elementary_charge)
+        total_charge = molecule.total_charge.m_as(unit.elementary_charge)
         sum_charge = sum(value[i - 1] for i in molecule.properties["atom_map"].values())
 
         assert numpy.isclose(total_charge, sum_charge), (
@@ -145,7 +144,7 @@ class LibraryChargeParameter(BaseModel):
         """
 
         from openff.toolkit.topology import Molecule
-        from simtk import unit as simtk_unit
+        from openff.units import unit
 
         trainable_indices = (
             trainable_indices
@@ -157,7 +156,7 @@ class LibraryChargeParameter(BaseModel):
             self.smiles, allow_undefined_stereo=True
         )
 
-        total_charge = molecule.total_charge.value_in_unit(simtk_unit.elementary_charge)
+        total_charge = molecule.total_charge.m_as(unit.elementary_charge)
 
         constraint_matrix = numpy.zeros((1, len(self.value)))
 
@@ -194,7 +193,7 @@ class LibraryChargeCollection(BaseModel):
         from openff.toolkit.typing.engines.smirnoff.parameters import (
             LibraryChargeHandler,
         )
-        from simtk import unit
+        from openff.units import unit
 
         # noinspection PyTypeChecker
         parameter_handler = LibraryChargeHandler(version="0.3")
@@ -211,7 +210,6 @@ class LibraryChargeCollection(BaseModel):
         return parameter_handler
 
     @classmethod
-    @requires_package("simtk")
     def from_smirnoff(
         cls, parameter_handler: "LibraryChargeHandler"
     ) -> "LibraryChargeCollection":
@@ -227,14 +225,14 @@ class LibraryChargeCollection(BaseModel):
         -------
             The converted bond charge correction collection.
         """
-        from simtk import unit
+        from openff.units import unit
 
         return cls(  # lgtm [py/call-to-non-callable]
             parameters=[
                 LibraryChargeParameter(
                     smiles=off_parameter.smirks,
                     value=[
-                        charge.value_in_unit(unit.elementary_charge)
+                        charge.m_as(unit.elementary_charge)
                         for charge in off_parameter.charge
                     ],
                 )
@@ -286,14 +284,12 @@ class LibraryChargeGenerator:
     ):
         """Ensure that an assignment matrix yields sensible charges on a molecule."""
 
-        from simtk import unit as simtk_unit
+        from openff.units import unit
 
         total_charge = cls.apply_assignment_matrix(
             assignment_matrix, charge_collection
         ).sum()
-        expected_charge = molecule.total_charge.value_in_unit(
-            simtk_unit.elementary_charge
-        )
+        expected_charge = molecule.total_charge.m_as(unit.elementary_charge)
 
         if not numpy.isclose(total_charge, expected_charge):
 

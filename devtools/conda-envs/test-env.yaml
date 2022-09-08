@@ -41,13 +41,13 @@ dependencies:
   - rdkit
 
     # ESP calculations
-  - psi4 >=1.4a3.dev1
+  - psi4::psi4 >=1.4a3.dev1
 
     # XTB charges
-  - xtb-python
-  - geometric
-  - qcengine
-  - qcelemental
+  - conda-forge::xtb-python
+  - conda-forge::geometric
+  - conda-forge::qcengine
+  - conda-forge::qcelemental
 
     # QCFractal integration.
   - qcportal >=0.15

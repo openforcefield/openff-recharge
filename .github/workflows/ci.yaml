@@ -35,6 +35,7 @@ jobs:
         uses: mamba-org/provision-with-micromamba@main
         with:
           environment-file: devtools/conda-envs/test-env.yaml
+          channel-priority: "flexible"
           extra-specs: |
             python=${{ matrix.cfg.python-version }}
 

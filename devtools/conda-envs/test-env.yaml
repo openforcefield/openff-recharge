@@ -22,6 +22,7 @@ dependencies:
   - numpy
   - jinja2
   - pydantic
+  - openmm >=7.6
   - openff-toolkit-base >=0.10.6,<0.11.0a0
   - openff-utilities >=0.1.5
   - openff-units

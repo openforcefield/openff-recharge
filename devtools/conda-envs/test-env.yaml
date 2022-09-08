@@ -1,5 +1,6 @@
 name: test
 channels:
+  - jaimergp/label/unsupported-cudatoolkit-shim
   - psi4
   - conda-forge
   - openeye
@@ -21,9 +22,12 @@ dependencies:
   - numpy
   - jinja2
   - pydantic
+  - openmm >=7.6
+  - openff-toolkit-base >=0.10.6,<0.11.0a0
   - openff-utilities >=0.1.5
   - openff-units
-  - openff-toolkit-base >=0.10.5
+    # Sometimes a solver may pull down an old version from psi4
+  - conda-forge::pint
 
     # ESP storage
   - sqlalchemy
@@ -38,13 +42,13 @@ dependencies:
   - rdkit
 
     # ESP calculations
-  - psi4 >=1.4a3.dev1
+  - psi4::psi4 >=1.4a3.dev1
 
     # XTB charges
-  - xtb-python
-  - geometric
-  - qcengine
-  - qcelemental
+  - conda-forge::xtb-python
+  - conda-forge::geometric
+  - conda-forge::qcengine
+  - conda-forge::qcelemental
 
     # QCFractal integration.
   - qcportal >=0.15

@@ -32,20 +32,11 @@ jobs:
       - uses: actions/checkout@v3
 
       - name: Setup Conda Environment
-        uses: conda-incubator/setup-miniconda@v2.1.1
+        uses: mamba-org/provision-with-micromamba@main
         with:
-          python-version: ${{ matrix.cfg.python-version }}
           environment-file: devtools/conda-envs/test-env.yaml
-
-          channels: psi4,conda-forge,openeye,defaults
-
-          activate-environment: test
-          auto-update-conda: true
-          auto-activate-base: false
-          show-channel-urls: true
-          miniforge-version: latest
-          miniforge-variant: Mambaforge
-          use-mamba: true
+          extra-specs: |
+            python=${{ matrix.cfg.python-version }}
 
       - name: License OpenEye
         shell: bash -l {0}

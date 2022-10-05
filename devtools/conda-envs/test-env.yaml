@@ -24,6 +24,7 @@ dependencies:
   - pydantic
   - openmm >=7.6
   - openff-toolkit-base =0.11.0
+  - openff-interchange-base >=0.2.0
   - conda-forge::pint
 
     # ESP storage

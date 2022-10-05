@@ -216,7 +216,7 @@ class QCChargeGenerator:
         if charge_method:
             molecule.assign_partial_charges(
                 charge_method,
-                use_conformers=[unit.Quanaity(conformer, unit.angstrom)],
+                use_conformers=[unit.Quantity(conformer, unit.angstrom)],
             )
             return numpy.array([*molecule.partial_charges.m_as(unit.elementary_charge)])
 

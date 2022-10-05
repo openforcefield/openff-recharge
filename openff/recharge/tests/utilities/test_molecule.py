@@ -60,13 +60,11 @@ def test_extract_conformers():
     """Test that the `molecule_to_conformers` function returns
     a non-zero numpy array of the correct shape."""
 
-    from simtk import unit as simtk_unit
-
     molecule = Molecule.from_smiles("[H][H]")
     molecule._conformers = []
 
     conformer = numpy.array([[-1.0, 0.0, 0.0], [1.0, 0.0, 0.0]])
-    molecule.add_conformer(conformer * simtk_unit.angstrom)
+    molecule.add_conformer(unit.Quantity(conformer, unit.anstrom))
 
     conformers = extract_conformers(molecule)
     assert len(conformers) == 1

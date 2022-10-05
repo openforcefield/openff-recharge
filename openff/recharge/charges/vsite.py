@@ -3,13 +3,12 @@
 import abc
 import copy
 from collections import defaultdict
-from typing import TYPE_CHECKING, Dict, List, Optional, Tuple, Union, overload
+from typing import TYPE_CHECKING, Dict, List, Literal, Optional, Tuple, Union, overload
 
 import numpy
 from openff.units import unit
 from openff.utilities import requires_package
 from pydantic import BaseModel, Field, constr, validator
-from typing_extensions import Literal
 
 from openff.recharge.aromaticity import AromaticityModels
 from openff.recharge.charges.exceptions import ChargeAssignmentError
@@ -205,7 +204,6 @@ class VirtualSiteCollection(BaseModel):
         """
 
         from openff.toolkit.typing.engines.smirnoff import VirtualSiteHandler
-        from simtk import unit
 
         # noinspection PyTypeChecker
         parameter_handler = VirtualSiteHandler(
@@ -248,7 +246,7 @@ class VirtualSiteCollection(BaseModel):
         return parameter_handler
 
     @classmethod
-    @requires_package("simtk")
+    @requires_package("openmm")
     def from_smirnoff(
         cls,
         parameter_handler: "VirtualSiteHandler",
@@ -269,8 +267,6 @@ class VirtualSiteCollection(BaseModel):
         -------
             The converted virtual site collection.
         """
-
-        from simtk import unit
 
         assert (
             aromaticity_model == AromaticityModels.MDL

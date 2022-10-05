@@ -40,7 +40,7 @@ def test_generate_omega_conformers_error():
         ConformerGenerationError, match="ELF10 conformer selection failed"
     ):
 
-        ConformerGenerator.generate(Molecule.from_smiles("[Mg]"), ConformerSettings())
+        ConformerGenerator.generate(Molecule.from_smiles("[Mg++]"), ConformerSettings())
 
 
 @pytest.mark.parametrize("method", ["omega", "omega-elf10"])

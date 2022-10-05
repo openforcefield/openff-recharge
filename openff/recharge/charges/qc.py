@@ -1,11 +1,10 @@
 """Generate partial for molecules from a QC calculation."""
 import copy
-from typing import TYPE_CHECKING, List, cast
+from typing import TYPE_CHECKING, List, Literal, cast
 
 import numpy
 from openff.units import unit
 from pydantic import BaseModel, Field
-from typing_extensions import Literal
 
 from openff.recharge.charges.exceptions import ChargeAssignmentError
 from openff.recharge.utilities.toolkits import get_atom_symmetries
@@ -73,7 +72,7 @@ class QCChargeGenerator:
             for bond in molecule.bonds
         }
 
-        symbols = numpy.array([atom.element.symbol.strip() for atom in molecule.atoms])
+        symbols = numpy.array([atom.symbol.strip() for atom in molecule.atoms])
 
         actual_connectivity = {
             tuple(sorted(connection))
@@ -108,10 +107,9 @@ class QCChargeGenerator:
         )
         from qcelemental.models.results import AtomicInput, AtomicResult
         from qcengine import compute, compute_procedure
-        from simtk import unit as openmm_unit
 
         molecule = copy.deepcopy(molecule)
-        molecule._conformers = [conformer.m_as(unit.angstrom) * openmm_unit.angstrom]
+        molecule._conformers = [conformer]
 
         qc_molecule = molecule.to_qcschema()
 
@@ -202,9 +200,6 @@ class QCChargeGenerator:
         conformer: numpy.ndarray,
         settings: QCChargeSettings,
     ):
-
-        from simtk import unit as simtk_unit
-
         if settings.theory == "am1" and settings.optimize and settings.symmetrize:
             charge_method = "am1-mulliken"
         elif settings.theory == "am1bcc" and settings.optimize and settings.symmetrize:
@@ -220,11 +215,10 @@ class QCChargeGenerator:
 
         if charge_method:
             molecule.assign_partial_charges(
-                charge_method, use_conformers=[conformer * simtk_unit.angstrom]
+                charge_method,
+                use_conformers=[unit.Quanaity(conformer, unit.angstrom)],
             )
-            return numpy.array(
-                [*molecule.partial_charges.value_in_unit(simtk_unit.elementary_charge)]
-            )
+            return numpy.array([*molecule.partial_charges.m_as(unit.elementary_charge)])
 
         return cls._generate_omega_charges(molecule, conformer, settings)
 

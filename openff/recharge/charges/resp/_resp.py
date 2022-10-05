@@ -2,6 +2,7 @@ import functools
 from typing import TYPE_CHECKING, Dict, List, Optional, Tuple
 
 import numpy
+from openff.units import unit
 
 from openff.recharge.charges.library import (
     LibraryChargeCollection,
@@ -25,11 +26,10 @@ def _generate_dummy_values(smiles: str) -> List[float]:
     """
 
     from openff.toolkit.topology import Molecule
-    from simtk import unit as simtk_unit
 
     molecule: Molecule = Molecule.from_smiles(smiles, allow_undefined_stereo=True)
 
-    total_charge = molecule.total_charge.value_in_unit(simtk_unit.elementary_charge)
+    total_charge = molecule.total_charge.m_as(unit.elementary_charge)
     per_atom_charge = total_charge / molecule.n_atoms
 
     n_values = len(set(molecule.properties["atom_map"].values()))

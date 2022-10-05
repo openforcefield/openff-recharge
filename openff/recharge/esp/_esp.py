@@ -1,11 +1,10 @@
 import abc
 import os
 from enum import Enum
-from typing import TYPE_CHECKING, Optional, Tuple
+from typing import TYPE_CHECKING, Literal, Optional, Tuple
 
 from openff.units import unit
 from pydantic import BaseModel, Field
-from typing_extensions import Literal
 
 from openff.recharge.grids import GridGenerator, GridSettingsType
 

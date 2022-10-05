@@ -4,6 +4,7 @@ from typing import List
 import numpy
 import pytest
 from openff.toolkit.topology import Molecule
+from openff.units import unit
 
 from openff.recharge.charges.library import LibraryChargeParameter
 from openff.recharge.charges.resp._resp import (
@@ -80,15 +81,12 @@ def mock_esp_records() -> List[MoleculeESPRecord]:
     ],
 )
 def test_generate_dummy_values(smiles, expected_values):
-
-    from simtk import unit as simtk_unit
-
     actual_values = _generate_dummy_values(smiles)
     assert actual_values == expected_values
 
     molecule = Molecule.from_smiles(smiles, allow_undefined_stereo=True)
 
-    total_charge = molecule.total_charge.value_in_unit(simtk_unit.elementary_charge)
+    total_charge = molecule.total_charge.m_as(unit.elementary_charge)
     sum_charge = sum(
         actual_values[i - 1] for i in molecule.properties["atom_map"].values()
     )

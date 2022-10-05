@@ -1,10 +1,9 @@
-from typing import Callable, Tuple, Type
+from typing import Callable, Literal, Tuple, Type
 
 import numpy
 import pytest
 from openff.toolkit.topology import Molecule
 from openff.units import unit
-from typing_extensions import Literal
 
 from openff.recharge.charges.bcc import BCCCollection, BCCParameter
 from openff.recharge.charges.library import (

@@ -1,0 +1,34 @@
+ci:
+  autoupdate_schedule: "quarterly"
+files: ^openff|^examples
+repos:
+- repo: https://github.com/psf/black
+  rev: 22.8.0
+  hooks:
+  - id: black
+  - id: black-jupyter
+- repo: https://github.com/PyCQA/isort
+  rev: 5.10.1
+  hooks:
+  - id: isort
+- repo: https://github.com/asottile/pyupgrade
+  rev: v2.38.0
+  hooks:
+  - id: pyupgrade
+    args: [--py38-plus]
+- repo: https://github.com/PyCQA/flake8
+  rev: 5.0.4
+  hooks:
+  - id: flake8
+    files: ^openff
+    additional_dependencies: [
+        'flake8-absolute-import',
+        'flake8-no-pep420',
+    ]
+- repo: https://github.com/nbQA-dev/nbQA
+  rev: 1.4.0
+  hooks:
+    - id: nbqa-isort
+    - id: nbqa-flake8
+      args:
+        - '--select=F'

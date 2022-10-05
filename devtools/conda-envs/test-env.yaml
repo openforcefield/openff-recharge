@@ -1,4 +1,4 @@
-name: test
+name: openff-recharge-test
 channels:
   - jaimergp/label/unsupported-cudatoolkit-shim
   - psi4
@@ -7,7 +7,7 @@ channels:
   - defaults
 dependencies:
     # Base depends
-  - python
+  - python >=3.8
   - pip
 
     # Testing
@@ -23,10 +23,7 @@ dependencies:
   - jinja2
   - pydantic
   - openmm >=7.6
-  - openff-toolkit-base >=0.10.6,<0.11.0a0
-  - openff-utilities >=0.1.5
-  - openff-units
-    # Sometimes a solver may pull down an old version from psi4
+  - openff-toolkit-base =0.11.0
   - conda-forge::pint
 
     # ESP storage
@@ -38,11 +35,11 @@ dependencies:
 
     ### Optional dependencies.
 
-  - openeye-toolkits
-  - rdkit
+  - openeye::openeye-toolkits
+  - conda-forge::rdkit
 
     # ESP calculations
-  - psi4::psi4 >=1.4a3.dev1
+  # psi4::psi4 >=1.4a3.dev1
 
     # XTB charges
   - conda-forge::xtb-python
@@ -54,10 +51,5 @@ dependencies:
   - qcportal >=0.15
   - h5py <3.2 # Needed as newer packages don't work with QCP for now.
 
-    # Optimization
+  # Optimization
   - pytorch
-
-    # Linting
-  - black
-  - isort
-  - flake8

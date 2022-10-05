@@ -1,5 +1,6 @@
 import numpy
 import pytest
+from openff.units import unit
 
 from openff.recharge.charges.bcc import (
     BCCCollection,
@@ -28,10 +29,9 @@ def test_to_smirnoff():
 
     pytest.importorskip("openff.toolkit")
 
+    import openmm
     from openff.toolkit.topology import Molecule
     from openff.toolkit.typing.engines.smirnoff.parameters import ElectrostaticsHandler
-    from simtk import unit
-    from simtk.openmm import System
 
     smirnoff_handler = original_am1bcc_corrections().to_smirnoff()
     assert smirnoff_handler is not None
@@ -41,12 +41,10 @@ def test_to_smirnoff():
     off_topology = off_molecule.to_topology()
     off_topology._ref_mol_to_charge_method = {off_molecule: None}
 
-    omm_system = System()
+    omm_system = openmm.System()
 
     # noinspection PyTypeChecker
-    ElectrostaticsHandler(method="PME", version="0.3").create_force(
-        omm_system, off_topology
-    )
+    ElectrostaticsHandler(version="0.3").create_force(omm_system, off_topology)
     smirnoff_handler.create_force(omm_system, off_topology)
 
     off_charges = [
@@ -78,7 +76,6 @@ def test_from_smirnoff():
     from openff.toolkit.typing.engines.smirnoff.parameters import (
         ChargeIncrementModelHandler,
     )
-    from simtk import unit
 
     bcc_value = 0.1 * unit.elementary_charge
 

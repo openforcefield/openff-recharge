@@ -1,11 +1,10 @@
 """A module for generating conformers for molecules."""
 import logging
-from typing import TYPE_CHECKING, List, Optional
+from typing import TYPE_CHECKING, List, Literal, Optional
 
 import numpy
 from openff.units import unit
 from pydantic import BaseModel, Field
-from typing_extensions import Literal
 
 from openff.recharge.conformers.exceptions import ConformerGenerationError
 

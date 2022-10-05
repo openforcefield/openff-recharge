@@ -2,6 +2,7 @@ import copy
 from typing import TYPE_CHECKING
 
 import numpy
+import openmm
 import pytest
 from openff.toolkit.topology import Molecule
 from openff.units import unit
@@ -26,7 +27,6 @@ if TYPE_CHECKING:
 
 def _vsite_handler_to_string(vsite_handler: "VirtualSiteHandler") -> str:
     from openff.toolkit.typing.engines.smirnoff import ForceField
-    from simtk import unit
 
     force_field = ForceField()
 
@@ -60,7 +60,6 @@ def _vsite_handler_to_string(vsite_handler: "VirtualSiteHandler") -> str:
 def vsite_force_field() -> "ForceField":
 
     from openff.toolkit.typing.engines.smirnoff import ForceField
-    from simtk import unit
 
     force_field = ForceField()
 
@@ -290,8 +289,6 @@ class TestVirtualSiteCollection:
     def test_smirnoff_parity(
         self, vsite_force_field: "ForceField", vsite_collection: VirtualSiteCollection
     ):
-
-        from simtk import openmm, unit
 
         molecule = smiles_to_molecule("N")
 

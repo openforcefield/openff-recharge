@@ -84,10 +84,4 @@ def extract_conformers(molecule: "Molecule") -> List[unit.Quantity]:
         A list of the extracted conformers [A], where each conformer is a numpy array
         with shape=(n_atoms, 3).
     """
-
-    from simtk import unit as simtk_unit
-
-    return [
-        conformer.value_in_unit(simtk_unit.angstrom) * unit.angstrom
-        for conformer in molecule.conformers
-    ]
+    return molecule.conformers

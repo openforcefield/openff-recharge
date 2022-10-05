@@ -29,7 +29,7 @@ class MissingQCWaveFunctionError(RechargeException):
 
     def __init__(self, result_id: str):
 
-        super(MissingQCWaveFunctionError, self).__init__(
+        super().__init__(
             f"The result with id={result_id} does not store the required wavefunction."
             f"Make sure to use at minimum the 'orbitals_and_eigenvalues' wavefunction "
             f"protocol when computing the data set."
@@ -43,9 +43,7 @@ class InvalidPCMKeywordError(RechargeException):
 
     def __init__(self, input_string: str):
 
-        super(InvalidPCMKeywordError, self).__init__(
-            f"The PCM settings could not be safely parsed: {input_string}"
-        )
+        super().__init__(f"The PCM settings could not be safely parsed: {input_string}")
 
 
 def _parse_pcm_input(input_string: str) -> PCMSettings:

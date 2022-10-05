@@ -18,7 +18,7 @@ class IncompatibleDBVersion(RechargeException):
             The expected version of the database.
         """
 
-        super(IncompatibleDBVersion, self).__init__(
+        super().__init__(
             f"The database being loaded is currently at version {found_version} "
             f"while the framework expects a version of {expected_version}. There "
             f"is no way to upgrade the database at this time, although this may "

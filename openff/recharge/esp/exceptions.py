@@ -15,6 +15,6 @@ class Psi4Error(RechargeException):
         std_output
             The stdout from Psi4.
         """
-        super(Psi4Error, self).__init__(
+        super().__init__(
             f"Psi4 failed to execute.\n\nStdErr:\n{std_error}\n\nStdOut:\n{std_output}"
         )

@@ -40,7 +40,7 @@ dependencies:
   - conda-forge::rdkit
 
     # ESP calculations
-  # psi4::psi4 >=1.4a3.dev1
+  - psi4::psi4 >=1.4a3.dev1
 
     # XTB charges
   - conda-forge::xtb-python

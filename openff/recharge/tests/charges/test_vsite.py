@@ -135,7 +135,9 @@ def vsite_collection(vsite_force_field: "ForceField") -> VirtualSiteCollection:
     return VirtualSiteCollection.from_smirnoff(vsite_force_field["VirtualSites"])
 
 
-@pytest.mark.skip(reason="Virtual site code has not yet been refactored for version 0.11.0")
+@pytest.mark.skip(
+    reason="Virtual site code has not yet been refactored for version 0.11.0"
+)
 class TestVirtualSiteParameter:
     @pytest.mark.parametrize(
         "parameter_type, n_positions",
@@ -210,7 +212,9 @@ class TestVirtualSiteParameter:
         assert numpy.allclose(parameter.local_frame_coordinates, expected_value)
 
 
-@pytest.mark.skip(reason="Virtual site code has not yet been refactored for version 0.11.0")
+@pytest.mark.skip(
+    reason="Virtual site code has not yet been refactored for version 0.11.0"
+)
 class TestVirtualSiteCollection:
     def test_to_smirnoff(
         self, vsite_force_field: "ForceField", vsite_collection: VirtualSiteCollection
@@ -357,7 +361,9 @@ class TestVirtualSiteCollection:
         )
 
 
-@pytest.mark.skip(reason="Virtual site code has not yet been refactored for version 0.11.0")
+@pytest.mark.skip(
+    reason="Virtual site code has not yet been refactored for version 0.11.0"
+)
 class TestVirtualSiteGenerator:
     def test_apply_virtual_sites(self, vsite_collection):
 

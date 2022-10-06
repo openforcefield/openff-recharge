@@ -64,7 +64,7 @@ def test_extract_conformers():
     molecule._conformers = []
 
     conformer = numpy.array([[-1.0, 0.0, 0.0], [1.0, 0.0, 0.0]])
-    molecule.add_conformer(unit.Quantity(conformer, unit.anstrom))
+    molecule.add_conformer(unit.Quantity(conformer, unit.angstrom))
 
     conformers = extract_conformers(molecule)
     assert len(conformers) == 1

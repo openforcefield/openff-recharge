@@ -1,11 +1,10 @@
 import functools
 import itertools
-from typing import TYPE_CHECKING, Optional, Union
+from typing import TYPE_CHECKING, Literal, Optional, Union
 
 import numpy
 from openff.units import unit
 from pydantic import BaseModel, Field
-from typing_extensions import Literal
 
 from openff.recharge.utilities.pydantic import wrapped_float_validator
 from openff.recharge.utilities.toolkits import VdWRadiiType, compute_vdw_radii

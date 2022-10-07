@@ -1,10 +1,19 @@
 import abc
 from collections import defaultdict
-from typing import TYPE_CHECKING, Generator, List, Optional, Tuple, Type, TypeVar, Union
+from typing import (
+    TYPE_CHECKING,
+    Generator,
+    List,
+    Literal,
+    Optional,
+    Tuple,
+    Type,
+    TypeVar,
+    Union,
+)
 
 import numpy
 from openff.units import unit
-from typing_extensions import Literal
 
 from openff.recharge.charges.bcc import BCCCollection, BCCGenerator
 from openff.recharge.charges.library import (

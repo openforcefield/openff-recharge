@@ -189,9 +189,7 @@ def compute_vdw_radii(
             "K": 1.75,
         }
 
-        return [
-            _BONDI_RADII[atom.element.symbol] for atom in molecule.atoms
-        ] * unit.angstrom
+        return [_BONDI_RADII[atom.symbol] for atom in molecule.atoms] * unit.angstrom
     else:
         raise NotImplementedError()
 

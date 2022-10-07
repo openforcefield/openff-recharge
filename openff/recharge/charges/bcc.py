@@ -4,6 +4,7 @@ import os
 from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
 import numpy
+from openff.units import unit
 from openff.utilities import get_data_file_path, requires_package
 from pydantic import BaseModel, Field, constr
 
@@ -77,7 +78,6 @@ class BCCCollection(BaseModel):
         from openff.toolkit.typing.engines.smirnoff.parameters import (
             ChargeIncrementModelHandler,
         )
-        from simtk import unit
 
         # noinspection PyTypeChecker
         bcc_parameter_handler = ChargeIncrementModelHandler(version="0.3")
@@ -99,7 +99,7 @@ class BCCCollection(BaseModel):
         return bcc_parameter_handler
 
     @classmethod
-    @requires_package("simtk")
+    @requires_package("openff.toolkit")
     def from_smirnoff(
         cls,
         parameter_handler: "ChargeIncrementModelHandler",
@@ -125,8 +125,6 @@ class BCCCollection(BaseModel):
         -------
             The converted bond charge correction collection.
         """
-        from simtk import unit
-
         bcc_parameters = []
 
         for off_parameter in reversed(parameter_handler.parameters):
@@ -138,13 +136,13 @@ class BCCCollection(BaseModel):
                     smirks, len(off_parameter.charge_increment)
                 )
 
-            forward_value = off_parameter.charge_increment[0].value_in_unit(
+            forward_value = off_parameter.charge_increment[0].m_as(
                 unit.elementary_charge
             )
             reverse_value = -forward_value
 
             if len(off_parameter.charge_increment) > 1:
-                reverse_value = off_parameter.charge_increment[1].value_in_unit(
+                reverse_value = off_parameter.charge_increment[1].m_as(
                     unit.elementary_charge
                 )
 

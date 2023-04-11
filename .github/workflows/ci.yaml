@@ -20,9 +20,9 @@ jobs:
       fail-fast: false
       matrix:
         cfg:
-          - python-version: 3.9
+          - python-version: "3.9"
             os: ubuntu-latest
-          - python-version: 3.10
+          - python-version: "3.10"
             os: ubuntu-latest
 
     env:
@@ -34,7 +34,7 @@ jobs:
       - name: Setup Conda Environment
         uses: mamba-org/provision-with-micromamba@main
         with:
-          environment-file: devtools/conda-envs/test-env.yaml
+          environment-file: devtools/conda-envs/test_env.yaml
           channel-priority: "flexible"
           extra-specs: |
             python=${{ matrix.cfg.python-version }}

@@ -21,7 +21,7 @@ class UnsupportedSMIRNOFFBCCError(RechargeException, abc.ABC):
             cannot be converted.
         """
 
-        super(UnsupportedSMIRNOFFBCCError, self).__init__(message)
+        super().__init__(message)
         self.smirks = smirks
 
 
@@ -43,7 +43,7 @@ class UnsupportedBCCSmirksError(UnsupportedSMIRNOFFBCCError):
             The number of tagged atoms in the SMIRKS pattern.
         """
 
-        super(UnsupportedBCCSmirksError, self).__init__(
+        super().__init__(
             smirks,
             f"Only SMIRNOFF charge increments which apply to two atoms "
             f"are supported. The {smirks} applies to {n_tagged} atoms.",
@@ -58,8 +58,7 @@ class UnsupportedBCCValueError(UnsupportedSMIRNOFFBCCError):
     """
 
     def __init__(self, smirks, charge_increment_0, charge_increment_1):
-
-        super(UnsupportedBCCValueError, self).__init__(
+        super().__init__(
             smirks,
             f"Only SMIRNOFF charge increments which apply symmetrically to "
             f"a bond are supported "

@@ -3,7 +3,7 @@ from typing import TYPE_CHECKING
 
 import numpy
 import pytest
-from openff.toolkit.topology import Molecule
+from openff.toolkit import Molecule
 from openff.units import unit
 
 from openff.recharge.charges.exceptions import ChargeAssignmentError
@@ -25,8 +25,7 @@ if TYPE_CHECKING:
 
 
 def _vsite_handler_to_string(vsite_handler: "VirtualSiteHandler") -> str:
-    from openff.toolkit.typing.engines.smirnoff import ForceField
-    from simtk import unit
+    from openff.toolkit import ForceField
 
     force_field = ForceField()
 
@@ -34,22 +33,11 @@ def _vsite_handler_to_string(vsite_handler: "VirtualSiteHandler") -> str:
     force_field._parameter_handlers["VirtualSites"] = vsite_handler
 
     for parameter in vsite_handler.parameters:
-
         for attribute_name in parameter._get_parameter_attributes():
-
             attribute = getattr(parameter, attribute_name)
 
             if not isinstance(attribute, unit.Quantity):
                 continue
-
-            attribute = attribute.in_unit_system(unit.md_unit_system)
-
-            attribute = (
-                numpy.round(
-                    attribute.value_in_unit_system(unit.md_unit_system), decimals=6
-                )
-                * attribute.unit
-            )
 
             setattr(parameter, attribute_name, attribute)
 
@@ -58,9 +46,7 @@ def _vsite_handler_to_string(vsite_handler: "VirtualSiteHandler") -> str:
 
 @pytest.fixture(scope="module")
 def vsite_force_field() -> "ForceField":
-
     from openff.toolkit.typing.engines.smirnoff import ForceField
-    from simtk import unit
 
     force_field = ForceField()
 
@@ -290,8 +276,8 @@ class TestVirtualSiteCollection:
     def test_smirnoff_parity(
         self, vsite_force_field: "ForceField", vsite_collection: VirtualSiteCollection
     ):
-
-        from simtk import openmm, unit
+        import openmm
+        import openmm.unit
 
         molecule = smiles_to_molecule("N")
 
@@ -305,7 +291,7 @@ class TestVirtualSiteCollection:
         openff_charges = numpy.array(
             [
                 openmm_force.getParticleParameters(i)[0].value_in_unit(
-                    unit.elementary_charge
+                    openmm.unit.elementary_charge
                 )
                 for i in range(openmm_force.getNumParticles())
             ]
@@ -319,7 +305,6 @@ class TestVirtualSiteCollection:
         assert numpy.allclose(openff_charges, recharges)
 
     def test_vectorize_charge_increments(self, vsite_collection):
-
         parameter_vector = vsite_collection.vectorize_charge_increments(
             parameter_keys=[
                 ("[#6:2]=[#8:1]", "BondCharge", "EP", 1),
@@ -333,7 +318,6 @@ class TestVirtualSiteCollection:
         )
 
     def test_vectorize_coordinates(self, vsite_collection):
-
         parameter_vector = vsite_collection.vectorize_coordinates(
             parameter_keys=[
                 ("[#1:2][#7:1]([#1:3])[#1:4]", "TrivalentLonePair", "EP", "distance"),
@@ -360,7 +344,6 @@ class TestVirtualSiteCollection:
 
 class TestVirtualSiteGenerator:
     def test_apply_virtual_sites(self, vsite_collection):
-
         molecule = smiles_to_molecule("N")
 
         molecule, assigned_vsite_keys = VirtualSiteGenerator._apply_virtual_sites(
@@ -381,7 +364,6 @@ class TestVirtualSiteGenerator:
         }
 
     def test_build_charge_array(self, vsite_collection):
-
         charge_values, charge_keys = VirtualSiteGenerator._build_charge_increment_array(
             vsite_collection
         )
@@ -395,7 +377,6 @@ class TestVirtualSiteGenerator:
         vsite_smirks = set()
 
         for charge_key in charge_keys:
-
             assert len(charge_key) == 4
             vsite_smirks.add(charge_key[0])
 
@@ -417,7 +398,6 @@ class TestVirtualSiteGenerator:
     def test_validate_charge_assignment_matrix(
         self, assignment_matrix, expected_raises
     ):
-
         with expected_raises:
             VirtualSiteGenerator._validate_charge_assignment_matrix(assignment_matrix)
 
@@ -472,7 +452,6 @@ class TestVirtualSiteGenerator:
         ],
     )
     def test_charge_assignment_matrix(self, smiles, expected_matrix, vsite_collection):
-
         molecule = smiles_to_molecule(smiles)
 
         assignment_matrix = VirtualSiteGenerator.build_charge_assignment_matrix(
@@ -493,7 +472,6 @@ class TestVirtualSiteGenerator:
     def test_generate_charge_increments(
         self, smiles, expected_increments, vsite_collection
     ):
-
         molecule = smiles_to_molecule(smiles)
 
         actual_increments = VirtualSiteGenerator.generate_charge_increments(
@@ -504,7 +482,6 @@ class TestVirtualSiteGenerator:
         assert numpy.allclose(actual_increments, expected_increments)
 
     def test_local_coordinate_frames(self):
-
         # Build a dummy 'formaldehyde' conformer and associated v-site parameter.
         conformer = numpy.array(
             [
@@ -545,7 +522,6 @@ class TestVirtualSiteGenerator:
 
     @pytest.mark.parametrize("backend", ["numpy", "torch"])
     def test_convert_local_coordinates(self, backend):
-
         local_frame_coordinates = numpy.array([[1.0, 45.0, 45.0]])
         local_coordinate_frames = numpy.array(
             [
@@ -557,7 +533,6 @@ class TestVirtualSiteGenerator:
         )
 
         if backend == "torch":
-
             pytest.importorskip("torch")
             import torch
 
@@ -580,7 +555,6 @@ class TestVirtualSiteGenerator:
         assert numpy.allclose(actual_coordinates, expected_coordinates)
 
     def test_generate_positions(self, vsite_collection):
-
         molecule = smiles_to_molecule("N")
 
         conformer = (
@@ -605,7 +579,6 @@ class TestVirtualSiteGenerator:
         )
 
     def test_generate_multiple_positions(self):
-
         vsite_collection = VirtualSiteCollection(
             parameters=[
                 BondChargeSiteParameter(

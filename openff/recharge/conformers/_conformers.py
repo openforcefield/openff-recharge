@@ -1,16 +1,15 @@
 """A module for generating conformers for molecules."""
 import logging
-from typing import TYPE_CHECKING, List, Optional
+from typing import TYPE_CHECKING, List, Literal, Optional
 
 import numpy
 from openff.units import unit
 from pydantic import BaseModel, Field
-from typing_extensions import Literal
 
 from openff.recharge.conformers.exceptions import ConformerGenerationError
 
 if TYPE_CHECKING:
-    from openff.toolkit.topology import Molecule
+    from openff.toolkit import Molecule
 
 _logger = logging.getLogger()
 
@@ -43,7 +42,6 @@ class ConformerGenerator:
         molecule: "Molecule",
         settings: ConformerSettings,
     ) -> List[unit.Quantity]:
-
         oe_molecule = molecule.to_openeye()
 
         from openeye import oeomega, oequacpac
@@ -63,7 +61,6 @@ class ConformerGenerator:
             raise ConformerGenerationError("Failed to generate conformers using OMEGA")
 
         if settings.method == "omega-elf10":
-
             # Select a subset of the OMEGA generated conformers using the ELF10 method.
             oe_elf_options = oequacpac.OEELFOptions()
             oe_elf_options.SetElfLimit(10)
@@ -77,7 +74,6 @@ class ConformerGenerator:
         conformers = []
 
         for oe_conformer in oe_molecule.GetConfs():
-
             conformer = numpy.zeros((oe_molecule.NumAtoms(), 3))
 
             for atom_index, coordinates in oe_conformer.GetCoords().items():

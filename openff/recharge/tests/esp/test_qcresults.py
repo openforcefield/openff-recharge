@@ -16,6 +16,7 @@ pytest.importorskip("qcportal")
 
 @pytest.mark.parametrize("with_field", [False, True])
 def test_from_qcportal_results(with_field):
+    pytest.importorskip("psi4")
 
     from qcportal import FractalClient
     from qcportal.models import ObjectId
@@ -40,7 +41,6 @@ def test_from_qcportal_results(with_field):
 
 
 def test_missing_wavefunction():
-
     from qcportal import FractalClient
     from qcportal.models import ObjectId, ResultRecord
 
@@ -60,7 +60,6 @@ def test_missing_wavefunction():
 
 
 def test_parse_pcm_input():
-
     value = """
         units = angstrom
         codata = 2010
@@ -93,7 +92,6 @@ def test_parse_pcm_input():
 
 
 def test_parse_invalid_pcm_input():
-
     value = """
         units = angstrom
         codata = 2011

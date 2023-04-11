@@ -3,13 +3,13 @@ from collections import defaultdict
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple
 
 import numpy
-from openff.utilities import requires_package
+from openff.units import unit
 from pydantic import BaseModel, Field, constr, validator
 
 from openff.recharge.charges.exceptions import ChargeAssignmentError
 
 if TYPE_CHECKING:
-    from openff.toolkit.topology import Molecule
+    from openff.toolkit import Molecule
     from openff.toolkit.typing.engines.smirnoff import LibraryChargeHandler
 
 
@@ -33,10 +33,9 @@ class LibraryChargeParameter(BaseModel):
 
     @validator("smiles")
     def _validate_smiles(cls, value):
-
         try:
-            from openff.toolkit.topology import Molecule
-        except (ImportError, ModuleNotFoundError):
+            from openff.toolkit import Molecule
+        except ImportError:
             return value
 
         molecule = Molecule.from_smiles(value, allow_undefined_stereo=True)
@@ -53,15 +52,9 @@ class LibraryChargeParameter(BaseModel):
 
     @validator("value")
     def _validate_value(cls, value, values):
-
         if "smiles" not in values:
             return value
-
-        try:
-            from openff.toolkit.topology import Molecule
-            from simtk import unit as simtk_unit
-        except (ImportError, ModuleNotFoundError):
-            return value
+        from openff.toolkit import Molecule
 
         molecule = Molecule.from_smiles(values["smiles"], allow_undefined_stereo=True)
         n_expected = len({*molecule.properties["atom_map"].values()})
@@ -70,7 +63,8 @@ class LibraryChargeParameter(BaseModel):
             f"expected {n_expected} charges, " f"found {len(value)}"
         )
 
-        total_charge = molecule.total_charge.value_in_unit(simtk_unit.elementary_charge)
+        total_charge = molecule.total_charge.m_as(unit.elementary_charge)
+
         sum_charge = sum(value[i - 1] for i in molecule.properties["atom_map"].values())
 
         assert numpy.isclose(total_charge, sum_charge), (
@@ -91,7 +85,7 @@ class LibraryChargeParameter(BaseModel):
               parameter than the average value will be used.
         """
 
-        from openff.toolkit.topology import Molecule
+        from openff.toolkit import Molecule
 
         self_molecule = Molecule.from_smiles(self.smiles, allow_undefined_stereo=True)
         other_molecule = Molecule.from_smiles(other.smiles, allow_undefined_stereo=True)
@@ -143,9 +137,7 @@ class LibraryChargeParameter(BaseModel):
             be equal to the length of ``trainable_indices`` if provided, or otherwise to
             the length of ``self.value``.
         """
-
-        from openff.toolkit.topology import Molecule
-        from simtk import unit as simtk_unit
+        from openff.toolkit import Molecule
 
         trainable_indices = (
             trainable_indices
@@ -157,17 +149,16 @@ class LibraryChargeParameter(BaseModel):
             self.smiles, allow_undefined_stereo=True
         )
 
-        total_charge = molecule.total_charge.value_in_unit(simtk_unit.elementary_charge)
+        total_charge = molecule.total_charge.m_as(unit.elementary_charge)
 
         constraint_matrix = numpy.zeros((1, len(self.value)))
 
-        for atom_index, map_index in molecule.properties["atom_map"].items():
+        for _atom_index, map_index in molecule.properties["atom_map"].items():
             constraint_matrix[0, map_index - 1] += 1
 
         for i, (value, n_times) in enumerate(
             zip(self.value, constraint_matrix.flatten())
         ):
-
             if i in trainable_indices:
                 continue
 
@@ -194,13 +185,11 @@ class LibraryChargeCollection(BaseModel):
         from openff.toolkit.typing.engines.smirnoff.parameters import (
             LibraryChargeHandler,
         )
-        from simtk import unit
 
         # noinspection PyTypeChecker
         parameter_handler = LibraryChargeHandler(version="0.3")
 
         for parameter in reversed(self.parameters):
-
             parameter_handler.add_parameter(
                 {
                     "smirks": parameter.smiles,
@@ -211,7 +200,6 @@ class LibraryChargeCollection(BaseModel):
         return parameter_handler
 
     @classmethod
-    @requires_package("simtk")
     def from_smirnoff(
         cls, parameter_handler: "LibraryChargeHandler"
     ) -> "LibraryChargeCollection":
@@ -227,14 +215,12 @@ class LibraryChargeCollection(BaseModel):
         -------
             The converted bond charge correction collection.
         """
-        from simtk import unit
-
-        return cls(  # lgtm [py/call-to-non-callable]
+        return cls(
             parameters=[
                 LibraryChargeParameter(
                     smiles=off_parameter.smirks,
                     value=[
-                        charge.value_in_unit(unit.elementary_charge)
+                        charge.m_as(unit.elementary_charge)
                         for charge in off_parameter.charge
                     ],
                 )
@@ -285,18 +271,12 @@ class LibraryChargeGenerator:
         charge_collection: LibraryChargeCollection,
     ):
         """Ensure that an assignment matrix yields sensible charges on a molecule."""
-
-        from simtk import unit as simtk_unit
-
         total_charge = cls.apply_assignment_matrix(
             assignment_matrix, charge_collection
         ).sum()
-        expected_charge = molecule.total_charge.value_in_unit(
-            simtk_unit.elementary_charge
-        )
+        expected_charge = molecule.total_charge.m_as(unit.elementary_charge)
 
         if not numpy.isclose(total_charge, expected_charge):
-
             raise ChargeAssignmentError(
                 f"The assigned charges yield a total charge ({total_charge:.4f}) that "
                 f"does not match the expected value ({expected_charge:.4f})."
@@ -329,7 +309,7 @@ class LibraryChargeGenerator:
             `n_library_charges` is the **total** number of library charges.
         """
 
-        from openff.toolkit.topology import Molecule
+        from openff.toolkit import Molecule
 
         charge_index = 0
 
@@ -340,7 +320,6 @@ class LibraryChargeGenerator:
         assignment_matrix = numpy.zeros((molecule.n_atoms, n_total_charges))
 
         for parameter in charge_collection.parameters:
-
             smiles_molecule: Molecule = Molecule.from_smiles(
                 parameter.smiles, allow_undefined_stereo=True
             )

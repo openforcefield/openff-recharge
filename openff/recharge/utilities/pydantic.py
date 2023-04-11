@@ -24,7 +24,6 @@ class Array(numpy.ndarray, metaclass=ArrayMeta):
 
     @classmethod
     def validate_type(cls, val):
-
         dtype = getattr(cls, "__dtype__", Any)
 
         if dtype is Any:
@@ -35,7 +34,6 @@ class Array(numpy.ndarray, metaclass=ArrayMeta):
 
 def wrapped_float_validator(field_name: str, expected_units: unit.Unit) -> validator:
     def validate_unit(cls, value):
-
         if isinstance(value, str):
             return float(value)
         elif value is None or isinstance(value, float):
@@ -49,7 +47,6 @@ def wrapped_float_validator(field_name: str, expected_units: unit.Unit) -> valid
 
 def wrapped_array_validator(field_name: str, expected_units: unit.Unit) -> validator:
     def validate_unit(cls, value):
-
         if isinstance(value, str):
             raise NotImplementedError()
         elif value is None or isinstance(value, numpy.ndarray):

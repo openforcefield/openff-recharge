@@ -3,25 +3,23 @@
 import abc
 import copy
 from collections import defaultdict
-from typing import TYPE_CHECKING, Dict, List, Optional, Tuple, Union, overload
+from typing import TYPE_CHECKING, Dict, List, Literal, Optional, Tuple, Union, overload
 
 import numpy
 from openff.units import unit
 from openff.utilities import requires_package
 from pydantic import BaseModel, Field, constr, validator
-from typing_extensions import Literal
 
 from openff.recharge.aromaticity import AromaticityModels
 from openff.recharge.charges.exceptions import ChargeAssignmentError
 
 if TYPE_CHECKING:
-
     try:
         import torch
     except ImportError:
         torch = None
 
-    from openff.toolkit.topology import Molecule
+    from openff.toolkit import Molecule
     from openff.toolkit.typing.engines.smirnoff import VirtualSiteHandler
 
 ExclusionPolicy = Literal["none", "parents"]
@@ -88,7 +86,6 @@ class _VirtualSiteParameter(BaseModel, abc.ABC):
 
 
 class BondChargeSiteParameter(_VirtualSiteParameter):
-
     type: Literal["BondCharge"] = "BondCharge"
 
     @classmethod
@@ -102,7 +99,6 @@ class BondChargeSiteParameter(_VirtualSiteParameter):
 
 
 class MonovalentLonePairParameter(_VirtualSiteParameter):
-
     type: Literal["MonovalentLonePair"] = "MonovalentLonePair"
 
     in_plane_angle: float = Field(
@@ -129,7 +125,6 @@ class MonovalentLonePairParameter(_VirtualSiteParameter):
 
 
 class DivalentLonePairParameter(_VirtualSiteParameter):
-
     type: Literal["DivalentLonePair"] = "DivalentLonePair"
 
     out_of_plane_angle: float = Field(
@@ -149,7 +144,6 @@ class DivalentLonePairParameter(_VirtualSiteParameter):
 
 
 class TrivalentLonePairParameter(_VirtualSiteParameter):
-
     type: Literal["TrivalentLonePair"] = "TrivalentLonePair"
 
     @classmethod
@@ -203,9 +197,7 @@ class VirtualSiteCollection(BaseModel):
         -------
             The constructed parameter handler.
         """
-
         from openff.toolkit.typing.engines.smirnoff import VirtualSiteHandler
-        from simtk import unit
 
         # noinspection PyTypeChecker
         parameter_handler = VirtualSiteHandler(
@@ -213,7 +205,6 @@ class VirtualSiteCollection(BaseModel):
         )
 
         for parameter in reversed(self.parameters):
-
             parameter_kwargs = dict(
                 smirks=parameter.smirks,
                 type=parameter.type,
@@ -229,7 +220,6 @@ class VirtualSiteCollection(BaseModel):
             )
 
             if parameter.type == "MonovalentLonePair":
-
                 parameter_kwargs["outOfPlaneAngle"] = (
                     parameter.out_of_plane_angle * unit.degrees
                 )
@@ -238,7 +228,6 @@ class VirtualSiteCollection(BaseModel):
                 )
 
             elif parameter.type == "DivalentLonePair":
-
                 parameter_kwargs["outOfPlaneAngle"] = (
                     parameter.out_of_plane_angle * unit.degrees
                 )
@@ -248,7 +237,7 @@ class VirtualSiteCollection(BaseModel):
         return parameter_handler
 
     @classmethod
-    @requires_package("simtk")
+    @requires_package("openmm")
     def from_smirnoff(
         cls,
         parameter_handler: "VirtualSiteHandler",
@@ -270,8 +259,6 @@ class VirtualSiteCollection(BaseModel):
             The converted virtual site collection.
         """
 
-        from simtk import unit
-
         assert (
             aromaticity_model == AromaticityModels.MDL
         ), "only MDL aromaticity model is supported"
@@ -279,19 +266,16 @@ class VirtualSiteCollection(BaseModel):
         parameters = []
 
         for smirnoff_parameter in reversed(parameter_handler.parameters):
-
             base_kwargs = dict(
                 smirks=smirnoff_parameter.smirks,
                 name=smirnoff_parameter.name,
-                distance=smirnoff_parameter.distance.value_in_unit(unit.angstrom),
+                distance=smirnoff_parameter.distance.m_as(unit.angstrom),
                 charge_increments=tuple(
-                    charge.value_in_unit(unit.elementary_charge)
+                    charge.m_as(unit.elementary_charge)
                     for charge in smirnoff_parameter.charge_increment
                 ),
-                sigma=smirnoff_parameter.sigma.value_in_unit(unit.angstrom),
-                epsilon=smirnoff_parameter.epsilon.value_in_unit(
-                    unit.kilojoules_per_mole
-                ),
+                sigma=smirnoff_parameter.sigma.m_as(unit.angstrom),
+                epsilon=smirnoff_parameter.epsilon.m_as(unit.kilojoules_per_mole),
                 match=smirnoff_parameter.match.replace("_", "-").lower(),
             )
 
@@ -299,22 +283,18 @@ class VirtualSiteCollection(BaseModel):
                 parameter = BondChargeSiteParameter(**base_kwargs)
 
             elif smirnoff_parameter.type == "MonovalentLonePair":
-
                 parameter = MonovalentLonePairParameter(
                     **base_kwargs,
-                    out_of_plane_angle=smirnoff_parameter.outOfPlaneAngle.value_in_unit(
+                    out_of_plane_angle=smirnoff_parameter.outOfPlaneAngle.m_as(
                         unit.degrees
                     ),
-                    in_plane_angle=smirnoff_parameter.inPlaneAngle.value_in_unit(
-                        unit.degrees
-                    ),
+                    in_plane_angle=smirnoff_parameter.inPlaneAngle.m_as(unit.degrees),
                 )
 
             elif smirnoff_parameter.type == "DivalentLonePair":
-
                 parameter = DivalentLonePairParameter(
                     **base_kwargs,
-                    out_of_plane_angle=smirnoff_parameter.outOfPlaneAngle.value_in_unit(
+                    out_of_plane_angle=smirnoff_parameter.outOfPlaneAngle.m_as(
                         unit.degrees
                     ),
                 )
@@ -431,7 +411,6 @@ class VirtualSiteGenerator:
         assigned_vsite_keys = defaultdict(lambda: defaultdict(list))
 
         for vsite_match in vsite_matches:
-
             vsite_parameter = vsite_match.parameter_type
             vsite_key = (
                 vsite_parameter.smirks,
@@ -478,9 +457,7 @@ class VirtualSiteGenerator:
         charge_keys = []
 
         for parameter in vsite_collection.parameters:
-
             for i, charge_increment in enumerate(parameter.charge_increments):
-
                 charge_values.append(charge_increment)
 
                 charge_keys.append(
@@ -506,7 +483,6 @@ class VirtualSiteGenerator:
         non_zero_assignments = assignment_matrix.sum(axis=0).astype(bool)
 
         if non_zero_assignments.any():
-
             raise ChargeAssignmentError(
                 "An internal error occurred. The v-site charge increments alter the "
                 "total charge of the molecule"
@@ -554,7 +530,6 @@ class VirtualSiteGenerator:
             for vsite in off_molecule.virtual_sites
             for vsite_particle in vsite.particles
         ]:
-
             vsite_index = vsite_particle.molecule_particle_index
 
             type_parent_index = VirtualSiteHandler.VirtualSiteType.type_to_parent_index(
@@ -565,9 +540,7 @@ class VirtualSiteGenerator:
             vsite_parameter_keys = assigned_vsite_keys[parent_atom_index]
 
             for vsite_parameter_key in vsite_parameter_keys:
-
                 for i, atom_index in enumerate(vsite_particle.orientation):
-
                     # noinspection PyTypeChecker
                     vsite_parameter_index = all_vsite_keys.index(
                         (*vsite_parameter_key, i)
@@ -607,7 +580,6 @@ class VirtualSiteGenerator:
         charge_corrections = assignment_matrix @ correction_values
 
         if not numpy.isclose(charge_corrections.sum(), 0.0):
-
             raise ChargeAssignmentError(
                 "An internal error occurred. The bond charge corrections were applied "
                 "in such a way so that the total charge of the molecule will be "

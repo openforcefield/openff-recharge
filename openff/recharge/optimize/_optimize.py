@@ -1,10 +1,19 @@
 import abc
 from collections import defaultdict
-from typing import TYPE_CHECKING, Generator, List, Optional, Tuple, Type, TypeVar, Union
+from typing import (
+    TYPE_CHECKING,
+    Generator,
+    List,
+    Literal,
+    Optional,
+    Tuple,
+    Type,
+    TypeVar,
+    Union,
+)
 
 import numpy
 from openff.units import unit
-from typing_extensions import Literal
 
 from openff.recharge.charges.bcc import BCCCollection, BCCGenerator
 from openff.recharge.charges.library import (
@@ -32,7 +41,7 @@ from openff.recharge.utilities.tensors import (
 )
 
 if TYPE_CHECKING:
-    from openff.toolkit.topology import Molecule
+    from openff.toolkit import Molecule
 
 
 _VSITE_ATTRIBUTES = ("distance", "in_plane_angle", "out_of_plane_angle")
@@ -231,13 +240,11 @@ class ObjectiveTerm(abc.ABC):
         )
 
         if return_value.grid_coordinates is not None:
-
             return_value._grid_batches = [(0, 0)]
 
             n_grid_points, n_vsites = 0, 0
 
             for term in terms:
-
                 n_grid_points += len(term.grid_coordinates)
                 n_vsites += len(term.vsite_fixed_charges)
 
@@ -282,7 +289,6 @@ class ObjectiveTerm(abc.ABC):
             self.vsite_local_coordinate_frame is None
             and vsite_coordinate_parameters is not None
         ):
-
             raise RuntimeError(
                 "Virtual site parameters were provided but this term was not set-up to"
                 "handle such particles."
@@ -300,7 +306,6 @@ class ObjectiveTerm(abc.ABC):
             self.vsite_local_coordinate_frame is not None
             and self.vsite_local_coordinate_frame.shape[1] > 0
         ):
-
             trainable_coordinates = append_zero(vsite_coordinate_parameters.flatten())[
                 self.vsite_coord_assignment_matrix
             ]
@@ -327,7 +332,6 @@ class ObjectiveTerm(abc.ABC):
                 vsite_charges = vsite_charges.flatten()
 
             if self._grid_batches is None or len(self._grid_batches) <= 1:
-
                 design_matrix_precursor = (
                     self._objective()._compute_design_matrix_precursor(
                         self.grid_coordinates, vsite_coordinates
@@ -337,7 +341,6 @@ class ObjectiveTerm(abc.ABC):
                 vsite_contribution = design_matrix_precursor @ vsite_charges
 
             else:
-
                 vsite_contribution = concatenate(
                     *(
                         self._objective()._compute_design_matrix_precursor(
@@ -457,7 +460,6 @@ class Objective(abc.ABC):
         charge_collection: LibraryChargeCollection,
         charge_parameter_keys: List[Tuple[str, Tuple[int, ...]]],
     ) -> Tuple[numpy.ndarray, numpy.ndarray]:
-
         assignment_matrix = LibraryChargeGenerator.build_assignment_matrix(
             molecule, charge_collection
         )
@@ -502,7 +504,6 @@ class Objective(abc.ABC):
         bcc_collection: BCCCollection,
         bcc_parameter_keys: List[str],
     ) -> Tuple[numpy.ndarray, numpy.ndarray]:
-
         flat_collection_keys = [
             parameter.smirks for parameter in bcc_collection.parameters
         ]
@@ -542,7 +543,6 @@ class Objective(abc.ABC):
         vsite_collection: VirtualSiteCollection,
         vsite_coordinate_parameter_keys: List[VirtualSiteGeometryKey],
     ) -> Tuple[numpy.ndarray, numpy.ndarray, numpy.ndarray]:
-
         parameters_by_key = {
             (parameter.smirks, parameter.type, parameter.name): parameter
             for parameter in vsite_collection.parameters
@@ -553,7 +553,6 @@ class Objective(abc.ABC):
         )
 
         if len(assigned_parameter_map) == 0:
-
             return (
                 numpy.zeros((0, 3)),
                 numpy.zeros((0, 3)),
@@ -574,13 +573,12 @@ class Objective(abc.ABC):
         local_coordinate_parameters = []
         local_coordinate_indices = []
 
-        for atom_indices, parameter_key, parameter in [
+        for _atom_indices, parameter_key, parameter in [
             (orientation, parameter_key, parameters_by_key[parameter_key])
             for parent_atom_index, parameter_keys in assigned_parameter_map.items()
             for parameter_key, orientations in parameter_keys.items()
             for orientation in orientations
         ]:
-
             local_coordinate_parameters.append(
                 [
                     0.0
@@ -620,7 +618,6 @@ class Objective(abc.ABC):
         vsite_collection: VirtualSiteCollection,
         vsite_charge_parameter_keys: List[VirtualSiteChargeKey],
     ) -> Tuple[numpy.ndarray, numpy.ndarray]:
-
         flat_collection_keys = [
             (parameter.smirks, parameter.type, parameter.name, i)
             for parameter in vsite_collection.parameters
@@ -751,10 +748,9 @@ class Objective(abc.ABC):
             contribution to the objective function.
         """
 
-        from openff.toolkit.topology import Molecule
+        from openff.toolkit import Molecule
 
         for esp_record in esp_records:
-
             molecule: Molecule = Molecule.from_mapped_smiles(
                 esp_record.tagged_smiles, allow_undefined_stereo=True
             )
@@ -790,7 +786,6 @@ class Objective(abc.ABC):
                 )
 
             elif isinstance(charge_collection, LibraryChargeCollection):
-
                 (
                     library_assignment_matrix,
                     library_fixed_charges,
@@ -809,7 +804,6 @@ class Objective(abc.ABC):
                 raise NotImplementedError()
 
             if bcc_collection is not None:
-
                 (
                     bcc_assignment_matrix,
                     bcc_fixed_charges,
@@ -824,7 +818,6 @@ class Objective(abc.ABC):
                 )
 
             if vsite_collection is not None:
-
                 (
                     vsite_charge_assignment_matrix,
                     vsite_fixed_charges,

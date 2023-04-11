@@ -6,13 +6,14 @@ from typing import TYPE_CHECKING, Optional, Tuple
 import jinja2
 import numpy
 from openff.units import unit
+from openff.units.elements import SYMBOLS
 from openff.utilities import get_data_file_path, temporary_cd
 
 from openff.recharge.esp import ESPGenerator, ESPSettings
 from openff.recharge.esp.exceptions import Psi4Error
 
 if TYPE_CHECKING:
-    from openff.toolkit.topology import Molecule
+    from openff.toolkit import Molecule
 
 
 class Psi4ESPGenerator(ESPGenerator):
@@ -52,14 +53,9 @@ class Psi4ESPGenerator(ESPGenerator):
         -------
             The contents of the input file.
         """
-
-        from simtk import unit as simtk_unit
-
         # Compute the total formal charge on the molecule.
-        formal_charge = sum(
-            atom.formal_charge.value_in_unit(simtk_unit.elementary_charge)
-            for atom in molecule.atoms
-        )
+        # Trust that it's in units of elementary charge.
+        formal_charge = sum(atom.formal_charge for atom in molecule.atoms).m
 
         # Compute the spin multiplicity
         total_atomic_number = sum(atom.atomic_number for atom in molecule.atoms)
@@ -70,7 +66,7 @@ class Psi4ESPGenerator(ESPGenerator):
 
         atoms = [
             {
-                "element": atom.element.symbol,
+                "element": SYMBOLS[atom.atomic_number],
                 "x": conformer[index, 0],
                 "y": conformer[index, 1],
                 "z": conformer[index, 2],
@@ -108,7 +104,6 @@ class Psi4ESPGenerator(ESPGenerator):
         }
 
         if enable_pcm:
-
             template_inputs.update(
                 {
                     "pcm_solver": settings.pcm_settings.solver,
@@ -137,10 +132,8 @@ class Psi4ESPGenerator(ESPGenerator):
         compute_esp: bool,
         compute_field: bool,
     ) -> Tuple[unit.Quantity, Optional[unit.Quantity], Optional[unit.Quantity]]:
-
         # Perform the calculation in a temporary directory
         with temporary_cd(directory):
-
             # Store the input file.
             input_contents = cls._generate_input(
                 molecule, conformer, settings, minimize, compute_esp, compute_field

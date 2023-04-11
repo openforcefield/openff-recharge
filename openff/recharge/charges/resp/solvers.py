@@ -332,7 +332,6 @@ class IterativeSolver(RESPNonLinearSolver):
         restraint_b: float,
         restraint_indices: List[int],
     ):
-
         b_matrix = numpy.eye(design_matrix.shape[1]) * numpy.array(
             [
                 float(
@@ -367,7 +366,6 @@ class IterativeSolver(RESPNonLinearSolver):
         restraint_b: float,
         restraint_indices: List[int],
     ) -> numpy.ndarray:
-
         initial_guess = self.initial_guess(
             design_matrix,
             reference_values,
@@ -383,7 +381,6 @@ class IterativeSolver(RESPNonLinearSolver):
         beta_current = initial_guess
 
         while iteration < 300:
-
             beta_new = self._solve_iteration(
                 beta_current,
                 design_matrix,
@@ -435,7 +432,6 @@ class SciPySolver(RESPNonLinearSolver):
         restraint_b: float,
         restraint_indices: List[int],
     ) -> numpy.ndarray:
-
         from scipy.optimize import LinearConstraint, minimize
 
         loss_function = functools.partial(
@@ -483,7 +479,6 @@ class SciPySolver(RESPNonLinearSolver):
         )
 
         if not output.success:
-
             raise RESPSolverError(
                 f"SciPy solver with method={self._method} was unsuccessful: "
                 f"{output.message}"

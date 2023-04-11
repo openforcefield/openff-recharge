@@ -13,7 +13,6 @@ from openff.recharge.charges.resp.solvers import (
 
 class TestRESPNonLinearSolver:
     def test_loss(self):
-
         loss = RESPNonLinearSolver.loss(
             beta=numpy.array([[3.0], [-3.0]]),
             design_matrix=numpy.array([[1.0 / 3.0, 2.0 / 3.0], [3.0 / 3.0, 5.0 / 3.0]]),
@@ -32,7 +31,6 @@ class TestRESPNonLinearSolver:
         assert numpy.isclose(loss, expected_loss)
 
     def test_jacobian(self):
-
         kwargs = dict(
             design_matrix=numpy.array([[1.0 / 3.0, 2.0 / 3.0], [3.0 / 3.0, 5.0 / 3.0]]),
             constraint_matrix=numpy.array([[1, 1]]),
@@ -76,7 +74,6 @@ class TestRESPNonLinearSolver:
         ],
     )
     def test_initial_guess(self, restraint_a, expected_value):
-
         initial_values = RESPNonLinearSolver.initial_guess(
             design_matrix=numpy.array([[1.0 / 0.3, 2.0 / 0.3], [3.0 / 0.3, 5.0 / 0.3]]),
             reference_values=numpy.array([[0.0], [1.0]]),
@@ -92,7 +89,6 @@ class TestRESPNonLinearSolver:
 
 class TestIterativeSolver:
     def test_solve(self, monkeypatch):
-
         monkeypatch.setattr(
             IterativeSolver, "initial_guess", lambda *_: numpy.array([-3.5, 3.5])
         )
@@ -113,7 +109,6 @@ class TestIterativeSolver:
 
 class TestSciPySolver:
     def test_solve(self, monkeypatch):
-
         monkeypatch.setattr(
             SciPySolver, "initial_guess", lambda *_: numpy.array([-3.5, 3.5])
         )
@@ -132,9 +127,7 @@ class TestSciPySolver:
         assert numpy.allclose(charges, numpy.array([[3.0], [-3.0]]), atol=0.001)
 
     def test_solve_error(self):
-
         with pytest.raises(RESPSolverError, match="SciPy solver with method=SLSQP"):
-
             SciPySolver(method="SLSQP").solve(
                 design_matrix=numpy.array(
                     [[1.0 / 3.0, 2.0 / 3.0], [3.0 / 3.0, 5.0 / 3.0]]

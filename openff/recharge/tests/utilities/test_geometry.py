@@ -16,7 +16,6 @@ tensor_types = [numpy.array] + ([] if torch is None else [torch.tensor])
 
 @pytest.mark.parametrize("tensor_type", tensor_types)
 def test_compute_inverse_distance_matrix(tensor_type):
-
     points_a = tensor_type([[0.0, 1.0], [2.0, 3.0]])
     points_b = tensor_type([[0.0, 2.0], [4.0, 6.0], [6.0, 8.0]])
 
@@ -32,7 +31,6 @@ def test_compute_inverse_distance_matrix(tensor_type):
 
 @pytest.mark.parametrize("tensor_type", tensor_types)
 def test_compute_vector_field(tensor_type):
-
     points_a = tensor_type([[0.0, 3.0, 0.0], [0.0, 0.0, 4.0]])
     points_b = tensor_type([[4.0, 0.0, 0.0]])
 

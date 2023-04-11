@@ -1,6 +1,6 @@
 import numpy
 import pytest
-from openff.toolkit.topology import Molecule
+from openff.toolkit import Molecule
 from openff.units import unit
 
 from openff.recharge.utilities.toolkits import (
@@ -152,7 +152,6 @@ def test_match_smirks_invalid(match_function):
     molecule = Molecule.from_smiles("C")
 
     with pytest.raises(AssertionError, match="failed to parse X"):
-
         match_function(
             "X",
             molecule,
@@ -163,7 +162,6 @@ def test_match_smirks_invalid(match_function):
 
 
 def test_compute_vdw_radii():
-
     molecule = Molecule.from_mapped_smiles("[C:1]([H:2])([H:3])([H:4])([H:5])")
     radii = compute_vdw_radii(molecule)
 
@@ -247,7 +245,6 @@ def test_compute_vdw_radii():
 def test_apply_mdl_aromaticity_model(
     apply_function, smiles, expected_is_atom_aromatic, expected_is_bond_aromatic
 ):
-
     is_atom_aromatic, is_bond_aromatic = apply_function(
         Molecule.from_mapped_smiles(smiles)
     )
@@ -261,14 +258,12 @@ def test_apply_mdl_aromaticity_model(
     [_oe_get_atom_symmetries, _rd_get_atom_symmetries, get_atom_symmetries],
 )
 def test_get_atom_symmetries(get_symmetries_func):
-
     molecule = Molecule.from_mapped_smiles("[H:1][C:2]([H:3])([H:4])[O:5][H:6]")
 
     try:
         atom_symmetries = get_symmetries_func(molecule)
 
     except ModuleNotFoundError as e:
-
         pytest.skip(f"missing optional dependency - {e.name}")
         return
 
@@ -285,14 +280,12 @@ def test_get_atom_symmetries(get_symmetries_func):
     ],
 )
 def test_molecule_to_tagged_smiles(molecule_to_tagged_smiles_func):
-
     molecule = Molecule.from_mapped_smiles("[H:1][C:2]([H:3])([H:4])[O:5][H:6]")
 
     try:
         tagged_smiles = molecule_to_tagged_smiles_func(molecule, [1, 2, 1, 1, 3, 4])
 
     except ModuleNotFoundError as e:
-
         pytest.skip(f"missing optional dependency - {e.name}")
         return
 

@@ -5,10 +5,11 @@ from typing import TYPE_CHECKING, Dict, List, Tuple, cast
 import numpy
 from openff.toolkit.utils import ToolkitUnavailableException
 from openff.units import unit
-from openff.utilities import MissingOptionalDependency
+from openff.units.elements import SYMBOLS
+from openff.utilities import MissingOptionalDependencyError
 
 if TYPE_CHECKING:
-    from openff.toolkit.topology import Molecule
+    from openff.toolkit import Molecule
 
 
 class VdWRadiiType(Enum):
@@ -26,7 +27,6 @@ def _oe_match_smirks(
     is_bond_aromatic: Dict[Tuple[int, int], bool],
     unique: bool,
 ) -> List[Dict[int, int]]:
-
     oe_molecule = molecule.to_openeye()
 
     oe_atoms = {oe_atom.GetIdx(): oe_atom for oe_atom in oe_molecule.GetAtoms()}
@@ -51,7 +51,6 @@ def _oe_match_smirks(
     matches = []
 
     for match in substructure_search.Match(oe_molecule, unique):
-
         matched_indices = {
             atom_match.pattern.GetMapIdx() - 1: atom_match.target.GetIdx()
             for atom_match in match.GetAtoms()
@@ -70,7 +69,6 @@ def _rd_match_smirks(
     is_bond_aromatic: Dict[Tuple[int, int], bool],
     unique: bool,
 ) -> List[Dict[int, int]]:
-
     from rdkit import Chem
 
     rd_molecule: Chem.Mol = molecule.to_rdkit()
@@ -146,7 +144,7 @@ def match_smirks(
         )
     except (
         ModuleNotFoundError,
-        MissingOptionalDependency,
+        MissingOptionalDependencyError,
         ToolkitUnavailableException,
     ):
         return _rd_match_smirks(
@@ -190,7 +188,7 @@ def compute_vdw_radii(
         }
 
         return [
-            _BONDI_RADII[atom.element.symbol] for atom in molecule.atoms
+            _BONDI_RADII[SYMBOLS[atom.atomic_number]] for atom in molecule.atoms
         ] * unit.angstrom
     else:
         raise NotImplementedError()
@@ -199,7 +197,6 @@ def compute_vdw_radii(
 def _oe_apply_mdl_aromaticity_model(
     molecule: "Molecule",
 ) -> Tuple[Dict[int, bool], Dict[Tuple[int, int], bool]]:
-
     oe_molecule = molecule.to_openeye()
 
     from openeye import oechem
@@ -221,7 +218,6 @@ def _oe_apply_mdl_aromaticity_model(
 def _rd_apply_mdl_aromaticity_model(
     molecule: "Molecule",
 ) -> Tuple[Dict[int, bool], Dict[Tuple[int, int], bool]]:
-
     rd_molecule = molecule.to_rdkit()
 
     from rdkit import Chem
@@ -260,14 +256,13 @@ def apply_mdl_aromaticity_model(
         return _oe_apply_mdl_aromaticity_model(molecule)
     except (
         ModuleNotFoundError,
-        MissingOptionalDependency,
+        MissingOptionalDependencyError,
         ToolkitUnavailableException,
     ):
         return _rd_apply_mdl_aromaticity_model(molecule)
 
 
 def _oe_get_atom_symmetries(molecule: "Molecule") -> List[int]:
-
     from openeye import oechem
 
     oe_mol = molecule.to_openeye()
@@ -280,7 +275,6 @@ def _oe_get_atom_symmetries(molecule: "Molecule") -> List[int]:
 
 
 def _rd_get_atom_symmetries(molecule: "Molecule") -> List[int]:
-
     from rdkit import Chem
 
     rd_mol = molecule.to_rdkit()
@@ -304,12 +298,11 @@ def get_atom_symmetries(molecule: "Molecule") -> List[int]:
 
     try:
         return _oe_get_atom_symmetries(molecule)
-    except (ImportError, ModuleNotFoundError, ToolkitUnavailableException):
+    except (ImportError, ToolkitUnavailableException):
         return _rd_get_atom_symmetries(molecule)
 
 
 def _oe_molecule_to_tagged_smiles(molecule: "Molecule", indices: List[int]) -> str:
-
     from openeye import oechem
 
     oe_mol: oechem.OEMol = molecule.to_openeye()
@@ -324,7 +317,6 @@ def _oe_molecule_to_tagged_smiles(molecule: "Molecule", indices: List[int]) -> s
 
 
 def _rd_molecule_to_tagged_smiles(molecule: "Molecule", indices: List[int]) -> str:
-
     from rdkit import Chem
 
     rd_mol: Chem.Mol = molecule.to_rdkit()
@@ -362,5 +354,5 @@ def molecule_to_tagged_smiles(molecule: "Molecule", indices: List[int]) -> str:
 
     try:
         return _oe_molecule_to_tagged_smiles(molecule, indices)
-    except (ImportError, ModuleNotFoundError, ToolkitUnavailableException):
+    except (ImportError, ToolkitUnavailableException):
         return _rd_molecule_to_tagged_smiles(molecule, indices)

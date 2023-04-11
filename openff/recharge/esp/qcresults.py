@@ -28,8 +28,7 @@ class MissingQCWaveFunctionError(RechargeException):
     a computed QM wavefunction."""
 
     def __init__(self, result_id: str):
-
-        super(MissingQCWaveFunctionError, self).__init__(
+        super().__init__(
             f"The result with id={result_id} does not store the required wavefunction."
             f"Make sure to use at minimum the 'orbitals_and_eigenvalues' wavefunction "
             f"protocol when computing the data set."
@@ -42,10 +41,7 @@ class InvalidPCMKeywordError(RechargeException):
     an entries keywords cannot be safely parsed."""
 
     def __init__(self, input_string: str):
-
-        super(InvalidPCMKeywordError, self).__init__(
-            f"The PCM settings could not be safely parsed: {input_string}"
-        )
+        super().__init__(f"The PCM settings could not be safely parsed: {input_string}")
 
 
 def _parse_pcm_input(input_string: str) -> PCMSettings:
@@ -87,10 +83,10 @@ def _parse_pcm_input(input_string: str) -> PCMSettings:
             cavity_area=pcm_dict["cavity"]["area"],
         )
 
-    except (AssertionError, ValidationError):
-        raise InvalidPCMKeywordError(input_string)
+    except (AssertionError, ValidationError) as error:
+        raise InvalidPCMKeywordError(input_string) from error
     except Exception as e:
-        raise e
+        raise e from None
 
     return pcm_settings
 
@@ -137,10 +133,8 @@ def reconstruct_density(
     counter = 0
 
     for atom in wavefunction.basis.atom_map:
-
         center = wavefunction.basis.center_data[atom]
         for shell in center.electron_shells:
-
             if shell.harmonic_type == "cartesian":
                 ao_map.append(numpy.arange(counter, counter + shell.nfunctions()))
 
@@ -211,7 +205,6 @@ def compute_esp(
     field = None
 
     if compute_field:
-
         field = (
             numpy.array(psi4_calculator.compute_field_over_grid_in_memory(psi4_grid))
             * unit.hartree
@@ -252,7 +245,7 @@ def from_qcportal_results(
         record object.
     """
 
-    from openff.toolkit.topology import Molecule
+    from openff.toolkit import Molecule
     from qcelemental.models.results import WavefunctionProperties
 
     # Compute and store the ESP and electric field for each result.

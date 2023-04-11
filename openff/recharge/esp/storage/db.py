@@ -75,11 +75,9 @@ class _UniqueMixin:
             return cache[key]
 
         with db.no_autoflush:
-
             existing_instance = cls._query(db, instance).first()
 
             if not existing_instance:
-
                 existing_instance = cls._instance_to_db(instance)
                 db.add(existing_instance)
 
@@ -88,7 +86,6 @@ class _UniqueMixin:
 
 
 class DBGridSettings(_UniqueMixin, DBBase):
-
     __tablename__ = "grid_settings"
 
     id = Column(Integer, primary_key=True, index=True)
@@ -103,9 +100,7 @@ class DBGridSettings(_UniqueMixin, DBBase):
 
     @classmethod
     def _hash(cls, instance: GridSettingsType) -> int:
-
         if isinstance(instance, LatticeGridSettings):
-
             return hash(
                 (
                     instance.type,
@@ -123,9 +118,7 @@ class DBGridSettings(_UniqueMixin, DBBase):
 
     @classmethod
     def _query(cls, db: Session, instance: GridSettingsType) -> Query:
-
         if isinstance(instance, LatticeGridSettings):
-
             spacing = _float_to_db_int(instance.spacing)
             inner_vdw_scale = _float_to_db_int(instance.inner_vdw_scale)
             outer_vdw_scale = _float_to_db_int(instance.outer_vdw_scale)
@@ -139,7 +132,6 @@ class DBGridSettings(_UniqueMixin, DBBase):
             )
 
         elif isinstance(instance, MSKGridSettings):
-
             density = _float_to_db_int(instance.density)
 
             return (
@@ -153,9 +145,7 @@ class DBGridSettings(_UniqueMixin, DBBase):
 
     @classmethod
     def _instance_to_db(cls, instance: GridSettingsType) -> "DBGridSettings":
-
         if isinstance(instance, LatticeGridSettings):
-
             return DBGridSettings(
                 type=instance.type,
                 lattice_spacing=_float_to_db_int(instance.spacing),
@@ -164,7 +154,6 @@ class DBGridSettings(_UniqueMixin, DBBase):
             )
 
         elif isinstance(instance, MSKGridSettings):
-
             return DBGridSettings(
                 type=instance.type,
                 msk_density=_float_to_db_int(instance.density),
@@ -175,7 +164,6 @@ class DBGridSettings(_UniqueMixin, DBBase):
 
     @classmethod
     def db_to_instance(cls, db_instance: "DBGridSettings") -> GridSettingsType:
-
         if db_instance.type in ["fcc"]:
             # noinspection PyTypeChecker
             return LatticeGridSettings(
@@ -194,7 +182,6 @@ class DBGridSettings(_UniqueMixin, DBBase):
 
 
 class DBPCMSettings(_UniqueMixin, DBBase):
-
     __tablename__ = "pcm_settings"
 
     id = Column(Integer, primary_key=True, index=True)
@@ -221,7 +208,6 @@ class DBPCMSettings(_UniqueMixin, DBBase):
 
     @classmethod
     def _query(cls, db: Session, instance: PCMSettings) -> Query:
-
         cavity_area = _float_to_db_int(instance.cavity_area)
 
         return (
@@ -235,7 +221,6 @@ class DBPCMSettings(_UniqueMixin, DBBase):
 
     @classmethod
     def _instance_to_db(cls, instance: PCMSettings) -> "DBPCMSettings":
-
         return DBPCMSettings(
             solver=instance.solver,
             solvent=instance.solvent,
@@ -246,7 +231,6 @@ class DBPCMSettings(_UniqueMixin, DBBase):
 
     @classmethod
     def db_to_instance(cls, db_instance: "DBPCMSettings") -> PCMSettings:
-
         # noinspection PyTypeChecker
         return PCMSettings(
             solver=db_instance.solver,
@@ -258,7 +242,6 @@ class DBPCMSettings(_UniqueMixin, DBBase):
 
 
 class DBESPSettings(_UniqueMixin, DBBase):
-
     __tablename__ = "esp_settings"
     __table_args__ = (UniqueConstraint("basis", "method"),)
 
@@ -298,7 +281,6 @@ class DBESPSettings(_UniqueMixin, DBBase):
 
 
 class DBConformerRecord(DBBase):
-
     __tablename__ = "conformers"
 
     id = Column(Integer, primary_key=True, index=True)
@@ -323,7 +305,6 @@ class DBConformerRecord(DBBase):
 
 
 class DBMoleculeRecord(DBBase):
-
     __tablename__ = "molecules"
 
     smiles = Column(String, primary_key=True, index=True)
@@ -331,7 +312,6 @@ class DBMoleculeRecord(DBBase):
 
 
 class DBGeneralProvenance(DBBase):
-
     __tablename__ = "general_provenance"
 
     key = Column(String, primary_key=True, index=True, unique=True)
@@ -341,7 +321,6 @@ class DBGeneralProvenance(DBBase):
 
 
 class DBSoftwareProvenance(DBBase):
-
     __tablename__ = "software_provenance"
 
     key = Column(String, primary_key=True, index=True, unique=True)

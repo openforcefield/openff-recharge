@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING, Dict, List, Tuple, cast
 from openff.units import unit
 
 if TYPE_CHECKING:
-    from openff.toolkit.topology import Molecule
+    from openff.toolkit import Molecule
 
 
 def smiles_to_molecule(smiles: str, guess_stereochemistry: bool = False) -> "Molecule":
@@ -23,13 +23,12 @@ def smiles_to_molecule(smiles: str, guess_stereochemistry: bool = False) -> "Mol
     -------
     The parsed molecule.
     """
-    from openff.toolkit.topology import Molecule
+    from openff.toolkit import Molecule
     from openff.toolkit.utils import UndefinedStereochemistryError
 
     try:
         molecule = Molecule.from_smiles(smiles)
     except UndefinedStereochemistryError:
-
         if not guess_stereochemistry:
             raise
 
@@ -58,7 +57,6 @@ def find_ring_bonds(molecule: "Molecule") -> Dict[Tuple[int, int], bool]:
     }
 
     for bond in molecule.bonds:
-
         indices = cast(
             Tuple[int, int], tuple(sorted((bond.atom1_index, bond.atom2_index)))
         )
@@ -84,10 +82,4 @@ def extract_conformers(molecule: "Molecule") -> List[unit.Quantity]:
         A list of the extracted conformers [A], where each conformer is a numpy array
         with shape=(n_atoms, 3).
     """
-
-    from simtk import unit as simtk_unit
-
-    return [
-        conformer.value_in_unit(simtk_unit.angstrom) * unit.angstrom
-        for conformer in molecule.conformers
-    ]
+    return molecule.conformers

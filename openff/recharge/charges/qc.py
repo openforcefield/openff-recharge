@@ -1,17 +1,17 @@
 """Generate partial for molecules from a QC calculation."""
 import copy
-from typing import TYPE_CHECKING, List, cast
+from typing import TYPE_CHECKING, List, Literal, cast
 
 import numpy
 from openff.units import unit
+from openff.units.elements import SYMBOLS
 from pydantic import BaseModel, Field
-from typing_extensions import Literal
 
 from openff.recharge.charges.exceptions import ChargeAssignmentError
 from openff.recharge.utilities.toolkits import get_atom_symmetries
 
 if TYPE_CHECKING:
-    from openff.toolkit.topology import Molecule
+    from openff.toolkit import Molecule
 
 QCChargeTheory = Literal["am1", "am1bcc", "GFN1-xTB", "GFN2-xTB"]
 
@@ -65,7 +65,6 @@ class QCChargeGenerator:
 
     @classmethod
     def _check_connectivity(cls, molecule: "Molecule", conformer: unit.Quantity):
-
         from qcelemental.molutil import guess_connectivity
 
         expected_connectivity = {
@@ -73,7 +72,7 @@ class QCChargeGenerator:
             for bond in molecule.bonds
         }
 
-        symbols = numpy.array([atom.element.symbol.strip() for atom in molecule.atoms])
+        symbols = numpy.array([SYMBOLS[atom.atomic_number] for atom in molecule.atoms])
 
         actual_connectivity = {
             tuple(sorted(connection))
@@ -97,7 +96,6 @@ class QCChargeGenerator:
         conformer: unit.Quantity,
         settings: QCChargeSettings,
     ):
-
         from qcelemental.models.common_models import DriverEnum, Model
         from qcelemental.models.procedures import (
             OptimizationInput,
@@ -108,15 +106,13 @@ class QCChargeGenerator:
         )
         from qcelemental.models.results import AtomicInput, AtomicResult
         from qcengine import compute, compute_procedure
-        from simtk import unit as openmm_unit
 
         molecule = copy.deepcopy(molecule)
-        molecule._conformers = [conformer.m_as(unit.angstrom) * openmm_unit.angstrom]
+        molecule._conformers = [conformer]
 
         qc_molecule = molecule.to_qcschema()
 
         if settings.optimize:
-
             optimization_schema = OptimizationInput(
                 initial_molecule=qc_molecule,
                 input_specification=QCInputSpecification(
@@ -162,7 +158,6 @@ class QCChargeGenerator:
         conformer: numpy.ndarray,
         settings: QCChargeSettings,
     ) -> numpy.ndarray:
-
         oe_molecule = molecule.to_openeye()
 
         from openeye import oechem, oequacpac
@@ -202,9 +197,6 @@ class QCChargeGenerator:
         conformer: numpy.ndarray,
         settings: QCChargeSettings,
     ):
-
-        from simtk import unit as simtk_unit
-
         if settings.theory == "am1" and settings.optimize and settings.symmetrize:
             charge_method = "am1-mulliken"
         elif settings.theory == "am1bcc" and settings.optimize and settings.symmetrize:
@@ -220,11 +212,9 @@ class QCChargeGenerator:
 
         if charge_method:
             molecule.assign_partial_charges(
-                charge_method, use_conformers=[conformer * simtk_unit.angstrom]
+                charge_method, use_conformers=[conformer * unit.angstrom]
             )
-            return numpy.array(
-                [*molecule.partial_charges.value_in_unit(simtk_unit.elementary_charge)]
-            )
+            return molecule.partial_charges.m_as(unit.elementary_charge)
 
         return cls._generate_omega_charges(molecule, conformer, settings)
 
@@ -263,7 +253,6 @@ class QCChargeGenerator:
         conformer_charges = []
 
         for conformer in conformers:
-
             conformer = conformer[: molecule.n_atoms]
 
             if settings.theory in {"am1", "am1bcc"}:

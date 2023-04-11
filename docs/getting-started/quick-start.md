@@ -1,7 +1,7 @@
 (quick_start_chapter)=
 # Quick start
 
-The OpenFF Recharge framework aims to offer a comprehensive solution for refitting different charge models to 
+The OpenFF Recharge framework aims to offer a comprehensive solution for refitting different charge models to
 QC data, especially electrostatic potential (ESP) and electric field data.
 
 :::{tip}
@@ -22,7 +22,7 @@ are examples of how to
 
 * generate QC electrostatic potential and electric field data using the Psi4 package and store that data in a local
   SQLite database for future use
-* retrieving already available QC calculations from the [QCArchive] and reconstructing the ESP and electric field from 
+* retrieving already available QC calculations from the [QCArchive] and reconstructing the ESP and electric field from
   the stored wave functions
 
 as well as

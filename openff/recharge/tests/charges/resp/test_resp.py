@@ -3,7 +3,8 @@ from typing import List
 
 import numpy
 import pytest
-from openff.toolkit.topology import Molecule
+from openff.toolkit import Molecule
+from openff.units import unit
 
 from openff.recharge.charges.library import LibraryChargeParameter
 from openff.recharge.charges.resp._resp import (
@@ -20,7 +21,6 @@ from openff.recharge.optimize import ESPObjective
 
 @pytest.fixture()
 def mock_esp_records() -> List[MoleculeESPRecord]:
-
     conformer = numpy.array(
         [
             [-0.5, +0.0, +0.0],
@@ -80,15 +80,12 @@ def mock_esp_records() -> List[MoleculeESPRecord]:
     ],
 )
 def test_generate_dummy_values(smiles, expected_values):
-
-    from simtk import unit as simtk_unit
-
     actual_values = _generate_dummy_values(smiles)
     assert actual_values == expected_values
 
     molecule = Molecule.from_smiles(smiles, allow_undefined_stereo=True)
 
-    total_charge = molecule.total_charge.value_in_unit(simtk_unit.elementary_charge)
+    total_charge = molecule.total_charge.m_as(unit.elementary_charge)
     sum_charge = sum(
         actual_values[i - 1] for i in molecule.properties["atom_map"].values()
     )
@@ -254,7 +251,6 @@ def test_molecule_to_resp_library_charge(
     expected_heavy_atoms,
     expected_hydrogens,
 ):
-
     input_molecule: Molecule = Molecule.from_mapped_smiles(input_smiles)
 
     parameter = molecule_to_resp_library_charge(
@@ -284,7 +280,6 @@ def test_molecule_to_resp_library_charge(
     assert {*actual_groupings} == {*expected_groupings}
 
     def compare_expected(dict_key: str, expected_values: List[int]):
-
         actual_values = []
 
         for index in parameter.provenance[dict_key]:
@@ -324,7 +319,6 @@ def test_molecule_to_resp_library_charge(
 def test_deduplicate_constraints(
     input_matrix, input_values, expected_matrix, expected_values
 ):
-
     output_matrix, output_values = _deduplicate_constraints(input_matrix, input_values)
 
     assert output_matrix.shape == expected_matrix.shape
@@ -449,7 +443,6 @@ def test_generate_resp_systems_of_equations(
     expected_trainable_mapping,
     monkeypatch,
 ):
-
     parameter = LibraryChargeParameter(
         smiles="[C:1]([H:4])([H:4])([O:2][H:3])[C:1]([H:4])([H:4])([O:2][H:3])",
         value=[0.0] * 4,

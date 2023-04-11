@@ -1,6 +1,6 @@
 import numpy
 import pytest
-from openff.toolkit.topology import Molecule
+from openff.toolkit import Molecule
 from openff.toolkit.utils import UndefinedStereochemistryError
 from openff.units import unit
 
@@ -51,7 +51,6 @@ def test_smiles_to_molecule(guess_stereochemistry, expected_raises):
     ],
 )
 def test_find_ring_bonds(smiles, expected_value):
-
     ring_bonds = find_ring_bonds(Molecule.from_mapped_smiles(smiles))
     assert ring_bonds == expected_value
 
@@ -60,13 +59,11 @@ def test_extract_conformers():
     """Test that the `molecule_to_conformers` function returns
     a non-zero numpy array of the correct shape."""
 
-    from simtk import unit as simtk_unit
-
     molecule = Molecule.from_smiles("[H][H]")
     molecule._conformers = []
 
     conformer = numpy.array([[-1.0, 0.0, 0.0], [1.0, 0.0, 0.0]])
-    molecule.add_conformer(conformer * simtk_unit.angstrom)
+    molecule.add_conformer(conformer * unit.angstrom)
 
     conformers = extract_conformers(molecule)
     assert len(conformers) == 1

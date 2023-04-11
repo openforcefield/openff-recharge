@@ -2,7 +2,7 @@ from typing import Tuple
 
 import numpy
 import pytest
-from openff.toolkit.topology import Molecule
+from openff.toolkit import Molecule
 from openff.units import unit
 
 from openff.recharge.charges.exceptions import ChargeAssignmentError
@@ -15,21 +15,17 @@ from openff.recharge.charges.qc import (
 
 @pytest.fixture(scope="module")
 def methane() -> Tuple[Molecule, numpy.ndarray]:
-
-    from simtk import unit as simtk_unit
-
     molecule: Molecule = Molecule.from_mapped_smiles(
         "[C:1]([H:2])([H:3])([H:4])([H:5])"
     )
     molecule.generate_conformers(n_conformers=1)
 
-    conformer = molecule.conformers[0].value_in_unit(simtk_unit.angstrom)
+    conformer = molecule.conformers[0].m_as(unit.angstrom)
 
     return molecule, conformer
 
 
 def test_check_connectivity(methane):
-
     molecule, conformer = methane
     conformer = conformer * unit.angstrom
 
@@ -42,7 +38,6 @@ def test_check_connectivity(methane):
 
 
 def test_symmetrize_charges(methane):
-
     molecule, _ = methane
 
     actual_charges = QCChargeGenerator._symmetrize_charges(
@@ -57,7 +52,6 @@ def test_symmetrize_charges(methane):
 
 @pytest.mark.parametrize("theory", ["GFN1-xTB"])
 def test_generate_xtb_charges(methane, theory: QCChargeTheory):
-
     molecule, conformer = methane
     conformer = conformer * unit.angstrom
 
@@ -81,7 +75,6 @@ def test_generate_xtb_charges(methane, theory: QCChargeTheory):
 
 @pytest.mark.parametrize("theory", ["am1", "am1bcc"])
 def test_generate_omega_charges(methane, theory):
-
     molecule, conformer = methane
 
     default_charges = QCChargeGenerator._generate_omega_charges(

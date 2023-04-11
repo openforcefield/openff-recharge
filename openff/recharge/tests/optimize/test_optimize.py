@@ -1,10 +1,9 @@
-from typing import Callable, Tuple, Type
+from typing import Callable, Literal, Tuple, Type
 
 import numpy
 import pytest
-from openff.toolkit.topology import Molecule
+from openff.toolkit import Molecule
 from openff.units import unit
-from typing_extensions import Literal
 
 from openff.recharge.charges.bcc import BCCCollection, BCCParameter
 from openff.recharge.charges.library import (
@@ -40,7 +39,6 @@ BOHR_TO_ANGSTROM = unit.convert(1.0, unit.bohr, unit.angstrom)
 
 @pytest.fixture()
 def hcl_esp_record() -> MoleculeESPRecord:
-
     molecule = smiles_to_molecule("[H]Cl")
 
     return MoleculeESPRecord.from_molecule(
@@ -55,7 +53,6 @@ def hcl_esp_record() -> MoleculeESPRecord:
 
 @pytest.fixture()
 def hcl_parameters() -> Tuple[BCCCollection, VirtualSiteCollection]:
-
     bcc_collection = BCCCollection(
         parameters=[
             BCCParameter(smirks="[#17:1]-[#1:2]", value=-1.0, provenance={}),
@@ -93,7 +90,6 @@ def hcl_parameters() -> Tuple[BCCCollection, VirtualSiteCollection]:
 def test_term_to_backend(
     input_type: Callable, output_type: Type, backend: Literal["numpy", "torch"]
 ):
-
     objective_term = ESPObjectiveTerm(
         atom_charge_design_matrix=input_type([[1.0, 2.0]]),
         vsite_charge_assignment_matrix=input_type([[1], [-1]]),
@@ -150,7 +146,6 @@ def test_term_loss_atom_charge_only(
     expected_loss: numpy.ndarray,
     backend: Literal["numpy", "torch"],
 ):
-
     charge_values = (
         numpy.array([[2.0]]) if backend == "numpy" else torch.tensor([[2.0]])
     )
@@ -198,7 +193,6 @@ def test_term_evaluate_vsite_only(
     expected_loss: numpy.ndarray,
     backend: Literal["numpy", "torch"],
 ):
-
     charge_values = (
         numpy.array([[2.0]]) if backend == "numpy" else torch.tensor([[2.0]])
     )
@@ -263,7 +257,6 @@ def test_term_evaluate_vsite_only(
 def test_term_evaluate_atom_charge_and_vsite(
     term_class, design_matrix_precursor, expected_loss, backend
 ):
-
     charge_values = (
         numpy.array([[2.0], [0.5]])
         if backend == "numpy"
@@ -304,7 +297,6 @@ def test_term_evaluate_atom_charge_and_vsite(
 @pytest.mark.parametrize("objective_class", [ESPObjective, ElectricFieldObjective])
 @pytest.mark.parametrize("backend", backends)
 def test_combine_terms(objective_class, backend, hcl_parameters):
-
     bcc_collection, vsite_collection = hcl_parameters
 
     objective_terms_generator = objective_class.compute_objective_terms(
@@ -342,7 +334,6 @@ def test_combine_terms(objective_class, backend, hcl_parameters):
     summed_loss = numpy.zeros(1) if backend == "numpy" else torch.zeros(1)
 
     for objective_term in objective_terms:
-
         objective_term.to_backend(backend)
         summed_loss += objective_term.loss(charge_values, coordinate_values)
 
@@ -354,7 +345,6 @@ def test_combine_terms(objective_class, backend, hcl_parameters):
 
 
 def test_compute_library_charge_terms():
-
     molecule = Molecule.from_mapped_smiles("[H:1][C:2]#[C:3][F:4]")
 
     library_charge_collection = LibraryChargeCollection(
@@ -386,7 +376,6 @@ def test_compute_library_charge_terms():
 
 
 def test_compute_bcc_charge_terms():
-
     molecule = Molecule.from_mapped_smiles("[H:1][C:2]#[C:3][F:4]")
 
     bcc_collection = BCCCollection(
@@ -411,7 +400,6 @@ def test_compute_bcc_charge_terms():
 
 
 def test_compute_vsite_charge_terms():
-
     molecule = Molecule.from_mapped_smiles("[H:1][C:2]#[C:3][F:4]")
 
     vsite_collection = VirtualSiteCollection(
@@ -459,7 +447,6 @@ def test_compute_vsite_charge_terms():
 
 
 def test_compute_vsite_coord_terms():
-
     molecule = smiles_to_molecule("FC=O")
 
     conformer = numpy.array(
@@ -528,7 +515,6 @@ def test_compute_vsite_coord_terms():
 
 
 def test_compute_esp_objective_terms(hcl_esp_record, hcl_parameters):
-
     bcc_collection, vsite_collection = hcl_parameters
 
     objective_terms_generator = ESPObjective.compute_objective_terms(
@@ -664,7 +650,6 @@ def test_compute_esp_objective_terms_no_v_site(hcl_esp_record, hcl_parameters):
 
 
 def test_compute_field_objective_terms(hcl_esp_record, hcl_parameters):
-
     bcc_collection, vsite_collection = hcl_parameters
 
     objective_terms_generator = ElectricFieldObjective.compute_objective_terms(

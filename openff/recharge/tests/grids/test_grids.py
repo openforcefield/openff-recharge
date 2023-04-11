@@ -25,7 +25,6 @@ class TestLatticeGridSettings:
         assert numpy.isclose(value.spacing, expected)
 
     def test_spacing_quantity(self):
-
         value = numpy.random.random() * unit.nanometers
 
         assert numpy.isclose(LatticeGridSettings(spacing=value).spacing_quantity, value)
@@ -44,7 +43,6 @@ class TestMSKGridSettings:
         assert numpy.isclose(value.density, expected)
 
     def test_density_quantity(self):
-
         value = numpy.random.random() / unit.nanometers**2
 
         assert numpy.isclose(MSKGridSettings(density=value).density_quantity, value)
@@ -52,7 +50,6 @@ class TestMSKGridSettings:
 
 class TestGridGenerator:
     def test_generate_connolly_sphere(self):
-
         actual_sphere = GridGenerator._generate_connolly_sphere(1.0, 1.0)
 
         # Regression tested against respyte and psiresp
@@ -60,7 +57,6 @@ class TestGridGenerator:
         assert numpy.allclose(actual_sphere, UNIT_CONNOLLY_SPHERE)
 
     def test_cull_points(self):
-
         conformer = numpy.array(
             [
                 [0.0, 0.0, 0.0],
@@ -96,7 +92,6 @@ class TestGridGenerator:
         )
 
     def test_generate_fcc_grid(self):
-
         # Build a simple case monatomic test case.
         molecule = smiles_to_molecule("[Ar]")
         conformer = numpy.array([[0.0, 0.0, 0.0]]) * unit.angstrom
@@ -116,7 +111,6 @@ class TestGridGenerator:
         assert numpy.allclose(grid, ARGON_FCC_GRID * unit.angstrom)
 
     def test_generate_msk_grid(self):
-
         molecule = smiles_to_molecule("O")
 
         [conformer] = ConformerGenerator.generate(

@@ -50,7 +50,6 @@ def _compute_esp(
     esp_records = []
 
     for index, conformer in enumerate(conformers):
-
         try:
             (
                 conformer,
@@ -119,7 +118,6 @@ def generate(
     minimize: bool,
     n_processors: int,
 ):
-
     logging.basicConfig(level=logging.INFO)
 
     esp_store = MoleculeESPStore()
@@ -133,7 +131,6 @@ def generate(
     conformer_settings = ConformerSettings.parse_file(conf_settings)
 
     with Pool(processes=n_processors) as pool:
-
         for esp_records in pool.imap(
             functools.partial(
                 _compute_esp,
@@ -143,7 +140,6 @@ def generate(
             ),
             smiles,
         ):
-
             if len(esp_records) == 0:
                 continue
 

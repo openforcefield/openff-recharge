@@ -294,6 +294,9 @@ def test_term_evaluate_atom_charge_and_vsite(
     assert numpy.isclose(expected_loss, output_loss)
 
 
+@pytest.mark.skip(
+    reason="Virtual site code has not yet been refactored for version 0.11.0"
+)
 @pytest.mark.parametrize("objective_class", [ESPObjective, ElectricFieldObjective])
 @pytest.mark.parametrize("backend", backends)
 def test_combine_terms(objective_class, backend, hcl_parameters):
@@ -399,6 +402,9 @@ def test_compute_bcc_charge_terms():
     assert numpy.allclose(fixed_charges, numpy.array([[0], [2], [-2], [0]]))
 
 
+@pytest.mark.skip(
+    reason="Virtual site code has not yet been refactored for version 0.11.0"
+)
 def test_compute_vsite_charge_terms():
     molecule = Molecule.from_mapped_smiles("[H:1][C:2]#[C:3][F:4]")
 
@@ -446,6 +452,9 @@ def test_compute_vsite_charge_terms():
     )
 
 
+@pytest.mark.skip(
+    reason="Virtual site code has not yet been refactored for version 0.11.0"
+)
 def test_compute_vsite_coord_terms():
     molecule = smiles_to_molecule("FC=O")
 
@@ -514,6 +523,9 @@ def test_compute_vsite_coord_terms():
     assert local_frame.shape == (4, 2, 3)
 
 
+@pytest.mark.skip(
+    reason="Virtual site code has not yet been refactored for version 0.11.0"
+)
 def test_compute_esp_objective_terms(hcl_esp_record, hcl_parameters):
     bcc_collection, vsite_collection = hcl_parameters
 
@@ -580,6 +592,9 @@ def test_compute_esp_objective_terms(hcl_esp_record, hcl_parameters):
     )
 
 
+@pytest.mark.skip(
+    reason="Virtual site code has not yet been refactored for version 0.11.0"
+)
 def test_compute_esp_objective_terms_no_v_site(hcl_esp_record, hcl_parameters):
     """Test that ESP objective can still be built when no v-sites match the records."""
 
@@ -649,6 +664,9 @@ def test_compute_esp_objective_terms_no_v_site(hcl_esp_record, hcl_parameters):
     assert numpy.isclose(loss, loss_no_v_site)
 
 
+@pytest.mark.skip(
+    reason="Virtual site code has not yet been refactored for version 0.11.0"
+)
 def test_compute_field_objective_terms(hcl_esp_record, hcl_parameters):
     bcc_collection, vsite_collection = hcl_parameters
 

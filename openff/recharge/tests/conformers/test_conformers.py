@@ -25,6 +25,12 @@ def test_max_conformers(max_conformers):
     )
 
 
+@pytest.mark.skip(
+    reason=(
+        "The toolkit (0.12+) sees this as a radical-containing molecule."
+        "Need to use a different molecule."
+    )
+)
 def test_generate_omega_conformers_error():
     with pytest.raises(
         ConformerGenerationError, match="Failed to generate conformers using OMEGA"

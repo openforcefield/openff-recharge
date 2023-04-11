@@ -98,7 +98,7 @@ class BCCCollection(BaseModel):
         return bcc_parameter_handler
 
     @classmethod
-    @requires_package("openmm")
+    @requires_package("openff.toolkit")
     def from_smirnoff(
         cls,
         parameter_handler: "ChargeIncrementModelHandler",

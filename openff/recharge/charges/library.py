@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple
 
 import numpy
 from openff.units import unit
+from openff.utilities import requires_package
 from pydantic import BaseModel, Field, constr, validator
 
 from openff.recharge.charges.exceptions import ChargeAssignmentError
@@ -54,7 +55,11 @@ class LibraryChargeParameter(BaseModel):
     def _validate_value(cls, value, values):
         if "smiles" not in values:
             return value
-        from openff.toolkit import Molecule
+
+        try:
+            from openff.toolkit import Molecule
+        except ImportError:
+            return value
 
         molecule = Molecule.from_smiles(values["smiles"], allow_undefined_stereo=True)
         n_expected = len({*molecule.properties["atom_map"].values()})
@@ -200,6 +205,7 @@ class LibraryChargeCollection(BaseModel):
         return parameter_handler
 
     @classmethod
+    @requires_package("openff.toolkit")
     def from_smirnoff(
         cls, parameter_handler: "LibraryChargeHandler"
     ) -> "LibraryChargeCollection":

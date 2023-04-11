@@ -1,5 +1,6 @@
 name: openff-recharge-test
 channels:
+  - jaimergp/label/unsupported-cudatoolkit-shim
   - psi4
   - conda-forge
   - openeye
@@ -37,10 +38,11 @@ dependencies:
     # QCFractal integration.
   - qcportal >=0.15.6
 
-    # Optimization
+  # Optimization
   - pytorch
 
     # Testing
   - pytest
   - pytest-cov
   - pytest-xdist
+  - openff-interchange-base >=0.3

@@ -28,7 +28,7 @@ from openff.recharge.esp.storage.db import (
 from openff.recharge.esp.storage.exceptions import IncompatibleDBVersion
 
 if TYPE_CHECKING:
-    from openff.toolkit.topology import Molecule
+    from openff.toolkit import Molecule
 
     Array = numpy.ndarray
 else:
@@ -161,7 +161,6 @@ class MoleculeESPStore:
 
     @property
     def db_version(self) -> int:
-
         with self._get_session() as db:
             db_info = db.query(DBInformation).first()
 
@@ -170,7 +169,6 @@ class MoleculeESPStore:
     @property
     def general_provenance(self) -> Dict[str, str]:
         with self._get_session() as db:
-
             db_info = db.query(DBInformation).first()
 
             return {
@@ -181,7 +179,6 @@ class MoleculeESPStore:
     @property
     def software_provenance(self) -> Dict[str, str]:
         with self._get_session() as db:
-
             db_info = db.query(DBInformation).first()
 
             return {
@@ -236,7 +233,6 @@ class MoleculeESPStore:
         """
 
         with self._get_session() as db:
-
             db_info: DBInformation = db.query(DBInformation).first()
             db_info.general_provenance = [
                 DBGeneralProvenance(key=key, value=value)
@@ -249,7 +245,6 @@ class MoleculeESPStore:
 
     @contextmanager
     def _get_session(self) -> ContextManager[Session]:
-
         session = self._session_maker()
 
         try:
@@ -366,7 +361,7 @@ class MoleculeESPStore:
         -------
             The canonical smiles pattern.
         """
-        from openff.toolkit.topology import Molecule
+        from openff.toolkit import Molecule
 
         return Molecule.from_smiles(
             tagged_smiles, allow_undefined_stereo=True
@@ -390,7 +385,6 @@ class MoleculeESPStore:
         records_by_smiles: Dict[str, List[MoleculeESPRecord]] = defaultdict(list)
 
         for record in records:
-
             record = MoleculeESPRecord(**record.dict())
             smiles = self._tagged_to_canonical_smiles(record.tagged_smiles)
 
@@ -398,7 +392,6 @@ class MoleculeESPStore:
 
         # Store the records.
         with self._get_session() as db:
-
             for smiles in records_by_smiles:
                 self._store_smiles_records(db, smiles, records_by_smiles[smiles])
 
@@ -413,20 +406,16 @@ class MoleculeESPStore:
         according to a set of filters."""
 
         with self._get_session() as db:
-
             db_records = db.query(DBMoleculeRecord)
 
             if smiles is not None:
-
                 smiles = self._tagged_to_canonical_smiles(smiles)
                 db_records = db_records.filter(DBMoleculeRecord.smiles == smiles)
 
             if basis is not None or method is not None or implicit_solvent is not None:
-
                 db_records = db_records.join(DBConformerRecord)
 
                 if basis is not None or method is not None:
-
                     db_records = db_records.join(
                         DBESPSettings, DBConformerRecord.esp_settings
                     )
@@ -437,7 +426,6 @@ class MoleculeESPStore:
                         db_records = db_records.filter(DBESPSettings.method == method)
 
                 if implicit_solvent is not None:
-
                     if implicit_solvent:
                         db_records = db_records.filter(
                             DBConformerRecord.pcm_settings_id.isnot(None)

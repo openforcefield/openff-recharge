@@ -3,7 +3,7 @@ from typing import List
 
 import numpy
 import pytest
-from openff.toolkit.topology import Molecule
+from openff.toolkit import Molecule
 from openff.units import unit
 
 from openff.recharge.charges.library import LibraryChargeParameter
@@ -21,7 +21,6 @@ from openff.recharge.optimize import ESPObjective
 
 @pytest.fixture()
 def mock_esp_records() -> List[MoleculeESPRecord]:
-
     conformer = numpy.array(
         [
             [-0.5, +0.0, +0.0],
@@ -71,7 +70,8 @@ def mock_esp_records() -> List[MoleculeESPRecord]:
         ("[O-:1][H:2]", [-0.5, -0.5]),
         ("[N+:1]([H:2])([H:2])([H:2])([H:2])", [0.2, 0.2]),
         ("[N+:1]([H:2])([H:3])([H:4])([H:5])", [0.2, 0.2, 0.2, 0.2, 0.2]),
-        ("[N+:1]([H:2])([H:2])[O-:3]", [0.0, 0.0, 0.0]),
+        # TODO: The toolkit (0.12+) sees this as a radical-containing molecule.
+        # ("[N+:1]([H:2])([H:2])[O-:3]", [0.0, 0.0, 0.0]),
         (
             "[H:1][c:9]1[c:10]([c:13]([c:16]2[c:15]([c:11]1[H:3])[c:12]([c:14]"
             "([c:17]([n+:20]2[C:19]([H:8])([H:8])[H:8])[C:18]([H:7])([H:7])[H:7])"
@@ -252,7 +252,6 @@ def test_molecule_to_resp_library_charge(
     expected_heavy_atoms,
     expected_hydrogens,
 ):
-
     input_molecule: Molecule = Molecule.from_mapped_smiles(input_smiles)
 
     parameter = molecule_to_resp_library_charge(
@@ -282,7 +281,6 @@ def test_molecule_to_resp_library_charge(
     assert {*actual_groupings} == {*expected_groupings}
 
     def compare_expected(dict_key: str, expected_values: List[int]):
-
         actual_values = []
 
         for index in parameter.provenance[dict_key]:
@@ -322,7 +320,6 @@ def test_molecule_to_resp_library_charge(
 def test_deduplicate_constraints(
     input_matrix, input_values, expected_matrix, expected_values
 ):
-
     output_matrix, output_values = _deduplicate_constraints(input_matrix, input_values)
 
     assert output_matrix.shape == expected_matrix.shape
@@ -447,7 +444,6 @@ def test_generate_resp_systems_of_equations(
     expected_trainable_mapping,
     monkeypatch,
 ):
-
     parameter = LibraryChargeParameter(
         smiles="[C:1]([H:4])([H:4])([O:2][H:3])[C:1]([H:4])([H:4])([O:2][H:3])",
         value=[0.0] * 4,

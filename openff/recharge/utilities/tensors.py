@@ -75,14 +75,12 @@ def cdist(a: "torch.Tensor", b: "torch.Tensor") -> "torch.Tensor":
 
 
 def cdist(a, b):
-
     assert type(a) == type(b)
 
     if isinstance(a, numpy.ndarray):
         return numpy.linalg.norm(a[:, None, :] - b[None, :, :], axis=-1)
 
     elif a.__module__.startswith("torch"):
-
         import torch
 
         return torch.cdist(a, b)
@@ -101,7 +99,6 @@ def inverse_cdist(a: "torch.Tensor", b: "torch.Tensor") -> "torch.Tensor":
 
 
 def inverse_cdist(a, b):
-
     assert type(a) == type(b)
 
     if isinstance(a, numpy.ndarray):
@@ -146,7 +143,6 @@ def pairwise_differences(a, b):
         return numpy.einsum("ijk->jki", b[None, :, :] - a[:, None, :])
 
     elif a.__module__.startswith("torch"):
-
         import torch
 
         return torch.einsum("ijk->jki", b[None, :, :] - a[:, None, :])
@@ -165,12 +161,10 @@ def append_zero(a: "torch.Tensor") -> "torch.Tensor":
 
 
 def append_zero(a):
-
     if isinstance(a, numpy.ndarray):
         return numpy.hstack([a, 0.0])
 
     elif a.__module__.startswith("torch"):
-
         import torch
 
         return torch.cat([a, torch.zeros(1, dtype=a.dtype)])

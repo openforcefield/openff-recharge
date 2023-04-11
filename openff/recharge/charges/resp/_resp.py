@@ -17,7 +17,7 @@ from openff.recharge.utilities.toolkits import (
 )
 
 if TYPE_CHECKING:
-    from openff.toolkit.topology import Molecule
+    from openff.toolkit import Molecule
 
 
 def _generate_dummy_values(smiles: str) -> List[float]:
@@ -25,7 +25,7 @@ def _generate_dummy_values(smiles: str) -> List[float]:
     ``LibraryChargeParameter`` that sums to the correct total charge.
     """
 
-    from openff.toolkit.topology import Molecule
+    from openff.toolkit import Molecule
 
     molecule: Molecule = Molecule.from_smiles(smiles, allow_undefined_stereo=True)
 
@@ -162,7 +162,6 @@ def _deduplicate_constraints(
     deduplicated_values = []
 
     for constraint_row, constraint_value in zip(constraint_matrix, constraint_values):
-
         constraint_row = tuple(int(i) for i in constraint_row)
 
         if constraint_row in found_constraints:
@@ -287,7 +286,6 @@ def generate_resp_systems_of_equations(
     conformer_constraint_vectors = [constraint_vector] * len(objective_terms)
 
     for conformer_index, objective_term in enumerate(objective_terms):
-
         design_matrix = objective_term.atom_charge_design_matrix.copy()
 
         padded_design_matrix = numpy.pad(
@@ -302,12 +300,10 @@ def generate_resp_systems_of_equations(
         )
 
         if conformer_index > 0:
-
             old_order = list(range(padded_constraint.shape[1]))
             new_order = [*old_order]
 
             for i, charge_index in enumerate(charges_not_to_equivalize):
-
                 new_order[
                     design_matrix.shape[1]
                     + (conformer_index - 1) * len(charges_not_to_equivalize)
@@ -352,7 +348,7 @@ def _canonicalize_smiles(smiles: str) -> str:
     process
     """
 
-    from openff.toolkit.topology import Molecule
+    from openff.toolkit import Molecule
 
     return Molecule.from_smiles(smiles, allow_undefined_stereo=True).to_smiles(
         mapped=False
@@ -393,7 +389,7 @@ def generate_resp_charge_parameter(
         The RESP charges generated for the molecule.
     """
 
-    from openff.toolkit.topology import Molecule
+    from openff.toolkit import Molecule
 
     solver = IterativeSolver() if solver is None else solver
 

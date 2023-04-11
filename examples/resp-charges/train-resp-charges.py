@@ -15,7 +15,6 @@ from openff.recharge.utilities.molecule import extract_conformers
 
 
 def main():
-
     qc_data_settings = ESPSettings(
         method="hf", basis="6-31G*", grid_settings=MSKGridSettings()
     )

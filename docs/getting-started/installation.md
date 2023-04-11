@@ -1,7 +1,7 @@
 (installation_chapter)=
 # Installation
 
-There are several ways that OpenFF Recharge and its dependencies can be installed, including using the `conda` 
+There are several ways that OpenFF Recharge and its dependencies can be installed, including using the `conda`
 package manager.
 
 ## Using conda
@@ -25,7 +25,7 @@ conda install -c openeye openeye-toolkits
 
 #### Psi4
 
-Psi4 is an open source quantum chemistry package that enables OpenFF Recharge to generate electrostatic potential and 
+Psi4 is an open source quantum chemistry package that enables OpenFF Recharge to generate electrostatic potential and
 electric field data:
 
 ```shell
@@ -34,8 +34,8 @@ conda install -c conda-forge -c defaults -c psi4 psi4
 
 #### [QCPortal](https://github.com/MolSSI/QCPortal)
 
-QCPortal enables the retrieval of QC calculations from a running QCFractal instance (such as the 
-[QCArchive](https://qcarchive.molssi.org/)) from which electrostatic potential and electric field data can be 
+QCPortal enables the retrieval of QC calculations from a running QCFractal instance (such as the
+[QCArchive](https://qcarchive.molssi.org/)) from which electrostatic potential and electric field data can be
 reconstructed.
 
 ```shell
@@ -44,7 +44,7 @@ conda install -c conda-forge qcportal
 
 ## From source
 
-To install `openff-recharge` from source begin by cloning the repository from 
+To install `openff-recharge` from source begin by cloning the repository from
 [github](https://github.com/openforcefield/openff-recharge),
 
 ```shell

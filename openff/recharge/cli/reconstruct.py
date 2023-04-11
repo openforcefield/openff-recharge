@@ -29,7 +29,6 @@ QCFractalKeywords = Dict[str, "qcportal.models.KeywordSet"]
 def _retrieve_result_records(
     record_ids: List["qcportal.models.ObjectId"],
 ) -> Tuple[QCFractalResults, QCFractalKeywords]:
-
     import qcportal
 
     # Pull down the individual result records.
@@ -41,7 +40,6 @@ def _retrieve_result_records(
     client = qcportal.FractalClient()
 
     while paginating:
-
         page_results = client.query_results(
             id=record_ids,
             limit=client.server_info["query_limit"],
@@ -101,7 +99,6 @@ def _process_result(
     show_default=True,
 )
 def reconstruct(record_ids_path: str, grid_settings_path: str, n_processors: int):
-
     import openeye
     import psi4
     import qcelemental
@@ -120,7 +117,6 @@ def reconstruct(record_ids_path: str, grid_settings_path: str, n_processors: int
     qc_results, qc_keyword_sets = _retrieve_result_records(record_ids)
 
     with Pool(processes=n_processors) as pool:
-
         esp_records = list(
             tqdm(
                 pool.imap(

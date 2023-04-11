@@ -13,7 +13,6 @@ from openff.recharge.optimize import ESPObjective, ESPObjectiveTerm
 
 
 def main():
-
     # Load in the molecules to train
     training_set = ["C", "CC", "CCC", "CCCC"]
 
@@ -24,7 +23,6 @@ def main():
     qc_data_records = []
 
     for smiles in tqdm(training_set):
-
         molecule = Molecule.from_smiles(smiles)
 
         conformers = ConformerGenerator.generate(
@@ -32,7 +30,6 @@ def main():
         )
 
         for conformer in tqdm(conformers):
-
             conformer, grid, esp, electric_field = Psi4ESPGenerator.generate(
                 molecule=molecule,
                 conformer=conformer,
@@ -79,7 +76,6 @@ def main():
     print("TRAINED PARAMETERS".center(80, "-"))
 
     for parameter_smirks, trained_value in zip(bcc_parameters_to_train, trained_values):
-
         print(
             parameter_smirks,
             f" INITIAL={0.0:.4f} " f" FINAL={float(trained_value):.4f}",

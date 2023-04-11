@@ -1,6 +1,7 @@
 import numpy
-import pytest
 from openff.units import unit
+
+import pytest
 from pydantic import ValidationError
 
 from openff.recharge.charges.exceptions import ChargeAssignmentError
@@ -60,7 +61,6 @@ class TestLibraryChargeParameter:
         ],
     )
     def test_validate_smiles(self, smiles, value, expected_raises):
-
         with expected_raises:
             parameter = LibraryChargeParameter(smiles=smiles, value=value)
             assert parameter.smiles == smiles
@@ -95,7 +95,6 @@ class TestLibraryChargeParameter:
             assert parameter.value == value
 
     def test_copy_value_from_other(self):
-
         parameter_a = LibraryChargeParameter(
             smiles="[H:1][O:2][H:3]", value=[0.09, -0.2, 0.11]
         )
@@ -146,7 +145,6 @@ class TestLibraryChargeParameter:
     def test_generate_constraint_matrix(
         self, parameter, trainable_indices, expected_matrix, expected_values
     ):
-
         constraint_matrix, constraint_values = parameter.generate_constraint_matrix(
             trainable_indices
         )
@@ -160,7 +158,6 @@ class TestLibraryChargeParameter:
 
 class TestLibraryChargeCollection:
     def test_to_smirnoff(self, mock_charge_collection):
-
         pytest.importorskip("openff.toolkit")
 
         charge_handler = mock_charge_collection.to_smirnoff()
@@ -186,7 +183,6 @@ class TestLibraryChargeCollection:
         )
 
     def test_from_smirnoff(self):
-
         pytest.importorskip("openff.toolkit")
 
         from openff.toolkit.typing.engines.smirnoff import LibraryChargeHandler
@@ -235,7 +231,6 @@ class TestLibraryChargeCollection:
         ],
     )
     def test_vectorize(self, mock_charge_collection, keys, expected_value):
-
         charge_vector = mock_charge_collection.vectorize(keys)
 
         assert charge_vector.shape == expected_value.shape
@@ -244,13 +239,11 @@ class TestLibraryChargeCollection:
 
 class TestLibraryChargeGenerator:
     def test_validate_assignment_matrix(self, mock_charge_collection):
-
-        from openff.toolkit.topology import Molecule
+        from openff.toolkit import Molecule
 
         molecule = Molecule.from_mapped_smiles("[H:1][O:2][H:3]")
 
         with pytest.raises(ChargeAssignmentError, match="charges yield a total charge"):
-
             LibraryChargeGenerator._validate_assignment_matrix(
                 molecule,
                 numpy.array([[0, 0, 1, 2, 3], [0, 0, 4, 5, 6], [0, 0, 7, 8, 9]]),
@@ -274,10 +267,9 @@ class TestLibraryChargeGenerator:
     def test_build_assignment_matrix(
         self, mock_charge_collection, smiles, expected_value
     ):
-
         pytest.importorskip("openff.toolkit")
 
-        from openff.toolkit.topology import Molecule
+        from openff.toolkit import Molecule
 
         molecule = Molecule.from_mapped_smiles(smiles)
 
@@ -289,8 +281,7 @@ class TestLibraryChargeGenerator:
         assert numpy.allclose(expected_value, assignment_matrix)
 
     def test_build_assignment_matrix_equivalent_atoms(self):
-
-        from openff.toolkit.topology import Molecule
+        from openff.toolkit import Molecule
 
         molecule = Molecule.from_mapped_smiles("[C:1]([H:3])([H:4])([H:5])[O:2][H:6]")
 
@@ -331,10 +322,9 @@ class TestLibraryChargeGenerator:
         ],
     )
     def test_generate(self, mock_charge_collection, smiles, expected_value):
-
         pytest.importorskip("openff.toolkit")
 
-        from openff.toolkit.topology import Molecule
+        from openff.toolkit import Molecule
 
         molecule = Molecule.from_mapped_smiles(smiles)
 

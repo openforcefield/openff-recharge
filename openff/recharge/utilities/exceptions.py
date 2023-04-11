@@ -58,7 +58,6 @@ class UnsupportedBCCValueError(UnsupportedSMIRNOFFBCCError):
     """
 
     def __init__(self, smirks, charge_increment_0, charge_increment_1):
-
         super().__init__(
             smirks,
             f"Only SMIRNOFF charge increments which apply symmetrically to "

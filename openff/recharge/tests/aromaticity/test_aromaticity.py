@@ -55,7 +55,6 @@ def test_am1_bcc_aromaticity_ring_size():
     [AromaticityModels.AM1BCC, AromaticityModels.MDL],
 )
 def test_aromaticity_models(aromaticity_model):
-
     molecule = smiles_to_molecule("C")
 
     is_atom_aromatic, is_bond_aromatic = AromaticityModel.apply(

@@ -20,9 +20,9 @@ jobs:
       fail-fast: false
       matrix:
         cfg:
-          - python-version: 3.8
+          - python-version: "3.9"
             os: ubuntu-latest
-          - python-version: 3.9
+          - python-version: "3.10"
             os: ubuntu-latest
 
     env:
@@ -34,7 +34,7 @@ jobs:
       - name: Setup Conda Environment
         uses: mamba-org/provision-with-micromamba@main
         with:
-          environment-file: devtools/conda-envs/test-env.yaml
+          environment-file: devtools/conda-envs/test_env.yaml
           channel-priority: "flexible"
           extra-specs: |
             python=${{ matrix.cfg.python-version }}
@@ -52,7 +52,7 @@ jobs:
       - name: Install Package
         shell: bash -l {0}
         run: |
-          python setup.py develop --no-deps
+          python -m pip install -e .
 
       - name: Conda Environment Information
         shell: bash -l {0}
@@ -66,7 +66,8 @@ jobs:
           pytest -v --cov=openff openff/recharge/tests/ --cov-report=xml
 
       - name: CodeCov
-        uses: codecov/codecov-action@v3.1.1
+        uses: codecov/codecov-action@v3
         with:
+          token: ${{ secrets.CODECOV_TOKEN }}
           file: ./coverage.xml
           fail_ci_if_error: true

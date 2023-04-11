@@ -17,7 +17,6 @@ from openff.recharge.grids import LatticeGridSettings
 
 
 def test_generate(runner, monkeypatch):
-
     # Mock the Psi4 calls so the test can run even when not present.
     # This requires also mocking the multiprocessing to ensure the
     # monkeypatch on Psi4 holds.

@@ -6,89 +6,89 @@ applied to molecules up to how the framework constructs the objective ( / loss) 
 
 ## Supported charge models
 
-A key feature of this framework is being able to apply different types of charge model to a molecule. There are 
+A key feature of this framework is being able to apply different types of charge model to a molecule. There are
 currently three types of parameter available based upon the [SMIRNOFF] specification: library charges, bond charge
 corrections, and virtual sites.
 
 (library_charge_section)=
-### Library charges 
+### Library charges
 
-A library charge is used to assign a set of specific partial charges to each atom in a molecule. It is a combination of 
-a fully indexed SMILES pattern that describes the molecule the charges should be applied to, and a set of charges to 
-apply to each atom in that SMILES pattern. A collection of these can be stored in a flat vector 
+A library charge is used to assign a set of specific partial charges to each atom in a molecule. It is a combination of
+a fully indexed SMILES pattern that describes the molecule the charges should be applied to, and a set of charges to
+apply to each atom in that SMILES pattern. A collection of these can be stored in a flat vector
 
-$$ \mathbf{p}_{lib} = 
+$$ \mathbf{p}_{lib} =
   \begin{bmatrix}
      p_{1, 1} & \dots & p_{1, n_1} & \dots & p_{\gamma_{lib}, 1} & p_{\gamma_{lib}, n_{\gamma_{lib}}} \\
   \end{bmatrix}^\intercal
-$$ 
+$$
 
-where here $\gamma_{lib}$ is the total number of library parameters in the model, $n_i$ is the number of atoms in the 
-molecule represented by parameter $i$, and $p_{i, j}$ corresponds to the charge associated with atom $j$ in the molecule 
+where here $\gamma_{lib}$ is the total number of library parameters in the model, $n_i$ is the number of atoms in the
+molecule represented by parameter $i$, and $p_{i, j}$ corresponds to the charge associated with atom $j$ in the molecule
 represented by parameter $i$.
 
 ### Bond charge corrections
 
-A bond charge correction (BCC) is used to perturb the charge on two atoms involved in a given bond by an equal but 
-opposite amount {cite}`jakalian2000fast,jakalian2002fast` such that the total charge on the molecule remains the same. 
-It is a combination of a SMIRKS pattern that has exactly two bonded atoms tagged with an index (e.g. `[#6:1]-[#1:2]`) 
+A bond charge correction (BCC) is used to perturb the charge on two atoms involved in a given bond by an equal but
+opposite amount {cite}`jakalian2000fast,jakalian2002fast` such that the total charge on the molecule remains the same.
+It is a combination of a SMIRKS pattern that has exactly two bonded atoms tagged with an index (e.g. `[#6:1]-[#1:2]`)
 and the value of the charge correction to apply. A collection of these can be stored in a flat vector
 
-$$ \mathbf{p}_{bcc} = 
+$$ \mathbf{p}_{bcc} =
   \begin{bmatrix}
      p_{1} & \dots & p_{\gamma_{bcc}} \\
   \end{bmatrix}^\intercal
 $$
 
-where here $\gamma_{bcc}$ denotes the number of BCC parameters in the model and $p_i$ corresponds to the $i$'th BCC 
+where here $\gamma_{bcc}$ denotes the number of BCC parameters in the model and $p_i$ corresponds to the $i$'th BCC
 parameter.
 
-The value of the charge correction will be added to the first indexed atom matched by the SMIRKS pattern, while the 
-same value of the charge correction but with an opposite sign will be added to the second indexed atom matched by the 
+The value of the charge correction will be added to the first indexed atom matched by the SMIRKS pattern, while the
+same value of the charge correction but with an opposite sign will be added to the second indexed atom matched by the
 SMIRKS pattern.
 
 ### Virtual sites
 
-A virtual site (v-site) parameter is used to create a dummy particle on a molecule that is positioned relative to a 
+A virtual site (v-site) parameter is used to create a dummy particle on a molecule that is positioned relative to a
 number of parent atoms and carries a slight partial charge. Such particles are useful for, for example, representing
-lone pairs of electrons or sigma holes that are not well represented by charges localised on atom centers. 
+lone pairs of electrons or sigma holes that are not well represented by charges localised on atom centers.
 
 :::{note}
-All 'types' of virtual site that are defined by the [SMIRNOFF] specification, (bond charge and mono-, di-, and trivalent 
+All 'types' of virtual site that are defined by the [SMIRNOFF] specification, (bond charge and mono-, di-, and trivalent
 lone pair types) are supported within OpenFF Recharge.
 :::
 
-Unlike the other two parameter types, a virtual site is a combination of both a set of charge increment values that 
-shift charge from a parent atom onto the virtual site *and* a set of parameters that describe where the virtual site 
+Unlike the other two parameter types, a virtual site is a combination of both a set of charge increment values that
+shift charge from a parent atom onto the virtual site *and* a set of parameters that describe where the virtual site
 should be placed relative to the parent atoms.
 
 Like the other parameter types we can store the charge increments in a flat vector
 
-$$ \mathbf{p}_{v\text{-}site} = 
+$$ \mathbf{p}_{v\text{-}site} =
   \begin{bmatrix}
      p_{1, 1} & \dots & p_{1, n_1} & \dots & p_{\gamma_{v\text{-}site}, 1} & p_{\gamma_{v\text{-}site}, n_{\gamma_{v\text{-}site}}} \\
   \end{bmatrix}^\intercal
-$$ 
+$$
 
-where here $\gamma_{v\text{-}site}$ is the total number of v-site parameters in the model, $n_i$ is the number of parent atoms 
-that v-site parameter $i$ will be positioned relative to, and $p_{i, j}$ corresponds to the charge that will be added 
+where here $\gamma_{v\text{-}site}$ is the total number of v-site parameters in the model, $n_i$ is the number of parent atoms
+that v-site parameter $i$ will be positioned relative to, and $p_{i, j}$ corresponds to the charge that will be added
 to parent atom $j$ and subtracted from the total v-site charge.
 
-The coordinate parameters that must be provided will depend on the type of virtual site to be placed, but will include 
-at least one of a distance $d$, out-of-plane angle $\theta$, and in-plane-angle $\psi$ defined 
+The coordinate parameters that must be provided will depend on the type of virtual site to be placed, but will include
+at least one of a distance $d$, out-of-plane angle $\theta$, and in-plane-angle $\psi$ defined
 relative to the parent atoms.
 
 #### Generating coordinates
 
-The coordinates of a virtual site are generated by constructing a 'local coordinate frame' from the coordinates of the 
+The coordinates of a virtual site are generated by constructing a 'local coordinate frame' from the coordinates of the
 atoms the virtual site will be placed relative to.
 
-In particular, the local coordinate frame is composed of an origin $\mathbf{o}$, and three orthonormal directions 
+In particular, the local coordinate frame is composed of an origin $\mathbf{o}$, and three orthonormal directions
 $\mathbf{\hat{x}}$, $\mathbf{\hat{y}}$, and $\mathbf{\hat{z}}$. For a given set of atomic coordinates $\mathbf{r}^{atom}_1, \dots, \mathbf{r}^{atom}_n$, we can
 construct each component [according to](http://docs.openmm.org/latest/userguide/theory/05_other_features.html#virtual-sites)
 
 $$
-    \begin{bmatrix}\mathbf{o} \\ \mathbf{dx} \\ \mathbf{dy} \end{bmatrix} = 
+    \begin{bmatrix}\mathbf{o} \\ \mathbf{dx} \\ \mathbf{dy} \end{bmatrix} =
     \begin{bmatrix}\mathbf{w}_o \\ \mathbf{w}_x \\ \mathbf{w}_y\end{bmatrix}
     \begin{bmatrix}\mathbf{r}_1^{atom} \\ \vdots \\ \mathbf{r}_n^{atom}\end{bmatrix}
 $$
@@ -96,7 +96,7 @@ $$
 and
 
 $$
-    \begin{aligned} 
+    \begin{aligned}
         \mathbf{dz} &= \mathbf{dx} \times \mathbf{dy} \\
         \mathbf{\hat{z}} &= \dfrac{\mathbf{dz}}{\left|\mathbf{dz}\right|} \\
         \mathbf{\hat{x}} &= \dfrac{\mathbf{dx}}{\left|\mathbf{dx}\right|} \\
@@ -104,7 +104,7 @@ $$
     \end{aligned}
 $$
 
-where here $\mathbf{W} = \begin{bmatrix}\mathbf{w_o} & \mathbf{w_x} & \mathbf{w_y}\end{bmatrix}^\intercal$ is a matrix of weights 
+where here $\mathbf{W} = \begin{bmatrix}\mathbf{w_o} & \mathbf{w_x} & \mathbf{w_y}\end{bmatrix}^\intercal$ is a matrix of weights
 unique to each type of virtual site, as can be seen in the table below.
 
 |                          | **N Parent Atoms** |                                                          **W**                                                           |
@@ -114,14 +114,14 @@ unique to each type of virtual site, as can be seen in the table below.
 | **Divalent Lone Pair**   |         3          |            $\begin{bmatrix}0 & \phantom{-}1 & 0 \\ \frac{1}{2} & -1 & \frac{1}{2} \\ 1 & -1 & 0\end{bmatrix}$            |
 | **Trivalent Lone Pair**  |         4          | $\begin{bmatrix}0 & \phantom{-}1 & 0 & 0 \\ \frac{1}{3} & -1 & \frac{1}{3} & \frac{1}{3} \\ 1 & -1 & 0 & 0\end{bmatrix}$ |
 
-The coordinates of the virtual site $\mathbf{r^{v\text{-}site}}$ is positioned by projecting the virtual site coordinate 
+The coordinates of the virtual site $\mathbf{r^{v\text{-}site}}$ is positioned by projecting the virtual site coordinate
 parameters, which are defined in spherical coordinates, onto this frame according to
 
 $$
     \mathbf{r}^{v\text{-}site} = \mathbf{o} + d \left(\cos\theta\cos\phi \mathbf{\hat{x}} + \sin\theta\cos\phi \mathbf{\hat{y}} + \sin\phi \mathbf{\hat{z}} \right)
 $$
 
-The full set of coordinates for the molecule thus becomes 
+The full set of coordinates for the molecule thus becomes
 
 $$\mathbf{r} = \begin{bmatrix} \mathbf{r}^{atom} \\ \mathbf{r}^{v\text{-}site}\end{bmatrix}$$
 
@@ -139,23 +139,23 @@ $$
     \end{bmatrix}
 $$
 
-is a matrix that yields a vector of partial charges on each atom in a molecule when right multiplied by a flat vector of 
+is a matrix that yields a vector of partial charges on each atom in a molecule when right multiplied by a flat vector of
 charge parameters as described above
 
 $$ \mathbf{q}_{\square} = \mathbf{T}_{\square}\mathbf{p}_{\square} $$
 
-where $N$ is the number of atoms and $\gamma_{\square}$ the number of charge parameters of type $\square$. 
+where $N$ is the number of atoms and $\gamma_{\square}$ the number of charge parameters of type $\square$.
 
-In the case of library charges the assignment must have exactly one entry of 1 in each row while in contrast, for bond 
-charge correction parameters the assigment matrix can have any entries so long as the sum of each column is 0 is 
+In the case of library charges the assignment must have exactly one entry of 1 in each row while in contrast, for bond
+charge correction parameters the assigment matrix can have any entries so long as the sum of each column is 0 is
 satisfied. This ensures that the total charge on the molecule will remain 0 after the BCCs have been applied.
 
 For a given charge model that is some combination of library charges, BCCs, and v-sites the total charge on a molecule
 will be
 
-$$ 
-\mathbf{q}^{atom} = \mathbf{T}\mathbf{p} = 
-                 \begin{bmatrix} \mathbf{T}_{lib} & \mathbf{T}_{bcc} & \mathbf{T}_{v\text{-}site} \end{bmatrix} 
+$$
+\mathbf{q}^{atom} = \mathbf{T}\mathbf{p} =
+                 \begin{bmatrix} \mathbf{T}_{lib} & \mathbf{T}_{bcc} & \mathbf{T}_{v\text{-}site} \end{bmatrix}
                  \begin{bmatrix} \mathbf{p}_{lib} \\ \mathbf{p}_{bcc} \\ \mathbf{p}_{v\text{-}site} \end{bmatrix}
 $$
 
@@ -163,42 +163,42 @@ Alternatively a model may not contain any library charge parameters, such as the
 derive a base set of charges $q_{base}$, to be perturbed from some QM calculation. In such a case, the total charge will
 instead be
 
-$$ 
-\mathbf{q}^{atom} = \mathbf{q}_{base} + \mathbf{T}\mathbf{p} = 
+$$
+\mathbf{q}^{atom} = \mathbf{q}_{base} + \mathbf{T}\mathbf{p} =
                    \mathbf{q}_{base}
-                 + \begin{bmatrix} \mathbf{T}_{bcc} & \mathbf{T}_{v\text{-}site} \end{bmatrix} 
+                 + \begin{bmatrix} \mathbf{T}_{bcc} & \mathbf{T}_{v\text{-}site} \end{bmatrix}
                    \begin{bmatrix} \mathbf{p}_{bcc} \\ \mathbf{p}_{v\text{-}site} \end{bmatrix}
 
 $$
 
-If the charge model contains virtual site parameters, the charge on each virtual site is similarly computed by applying 
+If the charge model contains virtual site parameters, the charge on each virtual site is similarly computed by applying
 an assignment matrix $\mathbf{S}_{v\text{-}site}$ to the vector of v-site parameters
 
 $$ \mathbf{q}^{v\text{-}site} = \mathbf{S}_{v\text{-}site}\mathbf{p}_{v\text{-}site} $$
 
-The full set of charges for the molecule thus becomes 
+The full set of charges for the molecule thus becomes
 
 $$\mathbf{q} = \begin{bmatrix} \mathbf{q}^{atom} \\ \mathbf{q}^{v\text{-}site} \end{bmatrix}$$
 
 (train_to_qc_section)=
 ## Training to electronic property data
 
-The charge parameters described above can be trained against electronic property data, namely the electrostatic 
+The charge parameters described above can be trained against electronic property data, namely the electrostatic
 potential (ESP) and the electric field computed on a grid of points, by constructing an objective ( / loss) function
 to be minimized in the usual ways.
 
 In particular, the calculated electronic property of interest $O\left(\mathbf{q},\mathbf{r}\right)$ can be inserted into the standard
-least squares (L2) loss function such that 
+least squares (L2) loss function such that
 
 $$
     \Delta = \sum^K_{i=1}\left||O_{ref,i} - O\left(\mathbf{q_i},\mathbf{r_i}\right)\right||^2
 $$
 
-where the summation is over $K$ molecules in a given conformation, $O_{ref}$ is the target value of the electronic 
+where the summation is over $K$ molecules in a given conformation, $O_{ref}$ is the target value of the electronic
 property computed using some reference (normally an accurate QM) method, and $\mathbf{q}_i$ and $\mathbf{r}_i$ are the
 charge and coordinates (including both atom and v-site values) of molecule $i$ .
 
-The value of $O$ can be written more generally as $O\left(\mathbf{q},\mathbf{r}\right) = \mathbf{X} \mathbf{q}$. In the 
+The value of $O$ can be written more generally as $O\left(\mathbf{q},\mathbf{r}\right) = \mathbf{X} \mathbf{q}$. In the
 case of training against ESP data that has been computed on a grid of $M$ points
 
 $$
@@ -219,7 +219,7 @@ $$
 \end{bmatrix}
 $$
 
-Adopting the language of [regression analysis], we define the **design matrix** as the combination of 
+Adopting the language of [regression analysis], we define the **design matrix** as the combination of
 $\mathbf{X}$ and the assignment matrix:
 
 $$
@@ -243,7 +243,7 @@ In cases where observables have been computed for multiple molecules in multiple
 the individual design matrices and observable vectors for molecule $i$ in conformer $j$ as
 
 $$
-\mathbf{A} = 
+\mathbf{A} =
 \begin{bmatrix}
     \mathbf{A}_{11} \\ \mathbf{A}_{12} \\ \vdots \\
 \end{bmatrix}
@@ -252,7 +252,7 @@ $$
 and
 
 $$
-\mathbf{b} = 
+\mathbf{b} =
 \begin{bmatrix}
     \mathbf{b}_{11} \\ \mathbf{b}_{12} \\ \vdots \\
 \end{bmatrix}

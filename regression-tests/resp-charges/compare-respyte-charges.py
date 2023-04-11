@@ -25,7 +25,7 @@ def main():
 
     respyte_outputs = glob(os.path.join("respyte-data", "output-*"))
 
-    for i, respyte_output in enumerate(respyte_outputs):
+    for _, respyte_output in enumerate(respyte_outputs):
 
         molecule = Molecule.from_file(os.path.join(respyte_output, "mol1_conf1.mol2"))
 

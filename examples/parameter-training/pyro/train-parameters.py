@@ -19,7 +19,6 @@ from openff.recharge.optimize import ESPObjective
 
 
 def main():
-
     # Calculate the ESP of chloromethane using Psi4.
     molecule = Molecule.from_smiles("CCl")
     conformer = ConformerGenerator.generate(
@@ -86,7 +85,6 @@ def main():
     # Define our 'model' - i.e. the prior and likelihood functions that combined
     # define the posterior distribution we aim to draw samples from.
     def model():
-
         # Place priors on the virtual site charges increments and distance.
         charge_increment = pyro.sample(
             "charge_increment",

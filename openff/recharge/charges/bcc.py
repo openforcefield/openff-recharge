@@ -19,8 +19,7 @@ from openff.recharge.utilities.exceptions import (
 from openff.recharge.utilities.toolkits import match_smirks
 
 if TYPE_CHECKING:
-
-    from openff.toolkit.topology import Molecule
+    from openff.toolkit import Molecule
     from openff.toolkit.typing.engines.smirnoff.parameters import (
         ChargeIncrementModelHandler,
     )
@@ -128,7 +127,6 @@ class BCCCollection(BaseModel):
         bcc_parameters = []
 
         for off_parameter in reversed(parameter_handler.parameters):
-
             smirks = off_parameter.smirks
 
             if len(off_parameter.charge_increment) not in [1, 2]:
@@ -157,9 +155,7 @@ class BCCCollection(BaseModel):
                 BCCParameter(smirks=smirks, value=forward_value, provenance={})
             )
 
-        return cls(  # lgtm [py/call-to-non-callable]
-            parameters=bcc_parameters, aromaticity_model=aromaticity_model
-        )
+        return cls(parameters=bcc_parameters, aromaticity_model=aromaticity_model)
 
     def vectorize(self, smirks: List[str]) -> numpy.ndarray:
         """Returns a flat vector of the charge increment values associated with each
@@ -227,7 +223,6 @@ class BCCGenerator:
         non_zero_assignments = assignment_matrix.sum(axis=0).nonzero()[0]
 
         if len(non_zero_assignments) > 0:
-
             correction_smirks = [
                 bcc_collection.parameters[index].smirks
                 for index in non_zero_assignments
@@ -249,7 +244,6 @@ class BCCGenerator:
         }
 
         if len(unassigned_atoms) > 0:
-
             unassigned_atom_string = "\n".join(
                 [
                     f"atom {index}: expected={n_expected} assigned={n_actual}"
@@ -307,7 +301,6 @@ class BCCGenerator:
         matched_bonds = set()
 
         for index in range(len(bond_charge_corrections)):
-
             bond_correction = bond_charge_corrections[index]
 
             matches = match_smirks(
@@ -319,7 +312,6 @@ class BCCGenerator:
             )
 
             for matched_indices in matches:
-
                 forward_matched_bond = (matched_indices[0], matched_indices[1])
                 reverse_matched_bond = (matched_indices[1], matched_indices[0])
 
@@ -380,7 +372,6 @@ class BCCGenerator:
         charge_corrections = assignment_matrix @ correction_values
 
         if not numpy.isclose(charge_corrections.sum(), 0.0):
-
             raise ChargeAssignmentError(
                 "An internal error occurred. The bond charge corrections were applied "
                 "in such a way so that the total charge of the molecule will be "
@@ -409,7 +400,6 @@ class BCCGenerator:
         applied_corrections = []
 
         for molecule in molecules:
-
             assignment_matrix = cls.build_assignment_matrix(molecule, bcc_collection)
             applied_correction_indices = numpy.where(assignment_matrix.any(axis=0))[0]
 

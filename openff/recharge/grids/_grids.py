@@ -10,7 +10,7 @@ from openff.recharge.utilities.pydantic import wrapped_float_validator
 from openff.recharge.utilities.toolkits import VdWRadiiType, compute_vdw_radii
 
 if TYPE_CHECKING:
-    from openff.toolkit.topology import Molecule
+    from openff.toolkit import Molecule
 
     PositiveFloat = float
 else:
@@ -143,7 +143,6 @@ class GridGenerator:
         shells = []
 
         for scale in [1.4, 1.6, 1.8, 2.0]:
-
             atom_spheres = [
                 coordinate
                 + cls._generate_connolly_sphere(radius.item() * scale, settings.density)
@@ -161,7 +160,6 @@ class GridGenerator:
             offset = 0
 
             for atom_index, atom_sphere in enumerate(atom_spheres):
-
                 exclusion_mask[atom_index, offset : offset + len(atom_sphere)] = True
                 offset += len(atom_sphere)
 
@@ -217,7 +215,6 @@ class GridGenerator:
         for x, y, z in itertools.product(
             *(range(0, n * 2 + 1) for n in n_cells), repeat=1
         ):
-
             a = x % 2
             b = y % 2
             c = z % 2

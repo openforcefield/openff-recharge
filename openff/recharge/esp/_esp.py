@@ -9,7 +9,7 @@ from pydantic import BaseModel, Field
 from openff.recharge.grids import GridGenerator, GridSettingsType
 
 if TYPE_CHECKING:
-    from openff.toolkit.topology import Molecule
+    from openff.toolkit import Molecule
 
     PositiveFloat = float
 else:

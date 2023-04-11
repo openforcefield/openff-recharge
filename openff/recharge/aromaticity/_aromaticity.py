@@ -5,7 +5,7 @@ from openff.recharge.utilities.molecule import find_ring_bonds
 from openff.recharge.utilities.toolkits import apply_mdl_aromaticity_model, match_smirks
 
 if TYPE_CHECKING:
-    from openff.toolkit.topology import Molecule
+    from openff.toolkit import Molecule
 
 
 class AromaticityModels(Enum):
@@ -53,14 +53,12 @@ class AromaticityModel:
         """
 
         for ring_match in ring_matches:
-
             ring_atom_indices = {match for match in ring_match.values()}
 
             for matched_atom_index in ring_atom_indices:
                 is_atom_aromatic[matched_atom_index] = True
 
             for index_a, index_b in is_bond_aromatic:
-
                 if index_a not in ring_atom_indices or index_b not in ring_atom_indices:
                     continue
 
@@ -140,7 +138,6 @@ class AromaticityModel:
         case_2_atoms = {}
 
         while previous_case_2_atoms != case_2_atoms:
-
             case_2_matches = match_smirks(
                 case_2_smirks, molecule, is_atom_aromatic, is_bond_aromatic, unique=True
             )
@@ -177,7 +174,6 @@ class AromaticityModel:
         case_3_atoms = {}
 
         while previous_case_3_atoms != case_3_atoms:
-
             case_3_matches = match_smirks(
                 case_3_smirks, molecule, is_atom_aromatic, is_bond_aromatic, unique=True
             )

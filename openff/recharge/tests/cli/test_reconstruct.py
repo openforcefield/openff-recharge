@@ -14,7 +14,6 @@ from openff.recharge.utilities.molecule import smiles_to_molecule
 
 
 def test_retrieve_result_records():
-
     pytest.importorskip("qcportal")
 
     # noinspection PyTypeChecker
@@ -26,7 +25,6 @@ def test_retrieve_result_records():
 
 
 def test_reconstruct(runner, monkeypatch):
-
     pytest.importorskip("psi4")
     pytest.importorskip("qcportal")
 

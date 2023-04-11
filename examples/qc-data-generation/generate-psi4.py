@@ -9,7 +9,6 @@ from openff.recharge.utilities.molecule import smiles_to_molecule
 
 
 def main():
-
     # Load in the molecule that we would like to generate the electrostatic properties
     # for.
     molecule = smiles_to_molecule("OCC(O)CO")
@@ -39,7 +38,6 @@ def main():
     records = []
 
     for conformer in tqdm(conformers):
-
         conformer, grid, esp, electric_field = Psi4ESPGenerator.generate(
             molecule,
             conformer,

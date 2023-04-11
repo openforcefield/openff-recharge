@@ -1,6 +1,6 @@
 import numpy
 import pytest
-from openff.toolkit.topology import Molecule
+from openff.toolkit import Molecule
 from openff.toolkit.utils import UndefinedStereochemistryError
 from openff.units import unit
 
@@ -51,7 +51,6 @@ def test_smiles_to_molecule(guess_stereochemistry, expected_raises):
     ],
 )
 def test_find_ring_bonds(smiles, expected_value):
-
     ring_bonds = find_ring_bonds(Molecule.from_mapped_smiles(smiles))
     assert ring_bonds == expected_value
 

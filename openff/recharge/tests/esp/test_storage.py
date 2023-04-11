@@ -31,7 +31,6 @@ class TestMoleculeESPRecord:
         )
 
     def test_validate_quantity(self, mock_record):
-
         assert numpy.allclose(mock_record.conformer, numpy.array([[0.0, 50.0, 0.0]]))
         assert numpy.allclose(
             mock_record.grid_coordinates, numpy.array([[0.0, 60.0, 0.0]])
@@ -42,27 +41,23 @@ class TestMoleculeESPRecord:
         )
 
     def test_conformer_quantity(self, mock_record):
-
         assert numpy.allclose(
             mock_record.conformer_quantity,
             numpy.array([[0.0, 5.0, 0.0]]) * unit.nanometers,
         )
 
     def test_grid_coordinates_quantity(self, mock_record):
-
         assert numpy.allclose(
             mock_record.grid_coordinates_quantity,
             numpy.array([[0.0, 6.0, 0.0]]) * unit.nanometers,
         )
 
     def test_esp_quantity(self, mock_record):
-
         assert numpy.allclose(
             mock_record.esp_quantity, numpy.array([[4.0]]) * unit.hartree / unit.e
         )
 
     def test_electric_field_quantity(self, mock_record):
-
         assert numpy.allclose(
             mock_record.electric_field_quantity,
             numpy.array([[1.0, 2.0, 3.0]]) * unit.hartree / (unit.bohr * unit.e),
@@ -75,7 +70,6 @@ def test_db_version(tmp_path):
     esp_store = MoleculeESPStore(f"{tmp_path}.sqlite")
 
     with esp_store._get_session() as db:
-
         db_info = db.query(DBInformation).first()
 
         assert db_info is not None
@@ -151,7 +145,6 @@ def test_record_from_molecule():
 
 
 def test_tagged_to_canonical_smiles():
-
     assert (
         MoleculeESPStore._tagged_to_canonical_smiles("[H:2][C:1]([H:3])([H:4])[H:5]")
         == "C"

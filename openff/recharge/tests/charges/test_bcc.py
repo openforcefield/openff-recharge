@@ -1,6 +1,5 @@
 import numpy
 import pytest
-from openff.units import unit
 
 from openff.recharge.charges.bcc import (
     BCCCollection,
@@ -29,10 +28,9 @@ def test_to_smirnoff():
 
     pytest.importorskip("openff.toolkit")
 
-    from openff.interchange.components.smirnoff import SMIRNOFFElectrostaticsHandler
-    from openff.toolkit.topology import Molecule
+    from openff.toolkit import Molecule
     from openff.toolkit.typing.engines.smirnoff.parameters import ElectrostaticsHandler
-
+    from openff.interchange.smirnoff._nonbonded import SMIRNOFFElectrostaticsCollection
     bcc_handler = original_am1bcc_corrections().to_smirnoff()
     assert bcc_handler is not None
 
@@ -41,8 +39,7 @@ def test_to_smirnoff():
     off_topology = off_molecule.to_topology()
 
     electrostatics_handler = ElectrostaticsHandler(version="0.4")
-
-    interchange_electrostatics = SMIRNOFFElectrostaticsHandler._from_toolkit(
+    interchange_electrostatics = SMIRNOFFElectrostaticsCollection.create(
         parameter_handler=[electrostatics_handler, bcc_handler],
         topology=off_topology,
     )
@@ -71,6 +68,7 @@ def test_from_smirnoff():
     from openff.toolkit.typing.engines.smirnoff.parameters import (
         ChargeIncrementModelHandler,
     )
+    from openff.units import unit
 
     bcc_value = 0.1 * unit.elementary_charge
 
@@ -93,7 +91,6 @@ def test_from_smirnoff():
 
 
 def test_vectorize_collection():
-
     bcc_collection = BCCCollection(
         parameters=[
             BCCParameter(smirks=f"[#{element}:1]-[#1:2]", value=value, provenance={})
@@ -110,7 +107,6 @@ def test_vectorize_collection():
 
 
 def test_build_assignment_matrix():
-
     molecule = smiles_to_molecule("C")
 
     bond_charge_corrections = [
@@ -130,7 +126,6 @@ def test_build_assignment_matrix():
 
 
 def test_applied_corrections():
-
     bcc_collection = BCCCollection(
         parameters=[
             BCCParameter(smirks="[#6:1]-[#6:2]", value=1.0, provenance={}),
@@ -168,7 +163,6 @@ def test_applied_corrections_order():
 
 
 def test_apply_assignment():
-
     settings = BCCCollection(
         parameters=[BCCParameter(smirks="[#1:1]-[#1:2]", value=0.0, provenance={})]
     )

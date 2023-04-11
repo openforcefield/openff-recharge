@@ -21,7 +21,6 @@ tensor_types = [numpy.array] + ([] if torch is None else [torch.tensor])
 
 @pytest.mark.parametrize("tensor_type", tensor_types)
 def test_to_numpy(tensor_type):
-
     input_tensor = tensor_type([[0.5, 1.0]])
     output_tensor = to_numpy(input_tensor)
 
@@ -37,7 +36,6 @@ def test_to_numpy_none():
 
 @pytest.mark.parametrize("tensor_type", tensor_types)
 def test_to_torch(tensor_type):
-
     pytest.importorskip("torch")
 
     input_tensor = tensor_type([[0.5, 1.0]])
@@ -56,7 +54,6 @@ def test_to_torch_none():
 
 @pytest.mark.parametrize("tensor_type", tensor_types)
 def test_cdist(tensor_type):
-
     input_tensor_a = tensor_type([[3.0, 0.0, 0.0], [4.0, 0.0, 0.0]])
     input_tensor_b = tensor_type([[0.0, 2.0, 0.0], [0.0, 3.0, 0.0], [0.0, 4.0, 0.0]])
 
@@ -75,7 +72,6 @@ def test_cdist(tensor_type):
 
 @pytest.mark.parametrize("tensor_type", tensor_types)
 def test_inverse_cdist(tensor_type):
-
     input_tensor_a = tensor_type([[3.0, 0.0, 0.0], [4.0, 0.0, 0.0]])
     input_tensor_b = tensor_type([[0.0, 2.0, 0.0], [0.0, 3.0, 0.0], [0.0, 4.0, 0.0]])
 
@@ -94,7 +90,6 @@ def test_inverse_cdist(tensor_type):
 
 @pytest.mark.parametrize("tensor_type", tensor_types)
 def test_pairwise_differences(tensor_type):
-
     points_a = tensor_type([[0.0, 3.0, 1.0], [0.0, 4.0, 2.0]])
     points_b = tensor_type([[2.0, 0.0, 2.0], [3.0, 0.0, 4.0], [4.0, 0.0, 0.0]])
 
@@ -114,7 +109,6 @@ def test_pairwise_differences(tensor_type):
 
 @pytest.mark.parametrize("tensor_type", tensor_types)
 def test_append_zero(tensor_type):
-
     input_tensor = tensor_type([1.0, 2.0])
     output_tensor = append_zero(input_tensor)
 
@@ -126,7 +120,6 @@ def test_append_zero(tensor_type):
 
 @pytest.mark.parametrize("tensor_type", tensor_types)
 def test_concatenate(tensor_type):
-
     input_tensors = [
         tensor_type([[1.0, 2.0]]),
         tensor_type([[3.0, 4.0]]),

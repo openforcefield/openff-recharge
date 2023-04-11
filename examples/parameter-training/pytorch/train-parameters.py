@@ -18,13 +18,11 @@ from openff.recharge.utilities.tensors import to_torch
 
 
 def print_parameters(keys, values):
-
     for key, value in zip(keys, values):
         print(key, f"{float(value):.5f}")
 
 
 def main():
-
     # Load in the molecule of interest and generate a set of reference QC data to train
     # against.
     molecule = Molecule.from_smiles("c1ccncc1")
@@ -128,7 +126,6 @@ def main():
     )
 
     for epoch in range(n_epochs + 1):
-
         loss = objective_term.loss(initial_charge_increments, initial_vsite_coordinates)
 
         # Add a light restraint to the v-site distance to stop it from becoming too

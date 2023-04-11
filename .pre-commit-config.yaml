@@ -1,9 +1,10 @@
+ci:
+    autoupdate_schedule: quarterly
 repos:
 -   repo: https://github.com/PyCQA/flake8
     rev: 6.0.0
     hooks:
     -   id: flake8
-        files: ^openff
         additional_dependencies:
         - flake8-bugbear>=23.1.20
         - flake8-absolute-import
@@ -13,7 +14,6 @@ repos:
     rev: v3.3.1
     hooks:
     -   id: pyupgrade
-        files: ^openff
         exclude: openff/recharge/_version.py|setup.py
         args:
         - --py38-plus
@@ -38,6 +38,3 @@ repos:
     -   id: nbqa-flake8
         args:
         - --select=F
-ci:
-    autoupdate_schedule: quarterly
-files: ^openff|^examples

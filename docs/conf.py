@@ -69,7 +69,7 @@ intersphinx_mapping = {
     ),
     "mdtraj": ("https://www.mdtraj.org/1.9.5/", None),
     "openff.docs": (
-        "https://docs.openforcefield.org/en/stable/",
+        "https://docs.openforcefield.org/en/latest/",
         None,
     ),
 }

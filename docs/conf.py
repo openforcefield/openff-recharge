@@ -68,6 +68,10 @@ intersphinx_mapping = {
         None,
     ),
     "mdtraj": ("https://www.mdtraj.org/1.9.5/", None),
+    "openff.docs": (
+        "https://docs.openforcefield.org/en/stable/",
+        None,
+    ),
 }
 
 autosummary_generate = True

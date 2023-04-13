@@ -101,6 +101,10 @@ ENV/
 # mkdocs documentation
 /site
 
+# Sphinx documentation
+docs/_build/
+docs/ref/api/
+
 # mypy
 .mypy_cache/
 

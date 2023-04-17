@@ -12,6 +12,8 @@ The recommended way to install `openff-recharge` is via the `conda` package mana
 conda install -c conda-forge openff-recharge
 ```
 
+If you do not have Mamba installed, see the [OpenFF installation documentation](openff.docs:install).
+
 ### Optional dependencies
 
 #### OpenEye toolkits

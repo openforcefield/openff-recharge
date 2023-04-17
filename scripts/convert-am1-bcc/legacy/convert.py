@@ -46,6 +46,7 @@ def build_bond_charge_corrections(
     bcc_frame = pandas.read_csv("am1bcc.csv")
 
     bcc_frame["BCC"] = bcc_frame["BCC"].round(4)
+    bcc_frame["Code"] = bcc_frame["Code"].astype(str)
     bcc_frame = bcc_frame.sort_values(by=["Index"])
 
     unconverted_codes = bcc_frame[~bcc_frame["Code"].isin(all_codes)]

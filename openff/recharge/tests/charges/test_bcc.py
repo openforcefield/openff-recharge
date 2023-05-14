@@ -44,7 +44,7 @@ def test_to_smirnoff():
         topology=off_topology,
     )
 
-    off_charges = [v.m for v in interchange_electrostatics.get_charges().values()]
+    off_charges = [v.m for v in interchange_electrostatics.charges.values()]
 
     molecule = smiles_to_molecule("C")
 

@@ -44,3 +44,4 @@ dependencies:
   - pytest-cov
   - pytest-xdist
   - openff-interchange-base >=0.3
+  - typing_extensions ==4.5.0

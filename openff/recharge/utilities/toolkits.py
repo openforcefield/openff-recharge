@@ -6,7 +6,7 @@ import numpy
 from openff.toolkit.utils import ToolkitUnavailableException
 from openff.units import unit
 from openff.units.elements import SYMBOLS
-from openff.utilities import MissingOptionalDependencyError
+from openff.utilities import MissingOptionalDependencyError, requires_package
 
 if TYPE_CHECKING:
     from openff.toolkit import Molecule
@@ -20,6 +20,7 @@ def _bond_key(index_a: int, index_b: int) -> Tuple[int, int]:
     return cast(Tuple[int, int], tuple(sorted((index_a, index_b))))
 
 
+@requires_package("openeye.oechem")
 def _oe_match_smirks(
     smirks: str,
     molecule: "Molecule",
@@ -62,6 +63,7 @@ def _oe_match_smirks(
     return matches
 
 
+@requires_package("rdkit")
 def _rd_match_smirks(
     smirks: str,
     molecule: "Molecule",
@@ -194,6 +196,7 @@ def compute_vdw_radii(
         raise NotImplementedError()
 
 
+@requires_package("openeye.oechem")
 def _oe_apply_mdl_aromaticity_model(
     molecule: "Molecule",
 ) -> Tuple[Dict[int, bool], Dict[Tuple[int, int], bool]]:
@@ -215,6 +218,7 @@ def _oe_apply_mdl_aromaticity_model(
     return is_atom_aromatic, is_bond_aromatic
 
 
+@requires_package("rdkit")
 def _rd_apply_mdl_aromaticity_model(
     molecule: "Molecule",
 ) -> Tuple[Dict[int, bool], Dict[Tuple[int, int], bool]]:
@@ -262,6 +266,7 @@ def apply_mdl_aromaticity_model(
         return _rd_apply_mdl_aromaticity_model(molecule)
 
 
+@requires_package("openeye.oechem")
 def _oe_get_atom_symmetries(molecule: "Molecule") -> List[int]:
     from openeye import oechem
 
@@ -274,6 +279,7 @@ def _oe_get_atom_symmetries(molecule: "Molecule") -> List[int]:
     return [symmetry_classes_by_index[i] for i in range(molecule.n_atoms)]
 
 
+@requires_package("rdkit")
 def _rd_get_atom_symmetries(molecule: "Molecule") -> List[int]:
     from rdkit import Chem
 
@@ -302,6 +308,7 @@ def get_atom_symmetries(molecule: "Molecule") -> List[int]:
         return _rd_get_atom_symmetries(molecule)
 
 
+@requires_package("openeye.oechem")
 def _oe_molecule_to_tagged_smiles(molecule: "Molecule", indices: List[int]) -> str:
     from openeye import oechem
 
@@ -316,6 +323,7 @@ def _oe_molecule_to_tagged_smiles(molecule: "Molecule", indices: List[int]) -> s
     return oechem.OEMolToSmiles(oe_mol)
 
 
+@requires_package("rdkit")
 def _rd_molecule_to_tagged_smiles(molecule: "Molecule", indices: List[int]) -> str:
     from rdkit import Chem
 

@@ -18,10 +18,14 @@ from openff.recharge.utilities.toolkits import (
     match_smirks,
     molecule_to_tagged_smiles,
 )
+from openff.toolkit.tests.utils import (
+    requires_openeye,
+    requires_rdkit,
+)
 
 
 @pytest.mark.parametrize(
-    "match_function", [match_smirks, _oe_match_smirks, _rd_match_smirks]
+    "match_function", [match_smirks, _rd_match_smirks]
 )
 @pytest.mark.parametrize(
     "smiles, smirks, is_atom_aromatic, is_bond_aromatic, unique, expected_matches",
@@ -142,17 +146,15 @@ def test_match_smirks(
     }
 
 
-@pytest.mark.parametrize(
-    "match_function", [match_smirks, _oe_match_smirks, _rd_match_smirks]
-)
-def test_match_smirks_invalid(match_function):
+
+def test_match_smirks_invalid():
     """Test that the correct exception is raised when an invalid smirks
     pattern is provided to `match_smirks`."""
 
     molecule = Molecule.from_smiles("C")
 
     with pytest.raises(AssertionError, match="failed to parse X"):
-        match_function(
+        match_smirks(
             "X",
             molecule,
             {i: False for i in range(molecule.n_atoms)},
@@ -160,6 +162,37 @@ def test_match_smirks_invalid(match_function):
             False,
         )
 
+@requires_openeye
+def test_match_smirks_invalid_oe():
+    """Test that the correct exception is raised when an invalid smirks
+    pattern is provided to `match_smirks`."""
+
+    molecule = Molecule.from_smiles("C")
+
+    with pytest.raises(AssertionError, match="failed to parse X"):
+        _oe_match_smirks(
+            "X",
+            molecule,
+            {i: False for i in range(molecule.n_atoms)},
+            {(bond.atom1_index, bond.atom2_index): False for bond in molecule.bonds},
+            False,
+        )
+
+@requires_rdkit
+def test_match_smirks_invalid_rd():
+    """Test that the correct exception is raised when an invalid smirks
+    pattern is provided to `match_smirks`."""
+
+    molecule = Molecule.from_smiles("C")
+
+    with pytest.raises(AssertionError, match="failed to parse X"):
+        _rd_match_smirks(
+            "X",
+            molecule,
+            {i: False for i in range(molecule.n_atoms)},
+            {(bond.atom1_index, bond.atom2_index): False for bond in molecule.bonds},
+            False,
+        )
 
 def test_compute_vdw_radii():
     molecule = Molecule.from_mapped_smiles("[C:1]([H:2])([H:3])([H:4])([H:5])")
@@ -173,7 +206,6 @@ def test_compute_vdw_radii():
     [
         apply_mdl_aromaticity_model,
         _rd_apply_mdl_aromaticity_model,
-        _oe_apply_mdl_aromaticity_model,
     ],
 )
 @pytest.mark.parametrize(
@@ -255,7 +287,7 @@ def test_apply_mdl_aromaticity_model(
 
 @pytest.mark.parametrize(
     "get_symmetries_func",
-    [_oe_get_atom_symmetries, _rd_get_atom_symmetries, get_atom_symmetries],
+    [_rd_get_atom_symmetries, get_atom_symmetries],
 )
 def test_get_atom_symmetries(get_symmetries_func):
     molecule = Molecule.from_mapped_smiles("[H:1][C:2]([H:3])([H:4])[O:5][H:6]")
@@ -271,10 +303,24 @@ def test_get_atom_symmetries(get_symmetries_func):
     assert len({atom_symmetries[i] for i in (1, 4, 5)}) == 3
 
 
+@requires_openeye
+def test_get_atom_symmetries_oe():
+    molecule = Molecule.from_mapped_smiles("[H:1][C:2]([H:3])([H:4])[O:5][H:6]")
+
+    try:
+        atom_symmetries = _oe_get_atom_symmetries(molecule)
+
+    except ModuleNotFoundError as e:
+        pytest.skip(f"missing optional dependency - {e.name}")
+        return
+
+    assert len({atom_symmetries[i] for i in (0, 2, 3)}) == 1
+    assert len({atom_symmetries[i] for i in (1, 4, 5)}) == 3
+
+
 @pytest.mark.parametrize(
     "molecule_to_tagged_smiles_func",
     [
-        _oe_molecule_to_tagged_smiles,
         _rd_molecule_to_tagged_smiles,
         molecule_to_tagged_smiles,
     ],
@@ -284,6 +330,25 @@ def test_molecule_to_tagged_smiles(molecule_to_tagged_smiles_func):
 
     try:
         tagged_smiles = molecule_to_tagged_smiles_func(molecule, [1, 2, 1, 1, 3, 4])
+
+    except ModuleNotFoundError as e:
+        pytest.skip(f"missing optional dependency - {e.name}")
+        return
+
+    assert tagged_smiles == "[H:1][C:2]([H:1])([H:1])[O:3][H:4]"
+
+    # Do a quick canary test to make sure the toolkit doesn't stop parsing molecules
+    # with duplicate indices correctly
+    recreated_map = Molecule.from_smiles(tagged_smiles).properties["atom_map"]
+    assert len(recreated_map) == 6 and {*recreated_map.values()} == {1, 2, 3, 4}
+
+
+@requires_openeye
+def test_molecule_to_tagged_smiles_oe():
+    molecule = Molecule.from_mapped_smiles("[H:1][C:2]([H:3])([H:4])[O:5][H:6]")
+
+    try:
+        tagged_smiles = _oe_molecule_to_tagged_smiles(molecule, [1, 2, 1, 1, 3, 4])
 
     except ModuleNotFoundError as e:
         pytest.skip(f"missing optional dependency - {e.name}")

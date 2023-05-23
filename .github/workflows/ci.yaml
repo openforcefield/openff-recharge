@@ -12,17 +12,16 @@ on:
 
 jobs:
   test:
-    name: Test on ${{ matrix.cfg.os }}, Python ${{ matrix.cfg.python-version }}
+    name: Test on ${{ matrix.os }}, Python ${{ matrix.python-version }}
 
-    runs-on: ${{ matrix.cfg.os }}
+    runs-on: ${{ matrix.os }}
 
     strategy:
       fail-fast: false
       matrix:
-        cfg:
-          os: ["ubuntu-latest"]
-          python-version: ["3.9", "3.10"]
-          toolkits: ["rdkit_and_openeye", "rdkit"]
+        os: ["ubuntu-latest"]
+        python-version: ["3.9", "3.10"]
+        toolkits: ["rdkit_and_openeye", "rdkit"]
 
     env:
       OE_LICENSE: ${{ github.workspace }}/oe_license.txt

@@ -20,10 +20,9 @@ jobs:
       fail-fast: false
       matrix:
         cfg:
-          - python-version: "3.9"
-            os: ubuntu-latest
-          - python-version: "3.10"
-            os: ubuntu-latest
+          os: ["ubuntu-latest"]
+          python-version: ["3.9", "3.10"]
+          toolkits: ["rdkit_and_openeye", "rdkit"]
 
     env:
       OE_LICENSE: ${{ github.workspace }}/oe_license.txt
@@ -34,12 +33,13 @@ jobs:
       - name: Setup Conda Environment
         uses: mamba-org/provision-with-micromamba@main
         with:
-          environment-file: devtools/conda-envs/test_env.yaml
+          environment-file: devtools/conda-envs/test_env_${{ matrix.toolkits }}.yaml
           channel-priority: "flexible"
           extra-specs: |
-            python=${{ matrix.cfg.python-version }}
+            python=${{ matrix.python-version }}
 
       - name: License OpenEye
+        if: ${{ matrix.toolkits != 'rdkit' }}
         shell: bash -l {0}
         run: |
 

@@ -1,0 +1,46 @@
+name: openff-recharge-test
+channels:
+  - jaimergp/label/unsupported-cudatoolkit-shim
+  - psi4
+  - conda-forge
+dependencies:
+  - python
+  - pip
+  - click
+  - tqdm
+  - numpy
+  - scipy
+  - jinja2
+  - pydantic
+  - openff-utilities
+  - openff-units >=0.2
+  - openff-toolkit-base >=0.11
+  - openmm
+
+    # ESP storage
+  - sqlalchemy
+  - sqlite
+
+    ### Optional dependencies.
+  - rdkit
+
+    # ESP calculations
+  # psi4
+
+    # XTB charges
+  - xtb-python
+  - geometric <1
+  - qcengine >=0.25
+  - qcelemental >=0.25.1
+
+    # QCFractal integration.
+  - qcportal >=0.15.6
+
+  # Optimization
+  - pytorch
+
+    # Testing
+  - pytest
+  - pytest-cov
+  - pytest-xdist
+  - openff-interchange-base >=0.3

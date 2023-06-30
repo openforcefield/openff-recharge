@@ -35,7 +35,7 @@ def test_to_smirnoff():
     bcc_handler = original_am1bcc_corrections().to_smirnoff()
     assert bcc_handler is not None
 
-    off_molecule = Molecule.from_smiles("C(H)(H)(H)(H)")
+    off_molecule = Molecule.from_smiles("C")
 
     off_topology = off_molecule.to_topology()
 

@@ -423,7 +423,7 @@ def test_retrieve(tmp_path):
     records = esp_store.retrieve(basis="6-31g*", implicit_solvent=True)
     assert len(records) == 1
     assert records[0].esp_settings.basis == "6-31g*"
-    assert records[0].tagged_smiles == "[H:3][C:1]([H:4])([H:5])[O:2][H:6]"
+    assert records[0].tagged_smiles in expected_smiles_co
 
     records = esp_store.retrieve(basis="6-31g*", implicit_solvent=False)
     assert len(records) == 1

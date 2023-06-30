@@ -305,7 +305,11 @@ def get_atom_symmetries(molecule: "Molecule") -> List[int]:
 
     try:
         return _oe_get_atom_symmetries(molecule)
-    except (ImportError, ToolkitUnavailableException):
+    except (
+        ImportError,
+        ToolkitUnavailableException,
+        MissingOptionalDependencyError,
+    ):
         return _rd_get_atom_symmetries(molecule)
 
 
@@ -363,5 +367,9 @@ def molecule_to_tagged_smiles(molecule: "Molecule", indices: List[int]) -> str:
 
     try:
         return _oe_molecule_to_tagged_smiles(molecule, indices)
-    except (ImportError, ToolkitUnavailableException):
+    except (
+        ImportError,
+        ToolkitUnavailableException,
+        MissingOptionalDependencyError,
+    ):
         return _rd_molecule_to_tagged_smiles(molecule, indices)

@@ -37,8 +37,8 @@ class ConformerGenerator:
     a specified set of settings.
     """
 
-    @requires_oe_module("oechem")
     @classmethod
+    @requires_oe_module("oechem")
     def _generate_omega_conformers(
         cls,
         molecule: "Molecule",

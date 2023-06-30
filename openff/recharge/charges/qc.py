@@ -152,8 +152,8 @@ class QCChargeGenerator:
 
         return charges
 
-    @requires_oe_module("oechem")
     @classmethod
+    @requires_oe_module("oechem")
     def _generate_omega_charges(
         cls,
         molecule: "Molecule",

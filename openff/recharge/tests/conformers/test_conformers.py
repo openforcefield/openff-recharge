@@ -8,6 +8,7 @@ from openff.recharge.conformers import ConformerGenerator, ConformerSettings
 from openff.recharge.conformers.exceptions import ConformerGenerationError
 from openff.recharge.utilities.molecule import smiles_to_molecule
 
+
 @pytest.mark.parametrize("max_conformers", [1, 2])
 def test_max_conformers(max_conformers):
     """Tests the conformer generator returns a number of conformers less than

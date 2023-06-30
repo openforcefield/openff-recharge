@@ -1,5 +1,4 @@
 """Generate bond charge corrections for molecules from a collection of BCC parameters."""
-import json
 import os
 from typing import TYPE_CHECKING, Any, Dict, List, Optional
 

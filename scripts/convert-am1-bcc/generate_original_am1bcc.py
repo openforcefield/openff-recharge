@@ -25,7 +25,6 @@ logger = logging.getLogger(__name__)
 GENERAL_ATOM_CODES = {
     # from more general to more specific
     # patterns will get matched with more specific ones so order is important!
-
     "X": {
         # === HALOGENS ===
         # F1 Fluorine
@@ -42,9 +41,8 @@ GENERAL_ATOM_CODES = {
         # H1 Hydrogen
         "91": [r"[#1:1]"],
     },
-
     "S": {
-        # === SULFUR ===        
+        # === SULFUR ===
         # S1,2 Univalent or divalent sulfur
         "51": [r"[#16X1:1]", "[#16X2:1]"],
         # S3 Trivalent sulfur
@@ -52,19 +50,15 @@ GENERAL_ATOM_CODES = {
         # S4 Tetravalent sulfur
         "53": [r"[#16X4:1]"],
     },
-
-    
     "P": {
         # === PHOSPHORUS ===
         # P2,3 Divalent or trivalent phosphorus
         # "41": [r"[#15:1]", "[#15X2:1]", "[15X1:1]", "[#15X3:1]"],
         "41": [r"[#15:1]"],
-
         # P3,4 Trivalent or tetravalent double-bonded phosphorus
         # "42": [r"[15X4:1]", "[#15X3;$(*=[*]):1]"],
         "42": [r"[#15X4,#15X3$(*=[*]):1]"],
     },
-
     "O": {
         # === OXYGEN ===
         # O1,2 Univalent or divalent oxygen
@@ -75,33 +69,33 @@ GENERAL_ATOM_CODES = {
         # O1lact Double-bonded oxygen in a lactone or lactam
         "33": [r"[#8X1$(*=[#6r]@[#7r,#8r]):1]"],
     },
-
     "C": {
         # === CARBON ===
         # C4 Tetravalent carbon
         "11": [r"[#6X4:1]"],
         # C1,2 Univalent or divalent carbon
-        "15": [r"[#6X1:1]","[#6X2:1]"],
+        "15": [r"[#6X1:1]", "[#6X2:1]"],
         # C3=C Trivalent carbon, double bonded to carbon
         "12": [r"[#6X3:1]"],
         # Car Aromatic carbon
         "16": [
             r"[#6a:1]",
             # or planar ring with two continuous single bonds and at least two double bonds
-            r"[#6X3R$([*](-,:[R]-,=,:[R])=,:[R]):1]"
+            r"[#6X3R$([*](-,:[R]-,=,:[R])=,:[R]):1]",
         ],
         # Carlp Aromatic carbon bonded to an aromatic oxygen or nitrogen with a lone pair
         "17": [
             r"[#6aX3$(*~[#7aX2,#8aX2]):1]",
-            r"[#6X3R$(*~[#7aX2,#8aX2])&$([*](-,:[R]-,=,:[R])=,:[R]):1]"
+            r"[#6X3R$(*~[#7aX2,#8aX2])&$([*](-,:[R]-,=,:[R])=,:[R]):1]",
         ],
         # C3=N,P Trivalent carbon, double bonded to nitrogen or phosphorus
-        "13": [r"[#6X3$(*=[#7,#15]):1]",],
+        "13": [
+            r"[#6X3$(*=[#7,#15]):1]",
+        ],
         # C3=O,S Trivalent carbon, double bonded to oxygen or sulfur
         "14": [r"[#6X3$(*=[#8X1,#8X2+1,#16+0]):1]"],
         "12b": [r"[#6X3A$(*=[#6]):1]"],
     },
-
     "N": {
         # === NITROGEN ===
         # N1,2 Univalent or cationic divalent nitrogen
@@ -109,7 +103,11 @@ GENERAL_ATOM_CODES = {
         # N2 Neutral divalent nitrogen
         "24": [r"[#7X2+0,#7X2-1ar5:1]"],
         # N2,3,4 Amine nitrogen
-        "21": [r"[#7X4:1]", r"[#7X3:1]", r"[#7X2-1A:1]"],# "[#7X2$([*](-,:[*])-,:[*]):1]"],
+        "21": [
+            r"[#7X4:1]",
+            r"[#7X3:1]",
+            r"[#7X2-1A:1]",
+        ],  # "[#7X2$([*](-,:[*])-,:[*]):1]"],
         # N3deloc Trivalent nitrogen with a delocalized lone pair
         "22": [
             r"[#7X2$(*(-,:[*])-,:[#6X3$(*=[#8,#16])]):1]",  # N2-C(=O,S),
@@ -124,57 +122,48 @@ GENERAL_ATOM_CODES = {
             r"[#7X3+0$(*-[#6X3$(*=[#7X3+1])]):1]",
         ],
         "22b": [
-            r"[#7X3+0$(*-[#6X3$(*(=,:[#8,#16])-[!#8&!#16])]):1]", # amide
+            r"[#7X3+0$(*-[#6X3$(*(=,:[#8,#16])-[!#8&!#16])]):1]",  # amide
             # "[#7X3+0$(*-[#6X3$(*(=[#8X2+1]-[#7X2-1])-[!#8&!#16])]):1]",
         ],
         "23b": [
             r"[#7X3ar5:1]",
-        ]
-    }
+        ],
+    },
 }
 
 SPECIFIC_PATTERNS = {
     # P-O
     r"[#8X1-1:1]~[#15&!$(*=*):2]": "310941",
     r"[#8X2:1]-[#15X4+0,#15X3;!$(*=*):2]": "310141",
-
     r"[#8X1:1]-,=[#15X4$([*](-[#8X1-1])-[#8X1-1,#8X2,#16X2]):2]": "310942",
     r"[#8X1-1:1]-[#15X4$([*](=[#8X1])-[#8X1-1]):2]": "310942",
     r"[#8X1-1:1]-,:[#15X4$([*](-[#8X1-1])(-[#8X1-1])=[#8]):2]": "310942",
     r"[#8X1:1]=[#15X4$([*](-[#8X1-1])(-[#6])-[#6,#1]):2]": "310942",
-
-
     # ...
-
     # 'Delocalised' S-O
     r"[#16X1,#16X2;$(*=[#8X1]);$(*-[#8X1-1]):2]~[#8X1:1]": "310951",
     r"[#16X3$(*=[#8X1]);$(*-[#8X1-1]):2]~[#8X1:1]": "310952",
     r"[#16X4$(*~[#8X1]);$(*-[#8X1-1]):2]~[#8X1:1]": "310953",
-
-
     # 'Delocalised' S-S
     r"[#16X1-1$([*]-S),#16X1+0$([*]=S):1]-,=[#16X4:2]": "510953",
-
     # 'Delocalised' S-C
-    r"[#6a:1]-[#16X1-1:2]" : "160951",
-    r"[#6a$(*~[#7aX2,#8aX2]):1]-[#16X1-1:2]" : "170951",
+    r"[#6a:1]-[#16X1-1:2]": "160951",
+    r"[#6a$(*~[#7aX2,#8aX2]):1]-[#16X1-1:2]": "170951",
     r"[#6X3:1](~[#8X1,#16X1])(~[#16X1:2])": "140951",
     r"[#6X3$(*=[#7,#15]):1]-[#16X1-1:2]": "130951",
     r"[#6X3$(*=[#6]):1]-[#16X1-1:2]": "120951",
     r"[#6X1,#6X2:1]-[#16X1-1:2]": "150951",
     r"[#6X1,#6X2$([*]=[#8,#16]):1]=[#16:2]": "150951",
     r"[#6X4:1]-[#16X1-1:2]": "110951",
-
     # 'Delocalised' C-O
-    r"[#6a:1]-[#8X1-1:2]" : "160931",
-    r"[#6a$(*~[#7aX2,#8aX2]):1]-[#8X1-1:2]" : "170931",
+    r"[#6a:1]-[#8X1-1:2]": "160931",
+    r"[#6a$(*~[#7aX2,#8aX2]):1]-[#8X1-1:2]": "170931",
     r"[#6X3:1](~[#8X1,#16X1])(~[#8X1:2])": "140931",
-    r"[#6X3$(*=[#7,#15]):1]-[#8X1-1:2]" : "130931",
+    r"[#6X3$(*=[#7,#15]):1]-[#8X1-1:2]": "130931",
     r"[#6X3$(*=[#6]):1]-[#8X1-1:2]": "120931",
-    r"[#6X1,#6X2:1]-[#8X1-1:2]" : "150931",
-    r"[#6X2$([*]=[#8,#16]):1]=[#8X1:2]" : "150931",
-    r"[#6X4:1]-[#8X1-1:2]" : "110931",
-
+    r"[#6X1,#6X2:1]-[#8X1-1:2]": "150931",
+    r"[#6X2$([*]=[#8,#16]):1]=[#8X1:2]": "150931",
+    r"[#6X4:1]-[#8X1-1:2]": "110931",
     # 'Delocalised' N-O
     r"[#7X2+0:1]-[#8X1-1:2]": "240631",
     r"[#7X3+1:1]-[#8X1-1:2]": "230631",
@@ -215,13 +204,13 @@ def build_bccs(
             not_atom_map = [smirks[1:-3] for smirks in all_atom_smirks]
             final_smirks = f"[{','.join(not_atom_map)}:1]"
             flat_atom_codes[final_smirks] = atom_code[:2]
-    
+
     # create bcc patterns from less to more specific
     bcc_patterns = []
-    for (
-            (atom_smirks1, atom_code1), 
-            (atom_smirks2, atom_code2)
-     ) in itertools.combinations_with_replacement(flat_atom_codes.items(), 2):
+    for (atom_smirks1, atom_code1), (
+        atom_smirks2,
+        atom_code2,
+    ) in itertools.combinations_with_replacement(flat_atom_codes.items(), 2):
         for bond_code, bond_smirks in GENERAL_BOND_CODES.items():
             smirks = atom_smirks1 + bond_smirks + atom_smirks2.replace(":1", ":2")
             code = atom_code1 + bond_code + atom_code2
@@ -253,11 +242,7 @@ def build_bccs(
         query = oechem.OEQMol()
         assert oechem.OEParseSmarts(query, smirks)
 
-        bcc = BCCParameter(
-            smirks=smirks,
-            value=value,
-            provenance={"code": code}
-        )
+        bcc = BCCParameter(smirks=smirks, value=value, provenance={"code": code})
         bond_charge_corrections.append(bcc)
         unique_patterns.add(smirks)
 
@@ -305,8 +290,10 @@ def create_openeye_bccs(
         json.dump(
             # reverse for now while recharge still goes from more to less specific
             {"parameters": [bcc.dict() for bcc in bcc_parameters][::-1]},
-            f, indent=4
+            f,
+            indent=4,
         )
+
 
 if __name__ == "__main__":
     create_openeye_bccs()

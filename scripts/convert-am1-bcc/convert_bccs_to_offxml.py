@@ -4,6 +4,7 @@ from openff.toolkit import ForceField
 from openff.units import unit
 from openff.recharge.charges.bcc import BCCCollection
 
+
 @click.command()
 @click.option(
     "--input-file",

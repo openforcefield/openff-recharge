@@ -286,6 +286,7 @@ def test_apply_mdl_aromaticity_model(
     assert is_atom_aromatic == expected_is_atom_aromatic
     assert is_bond_aromatic == expected_is_bond_aromatic
 
+
 @requires_openeye
 @pytest.mark.parametrize(
     "smiles, expected_is_atom_aromatic, expected_is_bond_aromatic",

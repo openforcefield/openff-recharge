@@ -28,6 +28,7 @@ def _oe_match_smirks(
     is_atom_aromatic: Dict[int, bool],
     is_bond_aromatic: Dict[Tuple[int, int], bool],
     unique: bool,
+    kekulize: bool = False,
 ) -> List[Dict[int, int]]:
     oe_molecule = molecule.to_openeye()
 
@@ -71,11 +72,14 @@ def _rd_match_smirks(
     is_atom_aromatic: Dict[int, bool],
     is_bond_aromatic: Dict[Tuple[int, int], bool],
     unique: bool,
+    kekulize: bool = False
 ) -> List[Dict[int, int]]:
     from rdkit import Chem
 
     rd_molecule: Chem.Mol = molecule.to_rdkit()
     Chem.SanitizeMol(rd_molecule, Chem.SANITIZE_ALL ^ Chem.SANITIZE_SETAROMATICITY)
+    if kekulize:
+        Chem.Kekulize(rd_molecule)
 
     rd_atoms = {rd_atom.GetIdx(): rd_atom for rd_atom in rd_molecule.GetAtoms()}
     rd_bonds = {
@@ -87,8 +91,6 @@ def _rd_match_smirks(
         rd_atoms[index].SetIsAromatic(is_aromatic)
     for indices, is_aromatic in is_bond_aromatic.items():
         rd_bonds[_bond_key(*indices)].SetIsAromatic(is_aromatic)
-
-    from rdkit import Chem
 
     query = Chem.MolFromSmarts(smirks)
     assert query is not None, f"failed to parse {smirks}"
@@ -117,6 +119,7 @@ def match_smirks(
     is_atom_aromatic: Dict[int, bool],
     is_bond_aromatic: Dict[Tuple[int, int], bool],
     unique: bool = False,
+    kekulize: bool = False,
 ) -> List[Dict[int, int]]:
     """Attempt to find the indices (optionally unique) of all atoms which
     match a particular SMIRKS pattern.
@@ -134,6 +137,9 @@ def match_smirks(
         ``is_bond_aromatic[(atom_index_a, atom_index_b)] = is_aromatic``.
     unique
         Whether to return only unique matches.
+    kekulize
+        Whether to kekulize the molecule before matching.
+        This is only supported by the RDKit backend.
 
     Returns
     -------
@@ -143,7 +149,7 @@ def match_smirks(
 
     try:
         return _oe_match_smirks(
-            smirks, molecule, is_atom_aromatic, is_bond_aromatic, unique
+            smirks, molecule, is_atom_aromatic, is_bond_aromatic, unique, kekulize
         )
     except (
         ModuleNotFoundError,
@@ -151,7 +157,7 @@ def match_smirks(
         ToolkitUnavailableException,
     ):
         return _rd_match_smirks(
-            smirks, molecule, is_atom_aromatic, is_bond_aromatic, unique
+            smirks, molecule, is_atom_aromatic, is_bond_aromatic, unique, kekulize
         )
 
 

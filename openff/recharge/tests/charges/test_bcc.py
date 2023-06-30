@@ -21,6 +21,7 @@ def test_load_original_am1_bcc():
     assert len(original_am1bcc_corrections().parameters) > 0
 
 
+@requires_openeye
 def test_to_smirnoff():
     """Test that a collection of bcc parameters can be mapped to a SMIRNOFF
     `ChargeIncrementModelHandler` in a way that yields the same partial charges on a

@@ -14,8 +14,10 @@ from openff.recharge.esp.exceptions import Psi4Error
 from openff.recharge.esp.psi4 import Psi4ESPGenerator
 from openff.recharge.esp.storage import MoleculeESPStore
 from openff.recharge.grids import LatticeGridSettings
+from openff.toolkit.tests.utils import requires_openeye
 
 
+@requires_openeye
 def test_generate(runner, monkeypatch):
     # Mock the Psi4 calls so the test can run even when not present.
     # This requires also mocking the multiprocessing to ensure the

@@ -582,7 +582,7 @@ class Objective(abc.ABC):
                     local_indices.append(-1)
             local_coordinate_parameters.append(local_parameters)
             local_coordinate_indices.append(local_indices)
-            
+
         assigned_parameters = [
             (parameters_by_key[parameter_key], orientations)
             for parameter_key, orientations in assigned_parameters.items()

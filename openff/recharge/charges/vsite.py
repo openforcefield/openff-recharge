@@ -1,9 +1,8 @@
 """Generate virtual sites for molecules from a collection of virtual site parameters."""
 
 import abc
-import copy
 from collections import defaultdict
-from typing import TYPE_CHECKING, Dict, List, Literal, Optional, Tuple, Union, overload
+from typing import TYPE_CHECKING, List, Literal, Optional, Tuple, Union, overload
 
 import numpy
 from openff.units import unit
@@ -413,7 +412,6 @@ class VirtualSiteGenerator:
         )
         return collection
 
-
     @classmethod
     def _build_charge_increment_array(
         cls, vsite_collection: VirtualSiteCollection
@@ -491,8 +489,6 @@ class VirtualSiteGenerator:
             where ...
         """
 
-        from openff.toolkit.typing.engines.smirnoff import VirtualSiteHandler
-
         smirnoff_vsite_collection = cls._apply_virtual_sites(
             molecule, vsite_collection
         )
@@ -501,13 +497,13 @@ class VirtualSiteGenerator:
 
         vsite_to_index = smirnoff_vsite_collection.virtual_site_key_topology_index_map
         n_particles = molecule.n_atoms + len(vsite_to_index)
-        
+
         n_corrections = len(all_vsite_keys)
         assignment_matrix = numpy.zeros((n_particles, n_corrections))
 
         for vsite_key, potential_key in smirnoff_vsite_collection.key_map.items():
             smirks = potential_key.id.split(" ")[0]
-            vsite_index = smirnoff_vsite_collection.virtual_site_key_topology_index_map[vsite_key]
+            vsite_index = vsite_to_index[vsite_key]
             for i, atom_index in enumerate(vsite_key.orientation_atom_indices):
                 key = (smirks, vsite_key.type, vsite_key.name, i)
                 vsite_parameter_index = all_vsite_keys.index(key)

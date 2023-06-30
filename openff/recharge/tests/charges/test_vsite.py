@@ -119,6 +119,7 @@ def vsite_force_field() -> "ForceField":
 
     return force_field
 
+
 @pytest.fixture(scope="module")
 def full_vsite_force_field(vsite_force_field: "ForceField") -> "ForceField":
     ff = copy.deepcopy(vsite_force_field)
@@ -211,7 +212,6 @@ class TestVirtualSiteParameter:
     def test_local_frame_coordinates(self, parameter, expected_value):
         assert parameter.local_frame_coordinates.shape == expected_value.shape
         assert numpy.allclose(parameter.local_frame_coordinates, expected_value)
-
 
 
 class TestVirtualSiteCollection:

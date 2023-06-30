@@ -136,7 +136,12 @@ def test_record_from_molecule():
         esp_settings=esp_settings,
     )
 
-    assert record.tagged_smiles == "[H:2][C:1]([H:3])([H:4])[H:5]"
+    # smiles order might change depending on toolkit
+    expected_smiles = (
+        "[H:2][C:1]([H:3])([H:4])[H:5]",
+        "[C:1]([H:2])([H:3])([H:4])[H:5]"
+    )
+    assert record.tagged_smiles in expected_smiles
 
     assert numpy.allclose(record.conformer, conformer)
     assert numpy.allclose(record.esp, esp)
@@ -385,7 +390,11 @@ def test_retrieve(tmp_path):
 
     records = esp_store.retrieve(smiles="CO")
     assert len(records) == 1
-    assert records[0].tagged_smiles == "[H:3][C:1]([H:4])([H:5])[O:2][H:6]"
+    expected_smiles = (
+        "[H:3][C:1]([H:4])([H:5])[O:2][H:6]",
+        "[C:1]([O:2][H:6])([H:3])([H:4])[H:5]"
+    )
+    assert records[0].tagged_smiles in expected_smiles 
 
     records = esp_store.retrieve(basis="6-31g*")
     assert len(records) == 2

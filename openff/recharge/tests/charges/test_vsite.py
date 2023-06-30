@@ -362,9 +362,6 @@ class TestVirtualSiteCollection:
         )
 
 
-# @pytest.mark.skip(
-#     reason="Virtual site code has not yet been refactored for version 0.11.0"
-# )
 class TestVirtualSiteGenerator:
     def test_apply_virtual_sites(self, vsite_collection):
         molecule = smiles_to_molecule("N")

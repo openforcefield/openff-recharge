@@ -548,57 +548,45 @@ class Objective(abc.ABC):
             for parameter in vsite_collection.parameters
         }
 
-        _, assigned_parameter_map = VirtualSiteGenerator._apply_virtual_sites(
+        smirnoff_vsite_collection = VirtualSiteGenerator._apply_virtual_sites(
             molecule, vsite_collection
         )
 
-        if len(assigned_parameter_map) == 0:
+        if len(smirnoff_vsite_collection.key_map) == 0:
             return (
                 numpy.zeros((0, 3)),
                 numpy.zeros((0, 3)),
                 numpy.zeros((4, 0, 3)),
             )
 
+        local_coordinate_parameters = []
+        local_coordinate_indices = []
         assigned_parameters = defaultdict(list)
 
-        for _, parameter_keys in assigned_parameter_map.items():
-            for parameter_key, orientations in parameter_keys.items():
-                assigned_parameters[parameter_key].extend(orientations)
+        for vsite_key, potential_key in smirnoff_vsite_collection.key_map.items():
+            smirks = potential_key.id.split(" ")[0]
+            parameter_key = (smirks, vsite_key.type, vsite_key.name)
+            parameter = parameters_by_key[parameter_key]
 
+            assigned_parameters[parameter_key].append(vsite_key.orientation_atom_indices)
+
+            local_parameters = []
+            local_indices = []
+            for i, attribute in enumerate(_VSITE_ATTRIBUTES):
+                key = (*parameter_key, attribute)
+                if key in vsite_coordinate_parameter_keys:
+                    local_parameters.append(0.0)
+                    local_indices.append(vsite_coordinate_parameter_keys.index(key))
+                else:
+                    local_parameters.append(parameter.local_frame_coordinates[0, i])
+                    local_indices.append(-1)
+            local_coordinate_parameters.append(local_parameters)
+            local_coordinate_indices.append(local_indices)
+            
         assigned_parameters = [
             (parameters_by_key[parameter_key], orientations)
             for parameter_key, orientations in assigned_parameters.items()
         ]
-
-        local_coordinate_parameters = []
-        local_coordinate_indices = []
-
-        for _atom_indices, parameter_key, parameter in [
-            (orientation, parameter_key, parameters_by_key[parameter_key])
-            for parent_atom_index, parameter_keys in assigned_parameter_map.items()
-            for parameter_key, orientations in parameter_keys.items()
-            for orientation in orientations
-        ]:
-            local_coordinate_parameters.append(
-                [
-                    0.0
-                    if (*parameter_key, attribute) in vsite_coordinate_parameter_keys
-                    else parameter.local_frame_coordinates[0, i]
-                    for i, attribute in enumerate(_VSITE_ATTRIBUTES)
-                ]
-            )
-            # noinspection PyTypeChecker
-            local_coordinate_indices.append(
-                [
-                    -1
-                    if (*parameter_key, attribute)
-                    not in vsite_coordinate_parameter_keys
-                    else vsite_coordinate_parameter_keys.index(
-                        (*parameter_key, attribute)
-                    )
-                    for attribute in _VSITE_ATTRIBUTES
-                ]
-            )
 
         local_coordinate_frame = VirtualSiteGenerator.build_local_coordinate_frames(
             conformer, assigned_parameters
@@ -646,7 +634,6 @@ class Objective(abc.ABC):
         fixed_charge_values = numpy.array(
             [[flat_collection_values[index]] for index in fixed_parameter_indices]
         )
-
         fixed_charges = fixed_assignment_matrix @ fixed_charge_values
 
         trainable_assignment_matrix = assignment_matrix[:, trainable_parameter_indices]

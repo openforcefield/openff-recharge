@@ -499,9 +499,9 @@ class VirtualSiteGenerator:
 
         _, all_vsite_keys = cls._build_charge_increment_array(vsite_collection)
 
-        n_particles = max(
-            smirnoff_vsite_collection.virtual_site_key_topology_index_map.values()
-        ) + 1
+        vsite_to_index = smirnoff_vsite_collection.virtual_site_key_topology_index_map
+        n_particles = molecule.n_atoms + len(vsite_to_index)
+        
         n_corrections = len(all_vsite_keys)
         assignment_matrix = numpy.zeros((n_particles, n_corrections))
 

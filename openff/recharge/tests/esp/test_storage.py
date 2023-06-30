@@ -394,7 +394,7 @@ def test_retrieve(tmp_path):
         "[H:3][C:1]([H:4])([H:5])[O:2][H:6]",
         "[C:1]([O:2][H:6])([H:3])([H:4])[H:5]"
     )
-    assert records[0].tagged_smiles in expected_smiles 
+    assert records[0].tagged_smiles in expected_smiles
 
     records = esp_store.retrieve(basis="6-31g*")
     assert len(records) == 2

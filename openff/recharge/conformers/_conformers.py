@@ -7,6 +7,7 @@ from openff.units import unit
 from pydantic import BaseModel, Field
 
 from openff.recharge.conformers.exceptions import ConformerGenerationError
+from openff.utilities.utilities import requires_oe_module
 
 if TYPE_CHECKING:
     from openff.toolkit import Molecule
@@ -36,6 +37,7 @@ class ConformerGenerator:
     a specified set of settings.
     """
 
+    @requires_oe_module("oechem")
     @classmethod
     def _generate_omega_conformers(
         cls,

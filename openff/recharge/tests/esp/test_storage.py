@@ -390,11 +390,11 @@ def test_retrieve(tmp_path):
 
     records = esp_store.retrieve(smiles="CO")
     assert len(records) == 1
-    expected_smiles = (
+    expected_smiles_co = (
         "[H:3][C:1]([H:4])([H:5])[O:2][H:6]",
         "[C:1]([O:2][H:6])([H:3])([H:4])[H:5]"
     )
-    assert records[0].tagged_smiles in expected_smiles
+    assert records[0].tagged_smiles in expected_smiles_co
 
     records = esp_store.retrieve(basis="6-31g*")
     assert len(records) == 2
@@ -404,7 +404,11 @@ def test_retrieve(tmp_path):
     records = esp_store.retrieve(smiles="C", basis="6-31g*")
     assert len(records) == 1
     assert records[0].esp_settings.basis == "6-31g*"
-    assert records[0].tagged_smiles == "[H:2][C:1]([H:3])([H:4])[H:5]"
+    expected_smiles_c = (
+        "[H:2][C:1]([H:3])([H:4])[H:5]",
+        "[C:1]([H:2])([H:3])([H:4])[H:5]"
+    )
+    assert records[0].tagged_smiles in expected_smiles_c
 
     records = esp_store.retrieve(method="hf")
     assert len(records) == 2
@@ -414,7 +418,7 @@ def test_retrieve(tmp_path):
     records = esp_store.retrieve(smiles="C", basis="6-31g*")
     assert len(records) == 1
     assert records[0].esp_settings.basis == "6-31g*"
-    assert records[0].tagged_smiles == "[H:2][C:1]([H:3])([H:4])[H:5]"
+    assert records[0].tagged_smiles in expected_smiles_c
 
     records = esp_store.retrieve(basis="6-31g*", implicit_solvent=True)
     assert len(records) == 1
@@ -424,4 +428,4 @@ def test_retrieve(tmp_path):
     records = esp_store.retrieve(basis="6-31g*", implicit_solvent=False)
     assert len(records) == 1
     assert records[0].esp_settings.basis == "6-31g*"
-    assert records[0].tagged_smiles == "[H:2][C:1]([H:3])([H:4])[H:5]"
+    assert records[0].tagged_smiles in expected_smiles_c

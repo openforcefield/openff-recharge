@@ -12,6 +12,7 @@ from openff.recharge.charges.exceptions import ChargeAssignmentError
 from openff.recharge.charges.qc import QCChargeGenerator, QCChargeSettings
 from openff.recharge.conformers import ConformerGenerator, ConformerSettings
 from openff.recharge.utilities.molecule import smiles_to_molecule
+from openff.toolkit.tests.utils import requires_openeye
 
 
 def test_load_original_am1_bcc():
@@ -185,6 +186,7 @@ def test_apply_assignment():
     assert "the total charge of the molecule will be altered." in str(error_info.value)
 
 
+@requires_openeye
 def test_compare_openeye_parity():
     """Test that the OE parity functions as expected."""
     assert compare_openeye_parity(smiles_to_molecule("C"))

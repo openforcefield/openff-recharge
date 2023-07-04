@@ -548,7 +548,7 @@ class Objective(abc.ABC):
             for parameter in vsite_collection.parameters
         }
 
-        smirnoff_vsite_collection = VirtualSiteGenerator._apply_virtual_sites(
+        smirnoff_vsite_collection = VirtualSiteGenerator._create_virtual_site_collection(
             molecule, vsite_collection
         )
 

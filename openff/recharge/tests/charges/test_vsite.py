@@ -363,10 +363,10 @@ class TestVirtualSiteCollection:
 
 
 class TestVirtualSiteGenerator:
-    def test_apply_virtual_sites(self, vsite_collection):
+    def test_create_virtual_site_collection(self, vsite_collection):
         molecule = smiles_to_molecule("N")
 
-        smirnoff_virtual_site_collection = VirtualSiteGenerator._apply_virtual_sites(
+        smirnoff_virtual_site_collection = VirtualSiteGenerator._create_virtual_site_collection(
             molecule, vsite_collection
         )
 

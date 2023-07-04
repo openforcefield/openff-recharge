@@ -384,7 +384,7 @@ class VirtualSiteCollection(BaseModel):
 
 class VirtualSiteGenerator:
     @classmethod
-    def _apply_virtual_sites(
+    def _create_virtual_site_collection(
         cls, molecule: "Molecule", vsite_collection: VirtualSiteCollection
     ) -> "SMIRNOFFVirtualSiteCollection":
         """Applies a virtual site collection to a molecule.
@@ -489,7 +489,7 @@ class VirtualSiteGenerator:
             where ...
         """
 
-        smirnoff_vsite_collection = cls._apply_virtual_sites(
+        smirnoff_vsite_collection = cls._create_virtual_site_collection(
             molecule, vsite_collection
         )
 
@@ -762,7 +762,7 @@ class VirtualSiteGenerator:
         }
 
         # Extract the values of the assigned parameters.
-        smirnoff_vsite_collection = cls._apply_virtual_sites(
+        smirnoff_vsite_collection = cls._create_virtual_site_collection(
             molecule, vsite_collection
         )
         assigned_parameters = defaultdict(list)

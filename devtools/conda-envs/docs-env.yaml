@@ -12,7 +12,7 @@ dependencies:
   - tqdm
   - numpy
   - jinja2
-  - pydantic
+  - pydantic <2.0
   - openff-utilities >=0.1.5
   - openff-units
   - openff-toolkit-base >=0.10.2

@@ -30,7 +30,12 @@ def _oe_match_smirks(
     unique: bool,
     kekulize: bool = False,
 ) -> List[Dict[int, int]]:
+    from openeye import oechem
+
     oe_molecule = molecule.to_openeye()
+
+    if kekulize:
+        oechem.OEKekulize(oe_molecule)
 
     oe_atoms = {oe_atom.GetIdx(): oe_atom for oe_atom in oe_molecule.GetAtoms()}
     oe_bonds = {
@@ -42,8 +47,6 @@ def _oe_match_smirks(
         oe_atoms[index].SetAromatic(is_aromatic)
     for indices, is_aromatic in is_bond_aromatic.items():
         oe_bonds[_bond_key(*indices)].SetAromatic(is_aromatic)
-
-    from openeye import oechem
 
     query = oechem.OEQMol()
     assert oechem.OEParseSmarts(query, smirks), f"failed to parse {smirks}"
@@ -139,7 +142,6 @@ def match_smirks(
         Whether to return only unique matches.
     kekulize
         Whether to kekulize the molecule before matching.
-        This is only supported by the RDKit backend.
 
     Returns
     -------

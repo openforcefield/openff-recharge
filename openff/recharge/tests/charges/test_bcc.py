@@ -12,7 +12,7 @@ from openff.recharge.charges.exceptions import ChargeAssignmentError
 from openff.recharge.charges.qc import QCChargeGenerator, QCChargeSettings
 from openff.recharge.conformers import ConformerGenerator, ConformerSettings
 from openff.recharge.utilities.molecule import smiles_to_molecule
-from openff.toolkit.tests.utils import requires_openeye
+from openff.toolkit._tests.utils import requires_openeye
 
 
 def test_load_original_am1_bcc():

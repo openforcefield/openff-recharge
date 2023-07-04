@@ -2,7 +2,7 @@ from typing import Optional
 
 import pytest
 from openff.toolkit import Molecule
-from openff.toolkit.tests.utils import requires_openeye
+from openff.toolkit._tests.utils import requires_openeye
 
 from openff.recharge.conformers import ConformerGenerator, ConformerSettings
 from openff.recharge.conformers.exceptions import ConformerGenerationError

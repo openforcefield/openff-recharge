@@ -18,7 +18,7 @@ from openff.recharge.utilities.toolkits import (
     match_smirks,
     molecule_to_tagged_smiles,
 )
-from openff.toolkit.tests.utils import (
+from openff.toolkit._tests.utils import (
     requires_openeye,
     requires_rdkit,
 )

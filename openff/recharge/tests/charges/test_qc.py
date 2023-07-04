@@ -11,7 +11,7 @@ from openff.recharge.charges.qc import (
     QCChargeSettings,
     QCChargeTheory,
 )
-from openff.toolkit.tests.utils import (
+from openff.toolkit._tests.utils import (
     requires_openeye,
 )
 

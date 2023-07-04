@@ -14,7 +14,7 @@ from openff.recharge.esp.exceptions import Psi4Error
 from openff.recharge.esp.psi4 import Psi4ESPGenerator
 from openff.recharge.esp.storage import MoleculeESPStore
 from openff.recharge.grids import LatticeGridSettings
-from openff.toolkit.tests.utils import requires_openeye
+from openff.toolkit._tests.utils import requires_openeye
 
 
 @requires_openeye

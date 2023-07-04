@@ -10,7 +10,7 @@ from openff.recharge.tests.data import (
     WATER_MSK_GRID,
 )
 from openff.recharge.utilities.molecule import smiles_to_molecule
-from openff.toolkit.tests.utils import requires_openeye
+from openff.toolkit._tests.utils import requires_openeye
 
 
 class TestLatticeGridSettings:

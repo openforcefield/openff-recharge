@@ -1,9 +1,8 @@
 """Generate virtual sites for molecules from a collection of virtual site parameters."""
 
 import abc
-import copy
 from collections import defaultdict
-from typing import TYPE_CHECKING, Dict, List, Literal, Optional, Tuple, Union, overload
+from typing import TYPE_CHECKING, List, Literal, Optional, Tuple, Union, overload
 
 import numpy
 from openff.units import unit
@@ -21,6 +20,7 @@ if TYPE_CHECKING:
 
     from openff.toolkit import Molecule
     from openff.toolkit.typing.engines.smirnoff import VirtualSiteHandler
+    from openff.interchange.smirnoff._virtual_sites import SMIRNOFFVirtualSiteCollection
 
 ExclusionPolicy = Literal["none", "parents"]
 
@@ -384,9 +384,9 @@ class VirtualSiteCollection(BaseModel):
 
 class VirtualSiteGenerator:
     @classmethod
-    def _apply_virtual_sites(
+    def _create_virtual_site_collection(
         cls, molecule: "Molecule", vsite_collection: VirtualSiteCollection
-    ) -> Tuple["Molecule", Dict[int, Dict[VirtualSiteKey, List[Tuple[int, ...]]]]]:
+    ) -> "SMIRNOFFVirtualSiteCollection":
         """Applies a virtual site collection to a molecule.
 
         Parameters
@@ -398,42 +398,19 @@ class VirtualSiteGenerator:
 
         Returns
         -------
-            An OpenFF molecule with virtual sites as well as a dictionary that maps each
-            virtual site back to the parameter that yielded it.
+            An SMIRNOFFVirtualSiteCollection with keys stored in `.key_map`.
         """
+        from openff.interchange.smirnoff._virtual_sites import SMIRNOFFVirtualSiteCollection
 
         parameter_handler = vsite_collection.to_smirnoff()
 
-        off_topology = copy.deepcopy(molecule).to_topology()
-        parameter_handler.create_openff_virtual_sites(off_topology)
-
-        vsite_matches = parameter_handler.find_matches(off_topology)
-        assigned_vsite_keys = defaultdict(lambda: defaultdict(list))
-
-        for vsite_match in vsite_matches:
-            vsite_parameter = vsite_match.parameter_type
-            vsite_key = (
-                vsite_parameter.smirks,
-                vsite_parameter.type,
-                vsite_parameter.name,
-            )
-
-            parent_atom_index = vsite_match.environment_match.reference_atom_indices[
-                vsite_parameter.parent_index
-            ]
-
-            assigned_vsite_keys[parent_atom_index][vsite_key].append(
-                vsite_match.environment_match.reference_atom_indices
-            )
-
-        off_molecule = next(off_topology.reference_molecules)
-
-        return off_molecule, {
-            parent_atom_index: {
-                key: [*orientations] for key, orientations in keys.items()
-            }
-            for parent_atom_index, keys in assigned_vsite_keys.items()
-        }
+        collection = SMIRNOFFVirtualSiteCollection()
+        collection.exclusion_policy = parameter_handler.exclusion_policy
+        collection.store_matches(
+            parameter_handler=parameter_handler,
+            topology=molecule.to_topology(),
+        )
+        return collection
 
     @classmethod
     def _build_charge_increment_array(
@@ -512,42 +489,26 @@ class VirtualSiteGenerator:
             where ...
         """
 
-        from openff.toolkit.typing.engines.smirnoff import VirtualSiteHandler
-
-        off_molecule, assigned_vsite_keys = cls._apply_virtual_sites(
+        smirnoff_vsite_collection = cls._create_virtual_site_collection(
             molecule, vsite_collection
         )
 
         _, all_vsite_keys = cls._build_charge_increment_array(vsite_collection)
 
-        n_particles = off_molecule.n_particles
-        n_corrections = len(all_vsite_keys)
+        vsite_to_index = smirnoff_vsite_collection.virtual_site_key_topology_index_map
+        n_particles = molecule.n_atoms + len(vsite_to_index)
 
+        n_corrections = len(all_vsite_keys)
         assignment_matrix = numpy.zeros((n_particles, n_corrections))
 
-        for vsite_particle in [
-            vsite_particle
-            for vsite in off_molecule.virtual_sites
-            for vsite_particle in vsite.particles
-        ]:
-            vsite_index = vsite_particle.molecule_particle_index
-
-            type_parent_index = VirtualSiteHandler.VirtualSiteType.type_to_parent_index(
-                vsite_particle.virtual_site.type
-            )
-            parent_atom_index = vsite_particle.orientation[type_parent_index]
-
-            vsite_parameter_keys = assigned_vsite_keys[parent_atom_index]
-
-            for vsite_parameter_key in vsite_parameter_keys:
-                for i, atom_index in enumerate(vsite_particle.orientation):
-                    # noinspection PyTypeChecker
-                    vsite_parameter_index = all_vsite_keys.index(
-                        (*vsite_parameter_key, i)
-                    )
-
-                    assignment_matrix[atom_index, vsite_parameter_index] += 1
-                    assignment_matrix[vsite_index, vsite_parameter_index] -= 1
+        for vsite_key, potential_key in smirnoff_vsite_collection.key_map.items():
+            smirks = potential_key.id.split(" ")[0]
+            vsite_index = vsite_to_index[vsite_key]
+            for i, atom_index in enumerate(vsite_key.orientation_atom_indices):
+                key = (smirks, vsite_key.type, vsite_key.name, i)
+                vsite_parameter_index = all_vsite_keys.index(key)
+                assignment_matrix[atom_index, vsite_parameter_index] += 1
+                assignment_matrix[vsite_index, vsite_parameter_index] -= 1
 
         cls._validate_charge_assignment_matrix(assignment_matrix)
         return assignment_matrix
@@ -801,12 +762,15 @@ class VirtualSiteGenerator:
         }
 
         # Extract the values of the assigned parameters.
-        _, assigned_parameter_map = cls._apply_virtual_sites(molecule, vsite_collection)
+        smirnoff_vsite_collection = cls._create_virtual_site_collection(
+            molecule, vsite_collection
+        )
         assigned_parameters = defaultdict(list)
 
-        for _, parameter_keys in assigned_parameter_map.items():
-            for parameter_key, orientations in parameter_keys.items():
-                assigned_parameters[parameter_key].extend(orientations)
+        for vsite_key, potential_key in smirnoff_vsite_collection.key_map.items():
+            smirks = potential_key.id.split(" ")[0]
+            key = (smirks, vsite_key.type, vsite_key.name)
+            assigned_parameters[key].append(vsite_key.orientation_atom_indices)
 
         assigned_parameters = [
             (vsite_parameters_by_key[parameter_key], orientations)

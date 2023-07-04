@@ -38,7 +38,10 @@ def _vsite_handler_to_string(vsite_handler: "VirtualSiteHandler") -> str:
 
             if not isinstance(attribute, unit.Quantity):
                 continue
-
+            if attribute.units == unit.radians:
+                attribute = attribute.to(unit.degrees)
+            elif attribute.units == unit.nanometers:
+                attribute = attribute.to(unit.angstrom)
             setattr(parameter, attribute_name, attribute)
 
     return force_field.to_string("XML")
@@ -64,7 +67,7 @@ def vsite_force_field() -> "ForceField":
             "charge_increment1": 0.2 * unit.elementary_charge,
             "charge_increment2": 0.1 * unit.elementary_charge,
             "sigma": 1.0 * unit.angstrom,
-            "epsilon": 2.0 / 4.184 * unit.kilocalorie_per_mole,
+            "epsilon": 2.0 * unit.kilojoules_per_mole,
         }
     )
     vsite_handler.add_parameter(
@@ -79,7 +82,7 @@ def vsite_force_field() -> "ForceField":
             "charge_increment1": 0.0 * unit.elementary_charge,
             "charge_increment2": 1.0552 * 0.5 * unit.elementary_charge,
             "charge_increment3": 1.0552 * 0.5 * unit.elementary_charge,
-            "sigma": 0.0 * unit.nanometers,
+            "sigma": 0.0 * unit.angstrom,
             "epsilon": 0.5 * unit.kilojoules_per_mole,
         }
     )
@@ -118,13 +121,25 @@ def vsite_force_field() -> "ForceField":
 
 
 @pytest.fixture(scope="module")
+def full_vsite_force_field(vsite_force_field: "ForceField") -> "ForceField":
+    ff = copy.deepcopy(vsite_force_field)
+    ff.get_parameter_handler("Electrostatics")
+    vdw = ff.get_parameter_handler("vdW")
+    vdw.add_parameter(
+        parameter_kwargs={
+            "smirks": "[*:1]",
+            "sigma": 1.0 * unit.angstrom,
+            "epsilon": 0 * unit.kilojoules_per_mole,
+        }
+    )
+    return ff
+
+
+@pytest.fixture(scope="module")
 def vsite_collection(vsite_force_field: "ForceField") -> VirtualSiteCollection:
     return VirtualSiteCollection.from_smirnoff(vsite_force_field["VirtualSites"])
 
 
-@pytest.mark.skip(
-    reason="Virtual site code has not yet been refactored for version 0.11.0"
-)
 class TestVirtualSiteParameter:
     @pytest.mark.parametrize(
         "parameter_type, n_positions",
@@ -199,9 +214,6 @@ class TestVirtualSiteParameter:
         assert numpy.allclose(parameter.local_frame_coordinates, expected_value)
 
 
-@pytest.mark.skip(
-    reason="Virtual site code has not yet been refactored for version 0.11.0"
-)
 class TestVirtualSiteCollection:
     def test_to_smirnoff(
         self, vsite_force_field: "ForceField", vsite_collection: VirtualSiteCollection
@@ -209,7 +221,6 @@ class TestVirtualSiteCollection:
         """Test that a collection of v-site parameters can be mapped to a SMIRNOFF
         `VirtualSiteHandler`.
         """
-
         expected_xml = _vsite_handler_to_string(vsite_force_field["VirtualSites"])
 
         smirnoff_handler = vsite_collection.to_smirnoff()
@@ -280,13 +291,17 @@ class TestVirtualSiteCollection:
         assert numpy.isclose(trivalent.epsilon, 0.5)
 
     def test_smirnoff_parity(
-        self, vsite_force_field: "ForceField", vsite_collection: VirtualSiteCollection
+        self, full_vsite_force_field: "ForceField", vsite_collection: VirtualSiteCollection
     ):
         import openmm.unit
 
         molecule = smiles_to_molecule("N")
+        molecule.assign_partial_charges("zeros")
 
-        openmm_system = vsite_force_field.create_openmm_system(molecule.to_topology())
+        openmm_system = full_vsite_force_field.create_openmm_system(
+            molecule.to_topology(),
+            charge_from_molecules=[molecule]
+        )
         openmm_force = [
             force
             for force in openmm_system.getForces()
@@ -347,29 +362,21 @@ class TestVirtualSiteCollection:
         )
 
 
-@pytest.mark.skip(
-    reason="Virtual site code has not yet been refactored for version 0.11.0"
-)
 class TestVirtualSiteGenerator:
-    def test_apply_virtual_sites(self, vsite_collection):
+    def test_create_virtual_site_collection(self, vsite_collection):
         molecule = smiles_to_molecule("N")
 
-        molecule, assigned_vsite_keys = VirtualSiteGenerator._apply_virtual_sites(
+        smirnoff_virtual_site_collection = VirtualSiteGenerator._create_virtual_site_collection(
             molecule, vsite_collection
         )
 
-        assert molecule.n_virtual_sites == 1
+        sites = smirnoff_virtual_site_collection.key_map
+        assert len(sites) == 1
 
-        orientations = molecule.virtual_sites[0].orientations
-        assert len(orientations) == 1
-
-        assert assigned_vsite_keys == {
-            orientations[0][0]: {
-                ("[#1:2][#7:1]([#1:3])[#1:4]", "TrivalentLonePair", "EP"): [
-                    (0, 1, 2, 3)
-                ]
-            }
-        }
+        vsite_key, potential_key = list(sites.items())[0]
+        assert vsite_key.orientation_atom_indices == (0, 1, 2, 3)
+        assert potential_key.id == "[#1:2][#7:1]([#1:3])[#1:4] EP once"
+        assert vsite_key.type == "TrivalentLonePair"
 
     def test_build_charge_array(self, vsite_collection):
         charge_values, charge_keys = VirtualSiteGenerator._build_charge_increment_array(

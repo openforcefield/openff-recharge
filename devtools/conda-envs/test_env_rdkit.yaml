@@ -1,4 +1,4 @@
-name: openff-recharge-test
+name: openff-recharge-test-rdkit
 channels:
   - jaimergp/label/unsupported-cudatoolkit-shim
   - psi4
@@ -14,7 +14,7 @@ dependencies:
   - pydantic
   - openff-utilities
   - openff-units >=0.2
-  - openff-toolkit-base >=0.11
+  - openff-toolkit-base >=0.11,<0.14
   - openmm
 
     # ESP storage

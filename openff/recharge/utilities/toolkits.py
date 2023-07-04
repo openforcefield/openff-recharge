@@ -35,7 +35,12 @@ def _oe_match_smirks(
     oe_molecule = molecule.to_openeye()
 
     if kekulize:
-        oechem.OEKekulize(oe_molecule)
+        bond_types = {bond.GetOrder() for bond in oe_molecule.GetBonds()}
+        # 5 is the aromatic bond type
+        # at present (v0.14) the toolkit doesn't convert to OpenEye with aromatic bonds
+        # but this may change in the future
+        if 5 in bond_types:
+            oechem.OEKekulize(oe_molecule)
 
     oe_atoms = {oe_atom.GetIdx(): oe_atom for oe_atom in oe_molecule.GetAtoms()}
     oe_bonds = {

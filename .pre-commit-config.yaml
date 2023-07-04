@@ -11,7 +11,7 @@ repos:
         - flake8-pytest-style
         - flake8-no-pep420
 -   repo: https://github.com/asottile/pyupgrade
-    rev: v3.3.1
+    rev: v3.8.0
     hooks:
     -   id: pyupgrade
         exclude: openff/recharge/_version.py|setup.py

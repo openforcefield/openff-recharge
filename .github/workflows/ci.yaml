@@ -21,6 +21,7 @@ jobs:
       matrix:
         os: ["ubuntu-latest"]
         python-version: ["3.9", "3.10"]
+        toolkit-version: ["0.13", "0.14"]
         toolkits: ["rdkit_and_openeye", "rdkit"]
 
     env:
@@ -36,6 +37,7 @@ jobs:
           channel-priority: "flexible"
           extra-specs: |
             python=${{ matrix.python-version }}
+            openff-toolkit-base=${{ matrix.toolkit-version }}
 
       - name: License OpenEye
         if: ${{ matrix.toolkits != 'rdkit' }}

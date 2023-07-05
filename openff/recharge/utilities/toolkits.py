@@ -6,7 +6,8 @@ import numpy
 from openff.toolkit.utils import ToolkitUnavailableException
 from openff.units import unit
 from openff.units.elements import SYMBOLS
-from openff.utilities import MissingOptionalDependencyError
+from openff.utilities import MissingOptionalDependencyError, requires_package
+from openff.utilities.utilities import requires_oe_module
 
 if TYPE_CHECKING:
     from openff.toolkit import Molecule
@@ -20,13 +21,17 @@ def _bond_key(index_a: int, index_b: int) -> Tuple[int, int]:
     return cast(Tuple[int, int], tuple(sorted((index_a, index_b))))
 
 
+@requires_oe_module("oechem")
 def _oe_match_smirks(
     smirks: str,
     molecule: "Molecule",
     is_atom_aromatic: Dict[int, bool],
     is_bond_aromatic: Dict[Tuple[int, int], bool],
     unique: bool,
+    kekulize: bool = False,
 ) -> List[Dict[int, int]]:
+    from openeye import oechem
+
     oe_molecule = molecule.to_openeye()
 
     oe_atoms = {oe_atom.GetIdx(): oe_atom for oe_atom in oe_molecule.GetAtoms()}
@@ -39,8 +44,6 @@ def _oe_match_smirks(
         oe_atoms[index].SetAromatic(is_aromatic)
     for indices, is_aromatic in is_bond_aromatic.items():
         oe_bonds[_bond_key(*indices)].SetAromatic(is_aromatic)
-
-    from openeye import oechem
 
     query = oechem.OEQMol()
     assert oechem.OEParseSmarts(query, smirks), f"failed to parse {smirks}"
@@ -62,17 +65,21 @@ def _oe_match_smirks(
     return matches
 
 
+@requires_package("rdkit")
 def _rd_match_smirks(
     smirks: str,
     molecule: "Molecule",
     is_atom_aromatic: Dict[int, bool],
     is_bond_aromatic: Dict[Tuple[int, int], bool],
     unique: bool,
+    kekulize: bool = False
 ) -> List[Dict[int, int]]:
     from rdkit import Chem
 
     rd_molecule: Chem.Mol = molecule.to_rdkit()
     Chem.SanitizeMol(rd_molecule, Chem.SANITIZE_ALL ^ Chem.SANITIZE_SETAROMATICITY)
+    if kekulize:
+        Chem.Kekulize(rd_molecule)
 
     rd_atoms = {rd_atom.GetIdx(): rd_atom for rd_atom in rd_molecule.GetAtoms()}
     rd_bonds = {
@@ -84,8 +91,6 @@ def _rd_match_smirks(
         rd_atoms[index].SetIsAromatic(is_aromatic)
     for indices, is_aromatic in is_bond_aromatic.items():
         rd_bonds[_bond_key(*indices)].SetIsAromatic(is_aromatic)
-
-    from rdkit import Chem
 
     query = Chem.MolFromSmarts(smirks)
     assert query is not None, f"failed to parse {smirks}"
@@ -114,6 +119,7 @@ def match_smirks(
     is_atom_aromatic: Dict[int, bool],
     is_bond_aromatic: Dict[Tuple[int, int], bool],
     unique: bool = False,
+    kekulize: bool = False,
 ) -> List[Dict[int, int]]:
     """Attempt to find the indices (optionally unique) of all atoms which
     match a particular SMIRKS pattern.
@@ -131,6 +137,8 @@ def match_smirks(
         ``is_bond_aromatic[(atom_index_a, atom_index_b)] = is_aromatic``.
     unique
         Whether to return only unique matches.
+    kekulize
+        Whether to kekulize the molecule before matching.
 
     Returns
     -------
@@ -140,7 +148,7 @@ def match_smirks(
 
     try:
         return _oe_match_smirks(
-            smirks, molecule, is_atom_aromatic, is_bond_aromatic, unique
+            smirks, molecule, is_atom_aromatic, is_bond_aromatic, unique, kekulize
         )
     except (
         ModuleNotFoundError,
@@ -148,7 +156,7 @@ def match_smirks(
         ToolkitUnavailableException,
     ):
         return _rd_match_smirks(
-            smirks, molecule, is_atom_aromatic, is_bond_aromatic, unique
+            smirks, molecule, is_atom_aromatic, is_bond_aromatic, unique, kekulize
         )
 
 
@@ -194,6 +202,7 @@ def compute_vdw_radii(
         raise NotImplementedError()
 
 
+@requires_oe_module("oechem")
 def _oe_apply_mdl_aromaticity_model(
     molecule: "Molecule",
 ) -> Tuple[Dict[int, bool], Dict[Tuple[int, int], bool]]:
@@ -215,6 +224,7 @@ def _oe_apply_mdl_aromaticity_model(
     return is_atom_aromatic, is_bond_aromatic
 
 
+@requires_package("rdkit")
 def _rd_apply_mdl_aromaticity_model(
     molecule: "Molecule",
 ) -> Tuple[Dict[int, bool], Dict[Tuple[int, int], bool]]:
@@ -262,6 +272,7 @@ def apply_mdl_aromaticity_model(
         return _rd_apply_mdl_aromaticity_model(molecule)
 
 
+@requires_oe_module("oechem")
 def _oe_get_atom_symmetries(molecule: "Molecule") -> List[int]:
     from openeye import oechem
 
@@ -274,6 +285,7 @@ def _oe_get_atom_symmetries(molecule: "Molecule") -> List[int]:
     return [symmetry_classes_by_index[i] for i in range(molecule.n_atoms)]
 
 
+@requires_package("rdkit")
 def _rd_get_atom_symmetries(molecule: "Molecule") -> List[int]:
     from rdkit import Chem
 
@@ -298,10 +310,15 @@ def get_atom_symmetries(molecule: "Molecule") -> List[int]:
 
     try:
         return _oe_get_atom_symmetries(molecule)
-    except (ImportError, ToolkitUnavailableException):
+    except (
+        ImportError,
+        ToolkitUnavailableException,
+        MissingOptionalDependencyError,
+    ):
         return _rd_get_atom_symmetries(molecule)
 
 
+@requires_oe_module("oechem")
 def _oe_molecule_to_tagged_smiles(molecule: "Molecule", indices: List[int]) -> str:
     from openeye import oechem
 
@@ -316,6 +333,7 @@ def _oe_molecule_to_tagged_smiles(molecule: "Molecule", indices: List[int]) -> s
     return oechem.OEMolToSmiles(oe_mol)
 
 
+@requires_package("rdkit")
 def _rd_molecule_to_tagged_smiles(molecule: "Molecule", indices: List[int]) -> str:
     from rdkit import Chem
 
@@ -354,5 +372,9 @@ def molecule_to_tagged_smiles(molecule: "Molecule", indices: List[int]) -> str:
 
     try:
         return _oe_molecule_to_tagged_smiles(molecule, indices)
-    except (ImportError, ToolkitUnavailableException):
+    except (
+        ImportError,
+        ToolkitUnavailableException,
+        MissingOptionalDependencyError,
+    ):
         return _rd_molecule_to_tagged_smiles(molecule, indices)

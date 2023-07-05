@@ -9,6 +9,7 @@ from pydantic import BaseModel, Field
 
 from openff.recharge.charges.exceptions import ChargeAssignmentError
 from openff.recharge.utilities.toolkits import get_atom_symmetries
+from openff.utilities.utilities import requires_oe_module
 
 if TYPE_CHECKING:
     from openff.toolkit import Molecule
@@ -152,6 +153,7 @@ class QCChargeGenerator:
         return charges
 
     @classmethod
+    @requires_oe_module("oechem")
     def _generate_omega_charges(
         cls,
         molecule: "Molecule",

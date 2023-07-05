@@ -2,6 +2,7 @@ from typing import Optional
 
 import pytest
 from openff.toolkit import Molecule
+from openff.toolkit._tests.utils import requires_openeye
 
 from openff.recharge.conformers import ConformerGenerator, ConformerSettings
 from openff.recharge.conformers.exceptions import ConformerGenerationError
@@ -9,6 +10,7 @@ from openff.recharge.utilities.molecule import smiles_to_molecule
 
 
 @pytest.mark.parametrize("max_conformers", [1, 2])
+@requires_openeye
 def test_max_conformers(max_conformers):
     """Tests the conformer generator returns a number of conformers less than
     or equal to the maximum.
@@ -31,6 +33,7 @@ def test_max_conformers(max_conformers):
         "Need to use a different molecule."
     )
 )
+@requires_openeye
 def test_generate_omega_conformers_error():
     with pytest.raises(
         ConformerGenerationError, match="Failed to generate conformers using OMEGA"
@@ -49,6 +52,7 @@ def test_generate_omega_conformers_error():
 @pytest.mark.parametrize("method", ["omega", "omega-elf10"])
 @pytest.mark.parametrize("sampling_mode", ["dense", "sparse"])
 @pytest.mark.parametrize("max_conformers", [1, None])
+@requires_openeye
 def test_generate_conformers(
     method: str, sampling_mode: str, max_conformers: Optional[int]
 ):

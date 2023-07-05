@@ -12,6 +12,7 @@ from openff.recharge.charges.exceptions import ChargeAssignmentError
 from openff.recharge.charges.qc import QCChargeGenerator, QCChargeSettings
 from openff.recharge.conformers import ConformerGenerator, ConformerSettings
 from openff.recharge.utilities.molecule import smiles_to_molecule
+from openff.toolkit._tests.utils import requires_openeye
 
 
 def test_load_original_am1_bcc():
@@ -20,6 +21,7 @@ def test_load_original_am1_bcc():
     assert len(original_am1bcc_corrections().parameters) > 0
 
 
+@requires_openeye
 def test_to_smirnoff():
     """Test that a collection of bcc parameters can be mapped to a SMIRNOFF
     `ChargeIncrementModelHandler` in a way that yields the same partial charges on a
@@ -34,7 +36,7 @@ def test_to_smirnoff():
     bcc_handler = original_am1bcc_corrections().to_smirnoff()
     assert bcc_handler is not None
 
-    off_molecule = Molecule.from_smiles("C(H)(H)(H)(H)")
+    off_molecule = Molecule.from_smiles("C")
 
     off_topology = off_molecule.to_topology()
 
@@ -185,6 +187,7 @@ def test_apply_assignment():
     assert "the total charge of the molecule will be altered." in str(error_info.value)
 
 
+@requires_openeye
 def test_compare_openeye_parity():
     """Test that the OE parity functions as expected."""
     assert compare_openeye_parity(smiles_to_molecule("C"))

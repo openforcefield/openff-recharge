@@ -11,6 +11,9 @@ from openff.recharge.charges.qc import (
     QCChargeSettings,
     QCChargeTheory,
 )
+from openff.toolkit._tests.utils import (
+    requires_openeye,
+)
 
 
 @pytest.fixture(scope="module")
@@ -73,6 +76,7 @@ def test_generate_xtb_charges(methane, theory: QCChargeTheory):
     assert not numpy.allclose(default_charges, unopt_charges)
 
 
+@requires_openeye
 @pytest.mark.parametrize("theory", ["am1", "am1bcc"])
 def test_generate_omega_charges(methane, theory):
     molecule, conformer = methane
@@ -95,6 +99,7 @@ def test_generate_omega_charges(methane, theory):
     assert not numpy.allclose(default_charges, unopt_charges)
 
 
+@requires_openeye
 @pytest.mark.parametrize("theory", ["am1", "am1bcc", "GFN1-xTB"])
 def test_generate_charges(theory: QCChargeTheory, methane):
     """Ensure that charges can be generated for a simple molecule using

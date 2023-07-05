@@ -86,11 +86,12 @@ class AromaticityModel:
             of high-quality atomic charges. AM1-BCC model: II. Parameterization and
             validation. Journal of computational chemistry, 23(16), 1623–1641.
         """
+        from openff.toolkit.topology.topology import ValenceDict
 
         is_atom_aromatic = {i: False for i in range(molecule.n_atoms)}
-        is_bond_aromatic = {
+        is_bond_aromatic = ValenceDict({
             (bond.atom1_index, bond.atom2_index): False for bond in molecule.bonds
-        }
+        })
 
         is_bond_in_ring = find_ring_bonds(molecule)
 
@@ -109,7 +110,8 @@ class AromaticityModel:
         )
 
         case_1_matches = match_smirks(
-            case_1_smirks, molecule, is_atom_aromatic, is_bond_aromatic, unique=True
+            case_1_smirks, molecule, is_atom_aromatic, is_bond_aromatic, unique=True,
+            kekulize=True,
         )
         case_1_atoms = {
             match for matches in case_1_matches for match in matches.values()
@@ -131,7 +133,7 @@ class AromaticityModel:
             f"-@{x_type.replace('N', '3')}"
             f"=@{x_type.replace('N', '4')}"
             f"-@{x_type.replace('N', '5')}"
-            f":@{x_type.replace('N', '6')}-@1"
+            f"-,:@{x_type.replace('N', '6')}-@1"
         )
 
         previous_case_2_atoms = None
@@ -139,7 +141,8 @@ class AromaticityModel:
 
         while previous_case_2_atoms != case_2_atoms:
             case_2_matches = match_smirks(
-                case_2_smirks, molecule, is_atom_aromatic, is_bond_aromatic, unique=True
+                case_2_smirks, molecule, is_atom_aromatic, is_bond_aromatic, unique=True,
+                kekulize=True,
             )
 
             # Enforce the ar6 condition
@@ -165,9 +168,9 @@ class AromaticityModel:
             f"{x_type.replace('N', '1')}1"
             f"=@{x_type.replace('N', '2')}"
             f"-@{x_type.replace('N', '3')}"
-            f":@{x_type.replace('N', '4')}"
+            f"-,:@{x_type.replace('N', '4')}"
             f"~@{x_type.replace('N', '5')}"
-            f":@{x_type.replace('N', '6')}-@1"
+            f"-,:@{x_type.replace('N', '6')}-@1"
         )
 
         previous_case_3_atoms = None
@@ -175,7 +178,8 @@ class AromaticityModel:
 
         while previous_case_3_atoms != case_3_atoms:
             case_3_matches = match_smirks(
-                case_3_smirks, molecule, is_atom_aromatic, is_bond_aromatic, unique=True
+                case_3_smirks, molecule, is_atom_aromatic, is_bond_aromatic, unique=True,
+                kekulize=True,
             )
 
             # Enforce the ar6 condition
@@ -211,7 +215,8 @@ class AromaticityModel:
         )
 
         case_4_matches = match_smirks(
-            case_4_smirks, molecule, is_atom_aromatic, is_bond_aromatic, unique=True
+            case_4_smirks, molecule, is_atom_aromatic, is_bond_aromatic, unique=True,
+            kekulize=True,
         )
         case_4_atoms = {
             match for matches in case_4_matches for match in matches.values()
@@ -238,7 +243,8 @@ class AromaticityModel:
         }
 
         case_5_matches = match_smirks(
-            case_5_smirks, molecule, is_atom_aromatic, is_bond_aromatic, unique=True
+            case_5_smirks, molecule, is_atom_aromatic, is_bond_aromatic, unique=True,
+            kekulize=True,
         )
         case_5_matches = [
             matches

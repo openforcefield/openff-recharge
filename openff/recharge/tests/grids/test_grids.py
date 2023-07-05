@@ -10,6 +10,7 @@ from openff.recharge.tests.data import (
     WATER_MSK_GRID,
 )
 from openff.recharge.utilities.molecule import smiles_to_molecule
+from openff.toolkit._tests.utils import requires_openeye
 
 
 class TestLatticeGridSettings:
@@ -110,6 +111,7 @@ class TestGridGenerator:
         assert grid.shape == ARGON_FCC_GRID.shape
         assert numpy.allclose(grid, ARGON_FCC_GRID * unit.angstrom)
 
+    @requires_openeye
     def test_generate_msk_grid(self):
         molecule = smiles_to_molecule("O")
 

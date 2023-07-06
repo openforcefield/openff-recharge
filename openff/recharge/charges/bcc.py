@@ -1,5 +1,4 @@
 """Generate bond charge corrections for molecules from a collection of BCC parameters."""
-import json
 import os
 from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
@@ -454,19 +453,14 @@ def original_am1bcc_corrections() -> BCCCollection:
         23(16), 1623–1641.
     """
     bcc_file_path = get_data_file_path(
-        os.path.join("bcc", "original-am1-bcc.json"), "openff.recharge"
+        os.path.join("bcc", "openeye-am1-bcc.json"), "openff.recharge"
     )
 
-    with open(bcc_file_path) as file:
-        bcc_dictionaries = json.load(file)
-
-    bond_charge_corrections = [
-        BCCParameter(**dictionary) for dictionary in bcc_dictionaries
-    ]
-
-    return BCCCollection(
-        parameters=bond_charge_corrections, aromaticity_model=AromaticityModels.AM1BCC
+    collection = BCCCollection.parse_file(
+        bcc_file_path
     )
+    collection.aromaticity_model = AromaticityModels.AM1BCC
+    return collection
 
 
 def compare_openeye_parity(molecule: "Molecule") -> bool:

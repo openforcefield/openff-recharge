@@ -6,6 +6,8 @@ Releases follow the `major.minor.micro` scheme recommended by [PEP440](https://w
 * `minor` increments add features but do not break API compatibility
 * `micro` increments represent bugfix releases or improvements in documentation
 
+## Current development
+
 ## 0.5.0
 
 This release re-introduces virtual site support and is only compatible with OpenFF Toolkit versions 0.11.0 and newer.

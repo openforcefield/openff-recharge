@@ -50,6 +50,7 @@ hidden: True
 getting-started/installation
 getting-started/quick-start
 getting-started/cli
+releasehistory
 
 :::
 

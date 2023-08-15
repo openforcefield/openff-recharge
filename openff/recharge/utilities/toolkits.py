@@ -72,7 +72,7 @@ def _rd_match_smirks(
     is_atom_aromatic: Dict[int, bool],
     is_bond_aromatic: Dict[Tuple[int, int], bool],
     unique: bool,
-    kekulize: bool = False
+    kekulize: bool = False,
 ) -> List[Dict[int, int]]:
     from rdkit import Chem
 

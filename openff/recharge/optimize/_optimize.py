@@ -548,8 +548,10 @@ class Objective(abc.ABC):
             for parameter in vsite_collection.parameters
         }
 
-        smirnoff_vsite_collection = VirtualSiteGenerator._create_virtual_site_collection(
-            molecule, vsite_collection
+        smirnoff_vsite_collection = (
+            VirtualSiteGenerator._create_virtual_site_collection(
+                molecule, vsite_collection
+            )
         )
 
         if len(smirnoff_vsite_collection.key_map) == 0:
@@ -568,7 +570,9 @@ class Objective(abc.ABC):
             parameter_key = (smirks, vsite_key.type, vsite_key.name)
             parameter = parameters_by_key[parameter_key]
 
-            assigned_parameters[parameter_key].append(vsite_key.orientation_atom_indices)
+            assigned_parameters[parameter_key].append(
+                vsite_key.orientation_atom_indices
+            )
 
             local_parameters = []
             local_indices = []

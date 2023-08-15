@@ -44,7 +44,7 @@ def compute_inverse_distance_matrix(points_a, points_b):
         with shape=(n_points_a, n_points_b).
     """
 
-    assert type(points_a) == type(points_b)
+    assert type(points_a) is type(points_b)
     return inverse_cdist(points_a, points_b)
 
 

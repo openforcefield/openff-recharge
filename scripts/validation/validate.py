@@ -66,11 +66,9 @@ def load_molecule(smiles: str) -> Tuple[bool, List[str]]:
 
 
 def load_molecules() -> Dict[str, List[str]]:
-
     print("Loading molecules...")
 
     with oechem.oemolistream("validation-set.smi") as input_stream:
-
         smiles = [
             oechem.OECreateIsoSmiString(oe_molecule)
             for oe_molecule in input_stream.GetOEMols()
@@ -89,7 +87,6 @@ def load_molecules() -> Dict[str, List[str]]:
 
 
 def validate_molecule(smiles: str) -> Tuple[str, bool, bool]:
-
     tqdm.write(smiles)
 
     molecule = smiles_to_molecule(smiles, guess_stereochemistry=True)
@@ -111,7 +108,6 @@ def validate_molecule(smiles: str) -> Tuple[str, bool, bool]:
 
 
 def main():
-
     # # Construct a list of molecule from both the NCI 2012 Open set and
     # # a list of hand curated SMILES patterns chosen to exercise the more
     # # uncommon bond charge correction parameters, and determine which

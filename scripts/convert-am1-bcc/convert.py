@@ -27,7 +27,6 @@ def build_bond_charge_corrections(
     bcc_overrides: Dict[str, float],
     custom_bcc_smirks: Dict[str, str],
 ) -> List[BCCParameter]:
-
     # Convert the atom and bond codes into the six number codes used
     # in the AM1BCC paper.
     all_codes = [*custom_bcc_smirks]
@@ -35,7 +34,6 @@ def build_bond_charge_corrections(
     for first_atom_code in atom_codes:
         for bond_code in bond_codes:
             for last_atom_code in atom_codes:
-
                 code = f"{first_atom_code}{bond_code}{last_atom_code}"
 
                 if code not in all_codes:
@@ -59,7 +57,6 @@ def build_bond_charge_corrections(
     bond_charge_corrections = {}
 
     for _, bcc_row in bcc_frame.iterrows():
-
         code = str(bcc_row["Code"])[0:6]
 
         first_atom_code = code[0:2]
@@ -95,7 +92,6 @@ def build_bond_charge_corrections(
 
 
 def main():
-
     atom_codes = {
         # C4 Tetravalent carbon
         "11": "[#6X4:1]",
@@ -205,9 +201,7 @@ def main():
     unique_bcc_parameters = []
 
     for bcc_parameter in bcc_parameters:
-
         if bcc_parameter.smirks in bcc_parameters_per_smirks:
-
             assert numpy.isclose(
                 bcc_parameter.value,
                 bcc_parameters_per_smirks[bcc_parameter.smirks].value,
@@ -220,7 +214,6 @@ def main():
         bcc_parameters_per_smirks[bcc_parameter.smirks] = bcc_parameter
 
     with open("original-am1-bcc.json", "w") as file:
-
         json.dump(
             [bcc_parameter.dict() for bcc_parameter in unique_bcc_parameters], file
         )

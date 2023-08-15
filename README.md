@@ -1,9 +1,10 @@
 # OpenFF Recharge
 
-[![tests](https://github.com/openforcefield/openff-recharge/actions/workflows/ci.yaml/badge.svg?branch=main)](https://github.com/openforcefield/openff-recharge/actions/workflows/ci.yaml)
-[![Language grade: Python](https://img.shields.io/lgtm/grade/python/g/openforcefield/openff-recharge.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/openforcefield/openff-recharge/context:python)
-[![codecov](https://codecov.io/gh/openforcefield/openff-recharge/branch/main/graph/badge.svg)](https://codecov.io/gh/openforcefield/openff-recharge/branch/main)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+| **Test status** | [![CI Status](https://github.com/openforcefield/openff-recharge/workflows/ci/badge.svg)](https://github.com/openforcefield/openff-recharge/actions?query=branch%3Amain+workflow%3Aci) | [![pre-commit.ci status](https://results.pre-commit.ci/badge/github/openforcefield/openff-recharge/main.svg)](https://results.pre-commit.ci/latest/github/openforcefield/openff-recharge/main) |
+|:-|:-|:-|
+| **Code quality** | [![pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit&logoColor=white)](https://github.com/pre-commit/pre-commit) | [![Codecov coverage](https://img.shields.io/codecov/c/github/openforcefield/openff-recharge.svg?logo=Codecov&logoColor=white)](https://codecov.io/gh/openforcefield/openff-recharge)
+| **Latest release** | ![GitHub release (latest by date including pre-releases)](https://img.shields.io/github/v/release/openforcefield/openff-recharge?include_prereleases)
+| **User support** | [![Documentation Status](https://readthedocs.org/projects/openff-recharge/badge/?version=latest)](https://openff-recharge.readthedocs.io/en/latest/?badge=latest) | [![Discussions](https://img.shields.io/badge/Discussions-GitHub-blue?logo=github)](https://github.com/openforcefield/discussions/discussions)
 
 OpenFF Recharge aims to provide a comprehensive suite of tools for training the partial charges of molecules against
 quantum chemical electrostatic potential (ESP) and electric field data.
@@ -21,6 +22,10 @@ when using it in production work.*
 To start using this framework we recommend looking over [the documentation](https://openff-recharge.readthedocs.io/en/latest/index.html),
 especially the [installation](https://openff-recharge.readthedocs.io/en/latest/getting-started/installation.html) and
 [quick start](https://openff-recharge.readthedocs.io/en/latest/getting-started/quick-start.html) guides.
+
+## How to Cite
+
+Please cite OpenFF Recharge using the [Zenodo record](https://zenodo.org/record/8118623) of the [latest release](https://zenodo.org/record/8118623) or the version that was used. The BibTeX reference of the latest release can be found [here](https://zenodo.org/record/8118623/export/hx).
 
 ## Features
 

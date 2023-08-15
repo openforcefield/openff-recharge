@@ -139,7 +139,7 @@ def test_record_from_molecule():
     # smiles order might change depending on toolkit
     expected_smiles = (
         "[H:2][C:1]([H:3])([H:4])[H:5]",
-        "[C:1]([H:2])([H:3])([H:4])[H:5]"
+        "[C:1]([H:2])([H:3])([H:4])[H:5]",
     )
     assert record.tagged_smiles in expected_smiles
 
@@ -392,7 +392,7 @@ def test_retrieve(tmp_path):
     assert len(records) == 1
     expected_smiles_co = (
         "[H:3][C:1]([H:4])([H:5])[O:2][H:6]",
-        "[C:1]([O:2][H:6])([H:3])([H:4])[H:5]"
+        "[C:1]([O:2][H:6])([H:3])([H:4])[H:5]",
     )
     assert records[0].tagged_smiles in expected_smiles_co
 
@@ -406,7 +406,7 @@ def test_retrieve(tmp_path):
     assert records[0].esp_settings.basis == "6-31g*"
     expected_smiles_c = (
         "[H:2][C:1]([H:3])([H:4])[H:5]",
-        "[C:1]([H:2])([H:3])([H:4])[H:5]"
+        "[C:1]([H:2])([H:3])([H:4])[H:5]",
     )
     assert records[0].tagged_smiles in expected_smiles_c
 

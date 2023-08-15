@@ -24,9 +24,7 @@ from openff.toolkit._tests.utils import (
 )
 
 
-@pytest.mark.parametrize(
-    "match_function", [match_smirks, _rd_match_smirks]
-)
+@pytest.mark.parametrize("match_function", [match_smirks, _rd_match_smirks])
 @pytest.mark.parametrize(
     "smiles, smirks, is_atom_aromatic, is_bond_aromatic, unique, expected_matches",
     [

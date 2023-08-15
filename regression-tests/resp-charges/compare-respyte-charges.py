@@ -18,7 +18,6 @@ from openff.recharge.grids import MSKGridSettings
 
 
 def main():
-
     qc_data_settings = ESPSettings(
         method="hf", basis="6-31G*", grid_settings=MSKGridSettings()
     )
@@ -26,7 +25,6 @@ def main():
     respyte_outputs = glob(os.path.join("respyte-data", "output-*"))
 
     for _, respyte_output in enumerate(respyte_outputs):
-
         molecule = Molecule.from_file(os.path.join(respyte_output, "mol1_conf1.mol2"))
 
         respyte_charges = numpy.round(

@@ -6,11 +6,9 @@ from openff.toolkit.topology import Molecule
 
 
 def main():
-
     smiles = ["C", "CC", "CCC", "CO", "CCO", "CCCO", "CCOC", "c1ccccc1", "c1occc1"]
 
     for i, pattern in enumerate(smiles):
-
         molecule: Molecule = Molecule.from_smiles(pattern)
         molecule.generate_conformers(n_conformers=1)
 

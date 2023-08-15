@@ -400,7 +400,9 @@ class VirtualSiteGenerator:
         -------
             An SMIRNOFFVirtualSiteCollection with keys stored in `.key_map`.
         """
-        from openff.interchange.smirnoff._virtual_sites import SMIRNOFFVirtualSiteCollection
+        from openff.interchange.smirnoff._virtual_sites import (
+            SMIRNOFFVirtualSiteCollection,
+        )
 
         parameter_handler = vsite_collection.to_smirnoff()
 

@@ -291,7 +291,9 @@ class TestVirtualSiteCollection:
         assert numpy.isclose(trivalent.epsilon, 0.5)
 
     def test_smirnoff_parity(
-        self, full_vsite_force_field: "ForceField", vsite_collection: VirtualSiteCollection
+        self,
+        full_vsite_force_field: "ForceField",
+        vsite_collection: VirtualSiteCollection,
     ):
         import openmm.unit
 
@@ -299,8 +301,7 @@ class TestVirtualSiteCollection:
         molecule.assign_partial_charges("zeros")
 
         openmm_system = full_vsite_force_field.create_openmm_system(
-            molecule.to_topology(),
-            charge_from_molecules=[molecule]
+            molecule.to_topology(), charge_from_molecules=[molecule]
         )
         openmm_force = [
             force
@@ -366,8 +367,10 @@ class TestVirtualSiteGenerator:
     def test_create_virtual_site_collection(self, vsite_collection):
         molecule = smiles_to_molecule("N")
 
-        smirnoff_virtual_site_collection = VirtualSiteGenerator._create_virtual_site_collection(
-            molecule, vsite_collection
+        smirnoff_virtual_site_collection = (
+            VirtualSiteGenerator._create_virtual_site_collection(
+                molecule, vsite_collection
+            )
         )
 
         sites = smirnoff_virtual_site_collection.key_map

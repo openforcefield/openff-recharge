@@ -33,6 +33,7 @@ def test_to_smirnoff():
     from openff.toolkit import Molecule
     from openff.toolkit.typing.engines.smirnoff.parameters import ElectrostaticsHandler
     from openff.interchange.smirnoff._nonbonded import SMIRNOFFElectrostaticsCollection
+
     bcc_handler = original_am1bcc_corrections().to_smirnoff()
     assert bcc_handler is not None
 

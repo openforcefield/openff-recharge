@@ -58,7 +58,7 @@ def test_cdist(tensor_type):
     input_tensor_b = tensor_type([[0.0, 2.0, 0.0], [0.0, 3.0, 0.0], [0.0, 4.0, 0.0]])
 
     output_tensor = cdist(input_tensor_a, input_tensor_b)
-    assert type(output_tensor) == type(input_tensor_a)
+    assert type(output_tensor) is type(input_tensor_a)
 
     output_tensor = to_numpy(output_tensor)
 
@@ -76,7 +76,7 @@ def test_inverse_cdist(tensor_type):
     input_tensor_b = tensor_type([[0.0, 2.0, 0.0], [0.0, 3.0, 0.0], [0.0, 4.0, 0.0]])
 
     output_tensor = inverse_cdist(input_tensor_a, input_tensor_b)
-    assert type(output_tensor) == type(input_tensor_a)
+    assert type(output_tensor) is type(input_tensor_a)
 
     output_tensor = to_numpy(output_tensor)
 

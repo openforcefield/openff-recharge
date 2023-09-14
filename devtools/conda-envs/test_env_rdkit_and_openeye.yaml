@@ -36,7 +36,7 @@ dependencies:
   - qcelemental >=0.25.1
 
     # QCFractal integration.
-  - qcportal >=0.15.6
+  - qcportal >=0.15.6, <0.50.0a0
 
   # Optimization
   - pytorch

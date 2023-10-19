@@ -1543,8 +1543,8 @@ def versions_from_file(filename: str) -> Dict[str, Any]:
     try:
         with open(filename) as f:
             contents = f.read()
-    except OSError:
-        raise NotThisMethod("unable to read _version.py")
+    except OSError as err:
+        raise NotThisMethod("unable to read _version.py") from err
     mo = re.search(
         r"version_json = '''\n(.*)'''  # END VERSION_JSON", contents, re.M | re.S
     )

@@ -66,8 +66,10 @@ class LibraryChargeParameter(BaseModel):
 
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=AtomMappingWarning)
-            molecule = Molecule.from_smiles(values["smiles"], allow_undefined_stereo=True)
-        
+            molecule = Molecule.from_smiles(
+                values["smiles"], allow_undefined_stereo=True
+            )
+
         n_expected = len({*molecule.properties["atom_map"].values()})
 
         assert n_expected == len(value), (
@@ -100,8 +102,12 @@ class LibraryChargeParameter(BaseModel):
 
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=AtomMappingWarning)
-            self_molecule = Molecule.from_smiles(self.smiles, allow_undefined_stereo=True)
-            other_molecule = Molecule.from_smiles(other.smiles, allow_undefined_stereo=True)
+            self_molecule = Molecule.from_smiles(
+                self.smiles, allow_undefined_stereo=True
+            )
+            other_molecule = Molecule.from_smiles(
+                other.smiles, allow_undefined_stereo=True
+            )
 
         are_isomorphic, self_to_other_atom_map = Molecule.are_isomorphic(
             self_molecule,

@@ -365,7 +365,7 @@ class MoleculeESPStore:
         from openff.toolkit import Molecule
 
         with warnings.catch_warnings():
-            warnings.filterwarnings("default", category=AtomMappingWarning)
+            warnings.simplefilter("ignore", category=AtomMappingWarning)
             smiles = Molecule.from_smiles(
                 tagged_smiles, allow_undefined_stereo=True
             ).to_smiles(isomeric=False, explicit_hydrogens=False, mapped=False)

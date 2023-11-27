@@ -42,7 +42,7 @@ class LibraryChargeParameter(BaseModel):
             return value
 
         with warnings.catch_warnings():
-            warnings.filterwarnings("ignore", category=AtomMappingWarning)
+            warnings.simplefilter("ignore", category=AtomMappingWarning)
             molecule = Molecule.from_smiles(value, allow_undefined_stereo=True)
 
         atom_map = molecule.properties.get("atom_map", None)
@@ -66,7 +66,7 @@ class LibraryChargeParameter(BaseModel):
             return value
 
         with warnings.catch_warnings():
-            warnings.filterwarnings("ignore", category=AtomMappingWarning)
+            warnings.simplefilter("ignore", category=AtomMappingWarning)
             molecule = Molecule.from_smiles(
                 values["smiles"], allow_undefined_stereo=True
             )
@@ -102,7 +102,7 @@ class LibraryChargeParameter(BaseModel):
         from openff.toolkit import Molecule
 
         with warnings.catch_warnings():
-            warnings.filterwarnings("ignore", category=AtomMappingWarning)
+            warnings.simplefilter("ignore", category=AtomMappingWarning)
             self_molecule = Molecule.from_smiles(
                 self.smiles, allow_undefined_stereo=True
             )
@@ -166,7 +166,7 @@ class LibraryChargeParameter(BaseModel):
         )
 
         with warnings.catch_warnings():
-            warnings.filterwarnings("ignore", category=AtomMappingWarning)
+            warnings.simplefilter("ignore", category=AtomMappingWarning)
             molecule: Molecule = Molecule.from_smiles(
                 self.smiles, allow_undefined_stereo=True
             )
@@ -343,11 +343,11 @@ class LibraryChargeGenerator:
         assignment_matrix = numpy.zeros((molecule.n_atoms, n_total_charges))
 
         for parameter in charge_collection.parameters:
-            warnings.filterwarnings("ignore", category=AtomMappingWarning)
-            smiles_molecule: Molecule = Molecule.from_smiles(
-                parameter.smiles, allow_undefined_stereo=True
-            )
-            warnings.filterwarnings("ignore", category=AtomMappingWarning)
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore", category=AtomMappingWarning)
+                smiles_molecule: Molecule = Molecule.from_smiles(
+                    parameter.smiles, allow_undefined_stereo=True
+                )
 
             are_isomorphic, atom_map = Molecule.are_isomorphic(
                 molecule, smiles_molecule, return_atom_map=True

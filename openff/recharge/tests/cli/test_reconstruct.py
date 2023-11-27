@@ -11,7 +11,7 @@ from openff.recharge.esp import ESPSettings
 from openff.recharge.esp.storage import MoleculeESPRecord, MoleculeESPStore
 from openff.recharge.grids import LatticeGridSettings
 from openff.recharge.utilities.molecule import smiles_to_molecule
-
+from openff.toolkit._tests.utils import requires_openeye
 
 def test_retrieve_result_records():
     pytest.importorskip("qcportal")
@@ -24,6 +24,7 @@ def test_retrieve_result_records():
     assert "1" in qc_keywords
 
 
+@requires_openeye
 def test_reconstruct(runner, monkeypatch):
     pytest.importorskip("psi4")
     pytest.importorskip("qcportal")

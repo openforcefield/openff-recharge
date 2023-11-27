@@ -34,7 +34,7 @@ jobs:
         uses: mamba-org/setup-micromamba@v1
         with:
           environment-file: devtools/conda-envs/test_env_${{ matrix.toolkits }}.yaml
-          create-args: |
+          create-args: >-
             python=${{ matrix.python-version }}
             pydantic=${{ matrix.pydantic-version }}
 

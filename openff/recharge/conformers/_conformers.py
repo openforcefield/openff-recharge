@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING, List, Literal, Optional
 
 import numpy
 from openff.units import unit
-from pydantic import BaseModel, Field
+from openff.recharge._pydantic import BaseModel, Field
 
 from openff.recharge.conformers.exceptions import ConformerGenerationError
 from openff.utilities.utilities import requires_oe_module

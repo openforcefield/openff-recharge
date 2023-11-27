@@ -9,7 +9,7 @@ from typing import Any, cast
 
 import numpy
 from openff.units import unit
-from pydantic import validator
+from openff.recharge._pydantic import validator
 
 
 class ArrayMeta(type):

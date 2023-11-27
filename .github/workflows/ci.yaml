@@ -22,6 +22,7 @@ jobs:
         os: ["ubuntu-latest"]
         python-version: ["3.9", "3.10"]
         toolkits: ["rdkit_and_openeye", "rdkit"]
+        pydantic-version: ["1"]
 
     env:
       OE_LICENSE: ${{ github.workspace }}/oe_license.txt
@@ -33,8 +34,9 @@ jobs:
         uses: mamba-org/setup-micromamba@v1
         with:
           environment-file: devtools/conda-envs/test_env_${{ matrix.toolkits }}.yaml
-          extra-specs: |
+          create-args: >-
             python=${{ matrix.python-version }}
+            pydantic=${{ matrix.pydantic-version }}
 
       - name: License OpenEye
         if: ${{ matrix.toolkits != 'rdkit' }}

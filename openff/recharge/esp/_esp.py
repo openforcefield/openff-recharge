@@ -4,7 +4,7 @@ from enum import Enum
 from typing import TYPE_CHECKING, Literal, Optional, Tuple
 
 from openff.units import unit
-from pydantic import BaseModel, Field
+from openff.recharge._pydantic import BaseModel, Field
 
 from openff.recharge.grids import GridGenerator, GridSettingsType
 
@@ -13,7 +13,7 @@ if TYPE_CHECKING:
 
     PositiveFloat = float
 else:
-    from pydantic import PositiveFloat
+    from openff.recharge._pydantic import PositiveFloat
 
 
 class DFTGridSettings(Enum):

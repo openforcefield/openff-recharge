@@ -6,8 +6,9 @@ import warnings
 import numpy
 from openff.units import unit
 from openff.utilities import requires_package
-from pydantic import BaseModel, Field, constr, validator
 from openff.toolkit.utils.exceptions import AtomMappingWarning
+from openff.recharge._pydantic import BaseModel, Field, constr, validator
+
 from openff.recharge.charges.exceptions import ChargeAssignmentError
 
 if TYPE_CHECKING:

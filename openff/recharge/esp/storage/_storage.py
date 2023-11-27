@@ -1,6 +1,7 @@
 """This module contains classes which are able to store and retrieve
 calculated electrostatic potentials in unified data collections.
 """
+import warnings
 import functools
 from collections import defaultdict
 from contextlib import contextmanager
@@ -11,7 +12,7 @@ from openff.units import unit
 from pydantic import BaseModel, Field
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
-
+from openff.toolkit.utils.exceptions import AtomMappingWarning
 from openff.recharge.esp import ESPSettings
 from openff.recharge.esp.storage.db import (
     DB_VERSION,
@@ -363,9 +364,13 @@ class MoleculeESPStore:
         """
         from openff.toolkit import Molecule
 
-        return Molecule.from_smiles(
-            tagged_smiles, allow_undefined_stereo=True
-        ).to_smiles(isomeric=False, explicit_hydrogens=False, mapped=False)
+        with warnings.catch_warnings():
+            warnings.filterwarnings("default", category=AtomMappingWarning)
+            smiles = Molecule.from_smiles(
+                tagged_smiles, allow_undefined_stereo=True
+            ).to_smiles(isomeric=False, explicit_hydrogens=False, mapped=False)
+
+        return smiles
 
     def store(self, *records: MoleculeESPRecord):
         """Store the electrostatic potentials calculated for

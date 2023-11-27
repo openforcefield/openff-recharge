@@ -33,7 +33,6 @@ jobs:
         uses: mamba-org/setup-micromamba@v1
         with:
           environment-file: devtools/conda-envs/test_env_${{ matrix.toolkits }}.yaml
-          channel-priority: "flexible"
           extra-specs: |
             python=${{ matrix.python-version }}
 

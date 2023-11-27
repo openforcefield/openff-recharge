@@ -11,6 +11,7 @@ from openff.recharge.grids import LatticeGridSettings
 from openff.recharge.utilities.molecule import smiles_to_molecule
 
 
+@pytest.mark.skip(reason="Need to rewrite using a molecule that the toolkit will parse.")
 @pytest.mark.parametrize(
     "compute_esp, compute_field, expected_properties",
     [

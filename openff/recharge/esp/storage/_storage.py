@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING, ContextManager, Dict, List, Optional
 
 import numpy
 from openff.units import unit
-from pydantic import BaseModel, Field
+from openff.recharge._pydantic import BaseModel, Field
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 

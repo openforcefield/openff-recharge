@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING, Literal, Optional, Union
 
 import numpy
 from openff.units import unit
-from pydantic import BaseModel, Field
+from openff.recharge._pydantic import BaseModel, Field
 
 from openff.recharge.utilities.pydantic import wrapped_float_validator
 from openff.recharge.utilities.toolkits import VdWRadiiType, compute_vdw_radii
@@ -14,7 +14,7 @@ if TYPE_CHECKING:
 
     PositiveFloat = float
 else:
-    from pydantic import PositiveFloat
+    from openff.recharge._pydantic import PositiveFloat
 
 
 class LatticeGridSettings(BaseModel):

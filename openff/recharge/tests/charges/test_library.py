@@ -2,7 +2,7 @@ import numpy
 from openff.units import unit
 
 import pytest
-from pydantic import ValidationError
+from openff.recharge._pydantic import ValidationError
 
 from openff.recharge.charges.exceptions import ChargeAssignmentError
 from openff.recharge.charges.library import (

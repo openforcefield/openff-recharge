@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING, List, Literal, cast
 import numpy
 from openff.units import unit
 from openff.units.elements import SYMBOLS
-from pydantic import BaseModel, Field
+from openff.recharge._pydantic import BaseModel, Field
 
 from openff.recharge.charges.exceptions import ChargeAssignmentError
 from openff.recharge.utilities.toolkits import get_atom_symmetries

@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Optional, Tuple
 import numpy
 from openff.units import unit
 from openff.utilities import requires_package
-from pydantic import ValidationError
+from openff.recharge._pydantic import ValidationError
 
 from openff.recharge.esp import ESPSettings, PCMSettings
 from openff.recharge.esp.storage import MoleculeESPRecord

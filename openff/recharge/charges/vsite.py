@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, List, Literal, Optional, Tuple, Union, overloa
 import numpy
 from openff.units import unit
 from openff.utilities import requires_package
-from pydantic import BaseModel, Field, constr, validator
+from openff.recharge._pydantic import BaseModel, Field, constr, validator
 
 from openff.recharge.aromaticity import AromaticityModels
 from openff.recharge.charges.exceptions import ChargeAssignmentError

@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, Any, Dict, List, Optional
 import numpy
 from openff.units import unit
 from openff.utilities import get_data_file_path, requires_package
-from pydantic import BaseModel, Field, constr
+from openff.recharge._pydantic import BaseModel, Field, constr
 
 from openff.recharge.aromaticity import AromaticityModel, AromaticityModels
 from openff.recharge.charges.exceptions import ChargeAssignmentError

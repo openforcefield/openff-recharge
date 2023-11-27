@@ -22,7 +22,7 @@ jobs:
         os: ["ubuntu-latest"]
         python-version: ["3.9", "3.10"]
         toolkits: ["rdkit_and_openeye", "rdkit"]
-        pydantic-version: ["1", "2",]
+        pydantic-version: ["1", "2"]
 
     env:
       OE_LICENSE: ${{ github.workspace }}/oe_license.txt

@@ -131,6 +131,7 @@ class Psi4ESPGenerator(ESPGenerator):
         minimize: bool,
         compute_esp: bool,
         compute_field: bool,
+        n_threads: int,
     ) -> Tuple[unit.Quantity, Optional[unit.Quantity], Optional[unit.Quantity]]:
         # Perform the calculation in a temporary directory
         with temporary_cd(directory):
@@ -148,7 +149,7 @@ class Psi4ESPGenerator(ESPGenerator):
 
             # Attempt to run the calculation
             psi4_process = subprocess.Popen(
-                ["psi4", "input.dat", "output.dat"],
+                ["psi4", "--nthread", str(n_threads), "input.dat", "output.dat"],
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
             )

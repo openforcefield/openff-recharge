@@ -248,7 +248,10 @@ def test_generate(enable_pcm, minimize, n_threads):
     )
 
     output_conformer, grid, esp, electric_field = Psi4ESPGenerator.generate(
-        molecule, input_conformer, settings, minimize=minimize,
+        molecule,
+        input_conformer,
+        settings,
+        minimize=minimize,
         n_threads=n_threads,
     )
 

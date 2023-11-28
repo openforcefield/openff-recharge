@@ -37,7 +37,7 @@ def _retrieve_result_records(
     paginating = True
     page_index = 0
 
-    client = qcportal.PortalClient()
+    client = qcportal.FractalClient()
 
     while paginating:
         page_results = client.query_results(

@@ -1,10 +1,12 @@
 """Generate partial charges for molecules from a collection of library parameters."""
 from collections import defaultdict
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple
+import warnings
 
 import numpy
 from openff.units import unit
 from openff.utilities import requires_package
+from openff.toolkit.utils.exceptions import AtomMappingWarning
 from openff.recharge._pydantic import BaseModel, Field, constr, validator
 
 from openff.recharge.charges.exceptions import ChargeAssignmentError
@@ -39,7 +41,9 @@ class LibraryChargeParameter(BaseModel):
         except ImportError:
             return value
 
-        molecule = Molecule.from_smiles(value, allow_undefined_stereo=True)
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", category=AtomMappingWarning)
+            molecule = Molecule.from_smiles(value, allow_undefined_stereo=True)
 
         atom_map = molecule.properties.get("atom_map", None)
         assert atom_map is not None, "SMILES pattern does not contain index map"
@@ -61,7 +65,12 @@ class LibraryChargeParameter(BaseModel):
         except ImportError:
             return value
 
-        molecule = Molecule.from_smiles(values["smiles"], allow_undefined_stereo=True)
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", category=AtomMappingWarning)
+            molecule = Molecule.from_smiles(
+                values["smiles"], allow_undefined_stereo=True
+            )
+
         n_expected = len({*molecule.properties["atom_map"].values()})
 
         assert n_expected == len(value), (
@@ -92,8 +101,14 @@ class LibraryChargeParameter(BaseModel):
 
         from openff.toolkit import Molecule
 
-        self_molecule = Molecule.from_smiles(self.smiles, allow_undefined_stereo=True)
-        other_molecule = Molecule.from_smiles(other.smiles, allow_undefined_stereo=True)
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", category=AtomMappingWarning)
+            self_molecule = Molecule.from_smiles(
+                self.smiles, allow_undefined_stereo=True
+            )
+            other_molecule = Molecule.from_smiles(
+                other.smiles, allow_undefined_stereo=True
+            )
 
         are_isomorphic, self_to_other_atom_map = Molecule.are_isomorphic(
             self_molecule,
@@ -150,9 +165,11 @@ class LibraryChargeParameter(BaseModel):
             else list(range(len(self.value)))
         )
 
-        molecule: Molecule = Molecule.from_smiles(
-            self.smiles, allow_undefined_stereo=True
-        )
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", category=AtomMappingWarning)
+            molecule: Molecule = Molecule.from_smiles(
+                self.smiles, allow_undefined_stereo=True
+            )
 
         total_charge = molecule.total_charge.m_as(unit.elementary_charge)
 
@@ -326,9 +343,11 @@ class LibraryChargeGenerator:
         assignment_matrix = numpy.zeros((molecule.n_atoms, n_total_charges))
 
         for parameter in charge_collection.parameters:
-            smiles_molecule: Molecule = Molecule.from_smiles(
-                parameter.smiles, allow_undefined_stereo=True
-            )
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore", category=AtomMappingWarning)
+                smiles_molecule: Molecule = Molecule.from_smiles(
+                    parameter.smiles, allow_undefined_stereo=True
+                )
 
             are_isomorphic, atom_map = Molecule.are_isomorphic(
                 molecule, smiles_molecule, return_atom_map=True

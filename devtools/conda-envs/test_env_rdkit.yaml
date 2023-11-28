@@ -1,7 +1,7 @@
 name: openff-recharge-test-rdkit
 channels:
   - jaimergp/label/unsupported-cudatoolkit-shim
-  - psi4
+  - conda-forge/label/libint_dev
   - conda-forge
 dependencies:
   - python
@@ -25,16 +25,16 @@ dependencies:
   - rdkit
 
     # ESP calculations
-  # psi4
+  - psi4 =1.8
 
     # XTB charges
   - xtb-python
-  - geometric <1
+  - geometric =1
   - qcengine >=0.25
   - qcelemental >=0.25.1
 
     # QCFractal integration.
-  - qcportal >=0.15.6, <0.50.0a0
+  - qcportal =0.15.6
 
   # Optimization
   - pytorch

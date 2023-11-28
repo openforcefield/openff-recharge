@@ -1,6 +1,8 @@
 import functools
 from typing import TYPE_CHECKING, Dict, List, Optional, Tuple
+import warnings
 
+from openff.toolkit.utils.exceptions import AtomMappingWarning
 import numpy
 from openff.units import unit
 
@@ -27,7 +29,9 @@ def _generate_dummy_values(smiles: str) -> List[float]:
 
     from openff.toolkit import Molecule
 
-    molecule: Molecule = Molecule.from_smiles(smiles, allow_undefined_stereo=True)
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", AtomMappingWarning)
+        molecule: Molecule = Molecule.from_smiles(smiles, allow_undefined_stereo=True)
 
     total_charge = molecule.total_charge.m_as(unit.elementary_charge)
     per_atom_charge = total_charge / molecule.n_atoms

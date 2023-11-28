@@ -12,8 +12,7 @@ from sqlalchemy import (
     String,
     UniqueConstraint,
 )
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import Query, Session, relationship
+from sqlalchemy.orm import Query, Session, relationship, declarative_base
 
 from openff.recharge.esp import ESPSettings, PCMSettings
 from openff.recharge.grids import GridSettingsType, LatticeGridSettings, MSKGridSettings

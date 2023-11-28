@@ -63,7 +63,7 @@ jobs:
       - name: Run Tests
         shell: bash -l {0}
         run: |
-          pytest -v --cov=openff openff/recharge/tests/ --cov-report=xml
+          pytest -v -n auto --cov=openff openff/recharge/_tests/ --cov-report=xml
 
       - name: CodeCov
         uses: codecov/codecov-action@v3

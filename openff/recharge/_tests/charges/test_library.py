@@ -10,7 +10,7 @@ from openff.recharge.charges.library import (
     LibraryChargeGenerator,
     LibraryChargeParameter,
 )
-from openff.recharge.tests import does_not_raise
+from openff.recharge._tests import does_not_raise
 
 
 @pytest.fixture()

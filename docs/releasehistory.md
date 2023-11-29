@@ -16,6 +16,7 @@ Releases follow the `major.minor.micro` scheme recommended by [PEP440](https://w
 * #147: Avoid internally throwing `AtomMappingWarning`
 * #148: Stage Pydantic v2 compatibility
 * #150: Move tests modules to private API
+* #151: Optionally generate Psi4 ESPs with multiple threads
 
 ## 0.5.0
 

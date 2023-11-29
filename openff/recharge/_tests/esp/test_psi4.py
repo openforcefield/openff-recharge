@@ -217,8 +217,11 @@ def test_generate_input_pcm():
     assert expected_output == input_contents
 
 
-@pytest.mark.parametrize("enable_pcm, minimize", [(False, True), (True, False)])
-def test_generate(enable_pcm, minimize):
+@pytest.mark.parametrize(
+    "enable_pcm, minimize, n_threads",
+    [(False, True, 1), (True, False, 1), (True, False, 2)],
+)
+def test_generate(enable_pcm, minimize, n_threads):
     """Perform a test run of Psi4."""
     pytest.importorskip("psi4")
 
@@ -245,7 +248,11 @@ def test_generate(enable_pcm, minimize):
     )
 
     output_conformer, grid, esp, electric_field = Psi4ESPGenerator.generate(
-        molecule, input_conformer, settings, minimize=minimize
+        molecule,
+        input_conformer,
+        settings,
+        minimize=minimize,
+        n_threads=n_threads,
     )
 
     assert grid.shape[0] > 0

@@ -111,6 +111,7 @@ class ESPGenerator(abc.ABC):
         minimize: bool,
         compute_esp: bool,
         compute_field: bool,
+        n_threads: int,
     ) -> Tuple[unit.Quantity, Optional[unit.Quantity], Optional[unit.Quantity]]:
         """The implementation of the public ``generate`` function which
         should return the ESP for the provided conformer.
@@ -155,6 +156,7 @@ class ESPGenerator(abc.ABC):
         minimize: bool = False,
         compute_esp: bool = True,
         compute_field: bool = True,
+        n_threads: int = 1,
     ) -> Tuple[
         unit.Quantity, unit.Quantity, Optional[unit.Quantity], Optional[unit.Quantity]
     ]:
@@ -202,6 +204,7 @@ class ESPGenerator(abc.ABC):
             minimize,
             compute_esp,
             compute_field,
+            n_threads,
         )
 
         return conformer, grid, esp, electric_field

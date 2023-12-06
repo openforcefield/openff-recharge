@@ -20,8 +20,11 @@ if TYPE_CHECKING:
     import qcportal.models
 
 
-QCFractalResults = List[
-    Tuple["qcelemental.models.Molecule", "qcportal.models.ResultRecord"]
+QCFractalResults = list[
+    tuple[
+        "qcelemental.models.Molecule",
+        "qcportal.record_models.BaseRecord",
+    ]
 ]
 QCFractalKeywords = Dict[str, "qcportal.models.KeywordSet"]
 
@@ -37,7 +40,7 @@ def _retrieve_result_records(
     paginating = True
     page_index = 0
 
-    client = qcportal.FractalClient()
+    client = qcportal.PortalClient("https://api.qcarchive.molssi.org:443/")
 
     while paginating:
         page_results = client.query_results(
@@ -47,7 +50,7 @@ def _retrieve_result_records(
         )
 
         results.extend(
-            [(page_result.get_molecule(), page_result) for page_result in page_results]
+            [(page_result.molecule, page_result) for page_result in page_results]
         )
 
         paginating = len(page_results) > 0
@@ -64,7 +67,7 @@ def _retrieve_result_records(
 
 def _process_result(
     result_tuple: Tuple[
-        "qcportal.models.ResultRecord",
+        "qcportal.record_models.BaseRecord",
         "qcelemental.models.Molecule",
         "qcportal.models.KeywordSet",
     ],

@@ -1,5 +1,16 @@
 import pytest
 
+# Ensure QCPortal is imported before any OpenEye modules, see
+# https://github.com/conda-forge/qcfractal-feedstock/issues/43
+import qcportal  # noqa
+
+
+@pytest.fixture
+def public_client():
+    """Setup a new connection to the public qcarchive client."""
+
+    return qcportal.PortalClient("https://api.qcarchive.molssi.org:443/")
+
 
 @pytest.fixture(scope="module")
 def pcm_input_string() -> str:

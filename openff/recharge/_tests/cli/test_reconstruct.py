@@ -16,7 +16,7 @@ from openff.toolkit._tests.utils import requires_openeye
 
 def test_retrieve_result_records():
     # noinspection PyTypeChecker
-    qc_results, qc_keywords = _retrieve_result_records(["1"])
+    qc_results, qc_keywords = _retrieve_result_records(32651863)
 
     assert len(qc_results) == 1
     assert len(qc_keywords) == 1

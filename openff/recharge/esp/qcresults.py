@@ -216,7 +216,7 @@ def compute_esp(
 
 @requires_package("qcportal")
 def from_qcportal_results(
-    qc_result: "qcportal.models.ResultRecord",
+    qc_result: "qcportal.record_models.BaseRecord",
     qc_molecule: "qcelemental.models.Molecule",
     qc_keyword_set: "qcportal.models.KeywordSet",
     grid_settings: GridSettingsType,

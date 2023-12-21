@@ -15,7 +15,7 @@ from openff.recharge.charges.vsite import (
     VirtualSiteCollection,
     VirtualSiteGenerator,
 )
-from openff.recharge.tests import does_not_raise
+from openff.recharge._tests import does_not_raise
 from openff.recharge.utilities.molecule import smiles_to_molecule
 
 pytest.importorskip("openff.toolkit")

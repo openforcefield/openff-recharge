@@ -20,41 +20,30 @@ if TYPE_CHECKING:
     import qcportal.models
 
 
-QCFractalResults = List[
-    Tuple["qcelemental.models.Molecule", "qcportal.models.ResultRecord"]
+QCFractalResults = list[
+    tuple[
+        "qcelemental.models.Molecule",
+        "qcportal.record_models.BaseRecord",
+    ]
 ]
 QCFractalKeywords = Dict[str, "qcportal.models.KeywordSet"]
 
 
 def _retrieve_result_records(
-    record_ids: List["qcportal.models.ObjectId"],
+    record_ids: List[int],
 ) -> Tuple[QCFractalResults, QCFractalKeywords]:
     import qcportal
 
     # Pull down the individual result records.
-    results = []
+    client = qcportal.PortalClient("https://api.qcarchive.molssi.org:443/")
 
-    paginating = True
-    page_index = 0
-
-    client = qcportal.FractalClient()
-
-    while paginating:
-        page_results = client.query_results(
-            id=record_ids,
-            limit=client.server_info["query_limit"],
-            skip=page_index,
-        )
-
-        results.extend(
-            [(page_result.get_molecule(), page_result) for page_result in page_results]
-        )
-
-        paginating = len(page_results) > 0
-        page_index += client.server_info["query_limit"]
+    results = client.query_records(
+        id=record_ids,
+        limit=client.server_info["api_limits"]["get_records"],
+    )
 
     # Fetch the corresponding record keywords.
-    keyword_ids = list({result.keywords for (_, result) in results})
+    keyword_ids = list({result.specification.keywords for (_, result) in results})
     keywords = {
         keyword_id: client.query_keywords(keyword_id)[0] for keyword_id in keyword_ids
     }
@@ -64,7 +53,7 @@ def _retrieve_result_records(
 
 def _process_result(
     result_tuple: Tuple[
-        "qcportal.models.ResultRecord",
+        "qcportal.record_models.BaseRecord",
         "qcelemental.models.Molecule",
         "qcportal.models.KeywordSet",
     ],
@@ -98,7 +87,11 @@ def _process_result(
     help="The number of processes to compute the ESP across.",
     show_default=True,
 )
-def reconstruct(record_ids_path: str, grid_settings_path: str, n_processors: int):
+def reconstruct(
+    record_ids_path: str,
+    grid_settings_path: str,
+    n_processors: int,
+):
     import openeye
     import psi4
     import qcelemental

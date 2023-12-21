@@ -4,7 +4,7 @@ from openff.units import unit
 
 from openff.recharge.conformers import ConformerGenerator, ConformerSettings
 from openff.recharge.grids import GridGenerator, LatticeGridSettings, MSKGridSettings
-from openff.recharge.tests.data import (
+from openff.recharge._tests.data import (
     ARGON_FCC_GRID,
     UNIT_CONNOLLY_SPHERE,
     WATER_MSK_GRID,

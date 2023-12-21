@@ -15,10 +15,8 @@ from openff.toolkit._tests.utils import requires_openeye
 
 
 def test_retrieve_result_records():
-    pytest.importorskip("qcportal")
-
     # noinspection PyTypeChecker
-    qc_results, qc_keywords = _retrieve_result_records(["1"])
+    qc_results, qc_keywords = _retrieve_result_records(32651863)
 
     assert len(qc_results) == 1
     assert len(qc_keywords) == 1
@@ -28,7 +26,6 @@ def test_retrieve_result_records():
 @requires_openeye
 def test_reconstruct(runner, monkeypatch):
     pytest.importorskip("psi4")
-    pytest.importorskip("qcportal")
 
     # Mock the multiprocessing call to return a dummy ESP record for a faster test.
     def mock_imap(_, func, iterable):

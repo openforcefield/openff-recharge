@@ -4,7 +4,7 @@ from openff.toolkit import Molecule
 from openff.toolkit.utils import UndefinedStereochemistryError
 from openff.units import unit
 
-from openff.recharge.tests import does_not_raise
+from openff.recharge._tests import does_not_raise
 from openff.recharge.utilities.molecule import (
     extract_conformers,
     find_ring_bonds,

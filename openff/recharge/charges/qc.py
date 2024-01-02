@@ -175,7 +175,7 @@ class QCChargeGenerator:
                 ),
             ), f"QUACPAC failed to generate {settings.theory} charges"
         elif settings.theory == "am1bcc":
-            oequacpac.OEAssignCharges(
+            assert oequacpac.OEAssignCharges(
                 oe_molecule,
                 oequacpac.OEAM1BCCCharges(
                     optimize=settings.optimize, symmetrize=settings.symmetrize

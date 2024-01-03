@@ -108,7 +108,7 @@ def main():
         # Car Aromatic carbon
         "16": "[#6a:1]",
         # N3hdeloc Trivalent nitrogen with a highly delocalized lone pair
-        "23": "[#7X3ar5,#7X3+1,#7X3+0$(*-[#6X3$(*=[#7X3+1])]),$([#7X3](-[#8X1-1])=[#8X1]),$([#7X3](=[#8X1])=[#8X1]):1]",  # noqa
+        "23": "[#7X3ar5,#7X3+1,#7X3+0$(*-[#6X3$(*=[#7X3+1])]),$([#7X3](-[#8X1-1])=[#8X1]),$([#7X3](=[#8X1])=[#8X1]):1]",
         # N3deloc Trivalent nitrogen with a delocalized lone pair
         "22": "[#7X2-1$(*-[#6X3$(*=[#8X1,#16X1])]),#7X3$(*-[#6X3$(*=[#8X1,#16X1])]):1]",
         # N2,3,4 Amine nitrogen

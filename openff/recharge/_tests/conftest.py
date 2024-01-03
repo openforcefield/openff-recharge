@@ -2,7 +2,7 @@ import pytest
 
 # Ensure QCPortal is imported before any OpenEye modules, see
 # https://github.com/conda-forge/qcfractal-feedstock/issues/43
-import qcportal  # noqa
+import qcportal
 
 
 @pytest.fixture

@@ -20,12 +20,11 @@ def test_from_qcportal_results(with_field, public_client):
     qc_result: qcportal.singlepoint.SinglepointRecord = [
         *public_client.query_records(record_id="32651863")
     ][0]
-    qc_keyword_set = public_client.query_keywords(id=ObjectId("2"))[0]  # noqa
 
     esp_record = from_qcportal_results(
         qc_result=qc_result,
         qc_molecule=qc_result.molecule,
-        qc_keyword_set=qc_keyword_set,
+        qc_keyword_set=qc_result.specification.keywords,
         grid_settings=LatticeGridSettings(spacing=2.0),
         compute_field=with_field,
     )

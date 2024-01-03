@@ -110,7 +110,7 @@ def reconstruct_density(
     """
 
     # Reconstruct the density in CCA order
-    orbitals = getattr(wavefunction, wavefunction.orbitals_a)
+    orbitals = wavefunction.scf_orbitals_a
     density = numpy.dot(orbitals[:, :n_alpha], orbitals[:, :n_alpha].T)
 
     # Re-order the density matrix to match the ordering expected by psi4.
@@ -218,7 +218,7 @@ def compute_esp(
 def from_qcportal_results(
     qc_result: "qcportal.record_models.BaseRecord",
     qc_molecule: "qcelemental.models.Molecule",
-    qc_keyword_set: "qcportal.models.KeywordSet",
+    qc_keyword_set: dict,
     grid_settings: GridSettingsType,
     compute_field: bool = True,
 ) -> MoleculeESPRecord:
@@ -254,13 +254,16 @@ def from_qcportal_results(
 
     # Retrieve the wavefunction and use it to reconstruct the electron density.
     wavefunction = WavefunctionProperties(
-        **qc_result.get_wavefunction(
-            ["scf_eigenvalues_a", "scf_orbitals_a", "basis", "restricted"]
-        ),
-        **qc_result.wavefunction["return_map"],
+        **{
+            key: getattr(qc_result.wavefunction, key)
+            for key in ["scf_eigenvalues_a", "scf_orbitals_a", "basis", "restricted"]
+        }
     )
 
-    density = reconstruct_density(wavefunction, qc_result.properties.calcinfo_nalpha)
+    density = reconstruct_density(
+        wavefunction=wavefunction,
+        n_alpha=qc_result.properties["calcinfo_nalpha"],
+    )
 
     # Convert the OE molecule to a QC molecule and extract the conformer of
     # interest.
@@ -277,16 +280,14 @@ def from_qcportal_results(
     grid = GridGenerator.generate(molecule, conformer, grid_settings)
 
     # Retrieve the ESP settings from the record.
-    enable_pcm = "pcm" in qc_keyword_set.values
+    enable_pcm = "pcm" in qc_keyword_set.values()
 
     esp_settings = ESPSettings(
-        basis=qc_result.basis,
-        method=qc_result.method,
+        basis=qc_result.specification.basis,
+        method=qc_result.specification.method,
         grid_settings=grid_settings,
         pcm_settings=(
-            None
-            if not enable_pcm
-            else _parse_pcm_input(qc_keyword_set.values["pcm__input"])
+            None if not enable_pcm else _parse_pcm_input(qc_keyword_set["pcm__input"])
         ),
     )
 

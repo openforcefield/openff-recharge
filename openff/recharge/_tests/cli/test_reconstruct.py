@@ -18,9 +18,8 @@ def test_retrieve_result_records():
     # noinspection PyTypeChecker
     qc_results, qc_keywords = _retrieve_result_records(32651863)
 
-    assert len(qc_results) == 1
-    assert len(qc_keywords) == 1
-    assert "1" in qc_keywords
+    assert len([*qc_results]) == 1
+    assert len([*qc_keywords]) == 1
 
 
 @requires_openeye

@@ -1,7 +1,7 @@
 """Load, manipulate and query OpenFF molecules"""
 from typing import TYPE_CHECKING, Dict, List, Tuple, cast
 
-from openff.units import unit
+from openff.units import Quantity
 
 if TYPE_CHECKING:
     from openff.toolkit import Molecule
@@ -32,7 +32,7 @@ def smiles_to_molecule(smiles: str, guess_stereochemistry: bool = False) -> "Mol
         if not guess_stereochemistry:
             raise
 
-        molecule: Molecule = Molecule.from_smiles(smiles, allow_undefined_stereo=True)
+        molecule = Molecule.from_smiles(smiles, allow_undefined_stereo=True)
 
         stereoisomers = molecule.enumerate_stereoisomers(
             undefined_only=True, max_isomers=1
@@ -69,7 +69,7 @@ def find_ring_bonds(molecule: "Molecule") -> Dict[Tuple[int, int], bool]:
     return is_in_ring
 
 
-def extract_conformers(molecule: "Molecule") -> List[unit.Quantity]:
+def extract_conformers(molecule: "Molecule") -> List[Quantity]:
     """Extracts the conformers of a molecule.
 
     Parameters

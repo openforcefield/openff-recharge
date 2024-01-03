@@ -5,7 +5,7 @@ import re
 from typing import TYPE_CHECKING, Optional, Tuple
 
 import numpy
-from openff.units import unit
+from openff.units import unit, Quantity
 from openff.utilities import requires_package
 from openff.recharge._pydantic import ValidationError
 
@@ -158,9 +158,9 @@ def compute_esp(
     qc_molecule: "qcelemental.models.Molecule",
     density: numpy.ndarray,
     esp_settings: ESPSettings,
-    grid: unit.Quantity,
+    grid: Quantity,
     compute_field: bool = True,
-) -> Tuple[unit.Quantity, Optional[unit.Quantity]]:
+) -> Tuple[Quantity, Optional[Quantity]]:
     """Computes the ESP and electric field for a particular molecule on
     a specified grid and using the specified settings.
 

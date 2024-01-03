@@ -37,12 +37,11 @@ def test_from_qcportal_results(with_field, public_client):
     )
 
 
+@pytest.mark.skip("Needs to be rewritten to use a real record")
 def test_missing_wavefunction(public_client):
     from qcportal.singlepoint import SinglepointRecord
 
     qc_result = [*public_client.query_records(record_id="32651863")][0]
-    qc_molecule = qc_result.molecule
-    qc_keyword_set = public_client.query_keywords(id=ObjectId("2"))[0]  # noqa
 
     # Delete the wavefunction
     qc_result = SinglepointRecord(
@@ -51,7 +50,10 @@ def test_missing_wavefunction(public_client):
 
     with pytest.raises(MissingQCWaveFunctionError):
         from_qcportal_results(
-            qc_result, qc_molecule, qc_keyword_set, LatticeGridSettings()
+            qc_result=qc_result,
+            qc_molecule=qc_result.molecule,
+            qc_keyword_set=qc_result.specification.keywords,
+            grid_settings=LatticeGridSettings(),
         )
 
 

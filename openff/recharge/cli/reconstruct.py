@@ -17,7 +17,7 @@ from openff.recharge.grids import GridSettings, GridSettingsType
 
 if TYPE_CHECKING:
     import qcelemental.models
-    import qcportal.models
+    import qcportal.record_models
 
 
 QCFractalResults = list[
@@ -31,22 +31,26 @@ QCFractalKeywords = Dict[str, "qcportal.models.KeywordSet"]
 
 def _retrieve_result_records(
     record_ids: List[int],
-) -> Tuple[QCFractalResults, QCFractalKeywords]:
+) -> tuple["qcportal.record_models.RecordQueryIterator", list[dict]]:
     import qcportal
 
     # Pull down the individual result records.
     client = qcportal.PortalClient("https://api.qcarchive.molssi.org:443/")
 
     results = client.query_records(
-        id=record_ids,
+        record_id=record_ids,
         limit=client.server_info["api_limits"]["get_records"],
     )
 
     # Fetch the corresponding record keywords.
-    keyword_ids = list({result.specification.keywords for (_, result) in results})
-    keywords = {
-        keyword_id: client.query_keywords(keyword_id)[0] for keyword_id in keyword_ids
-    }
+    # The iterator is depleted on its first unpacking, so need to re-query
+    keywords = [
+        result.specification.keywords
+        for result in client.query_records(
+            record_id=record_ids,
+            limit=client.server_info["api_limits"]["get_records"],
+        )
+    ]
 
     return results, keywords
 
@@ -119,7 +123,7 @@ def reconstruct(
                         for (qc_molecule, qc_result) in qc_results
                     ],
                 ),
-                total=len(qc_results),
+                total=len([*qc_results]),
             )
         )
 

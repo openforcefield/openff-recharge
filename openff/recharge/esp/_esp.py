@@ -3,7 +3,7 @@ import os
 from enum import Enum
 from typing import TYPE_CHECKING, Literal, Optional, Tuple
 
-from openff.units import unit
+from openff.units import Quantity
 from openff.recharge._pydantic import BaseModel, Field
 
 from openff.recharge.grids import GridGenerator, GridSettingsType
@@ -104,15 +104,15 @@ class ESPGenerator(abc.ABC):
     def _generate(
         cls,
         molecule: "Molecule",
-        conformer: unit.Quantity,
-        grid: unit.Quantity,
+        conformer: Quantity,
+        grid: Quantity,
         settings: ESPSettings,
         directory: str,
         minimize: bool,
         compute_esp: bool,
         compute_field: bool,
         n_threads: int,
-    ) -> Tuple[unit.Quantity, Optional[unit.Quantity], Optional[unit.Quantity]]:
+    ) -> Tuple[Quantity, Optional[Quantity], Optional[Quantity]]:
         """The implementation of the public ``generate`` function which
         should return the ESP for the provided conformer.
 
@@ -150,16 +150,14 @@ class ESPGenerator(abc.ABC):
     def generate(
         cls,
         molecule: "Molecule",
-        conformer: unit.Quantity,
+        conformer: Quantity,
         settings: ESPSettings,
         directory: str = None,
         minimize: bool = False,
         compute_esp: bool = True,
         compute_field: bool = True,
         n_threads: int = 1,
-    ) -> Tuple[
-        unit.Quantity, unit.Quantity, Optional[unit.Quantity], Optional[unit.Quantity]
-    ]:
+    ) -> Tuple[Quantity, Quantity, Optional[Quantity], Optional[Quantity]]:
         """Generate the electrostatic potential (ESP) on a grid defined by
         a provided set of settings.
 

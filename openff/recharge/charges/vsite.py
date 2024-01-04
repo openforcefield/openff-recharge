@@ -5,7 +5,7 @@ from collections import defaultdict
 from typing import TYPE_CHECKING, List, Literal, Optional, Tuple, Union, overload
 
 import numpy
-from openff.units import unit
+from openff.units import unit, Quantity
 from openff.utilities import requires_package
 from openff.recharge._pydantic import BaseModel, Field, constr, validator
 
@@ -736,8 +736,8 @@ class VirtualSiteGenerator:
         cls,
         molecule: "Molecule",
         vsite_collection: VirtualSiteCollection,
-        conformer: unit.Quantity,
-    ) -> unit.Quantity:
+        conformer: Quantity,
+    ) -> Quantity:
         """Computes the positions of a set of virtual sites relative to a provided
         molecule in a given conformer.
 

@@ -8,7 +8,7 @@ try:
         ValidationError,
     )
 except ModuleNotFoundError:
-    from pydantic import (
+    from pydantic import (  # type: ignore[assignment]
         BaseModel,
         Field,
         constr,

@@ -17,54 +17,47 @@ from openff.recharge.grids import GridSettings, GridSettingsType
 
 if TYPE_CHECKING:
     import qcelemental.models
-    import qcportal.models
+    import qcportal.record_models
 
 
-QCFractalResults = List[
-    Tuple["qcelemental.models.Molecule", "qcportal.models.ResultRecord"]
+QCFractalResults = list[
+    tuple[
+        "qcelemental.models.Molecule",
+        "qcportal.record_models.BaseRecord",
+    ]
 ]
 QCFractalKeywords = Dict[str, "qcportal.models.KeywordSet"]
 
 
 def _retrieve_result_records(
-    record_ids: List["qcportal.models.ObjectId"],
-) -> Tuple[QCFractalResults, QCFractalKeywords]:
+    record_ids: List[int],
+) -> tuple["qcportal.record_models.RecordQueryIterator", list[dict]]:
     import qcportal
 
     # Pull down the individual result records.
-    results = []
+    client = qcportal.PortalClient("https://api.qcarchive.molssi.org:443/")
 
-    paginating = True
-    page_index = 0
-
-    client = qcportal.FractalClient()
-
-    while paginating:
-        page_results = client.query_results(
-            id=record_ids,
-            limit=client.server_info["query_limit"],
-            skip=page_index,
-        )
-
-        results.extend(
-            [(page_result.get_molecule(), page_result) for page_result in page_results]
-        )
-
-        paginating = len(page_results) > 0
-        page_index += client.server_info["query_limit"]
+    results = client.query_records(
+        record_id=record_ids,
+        limit=client.server_info["api_limits"]["get_records"],
+    )
 
     # Fetch the corresponding record keywords.
-    keyword_ids = list({result.keywords for (_, result) in results})
-    keywords = {
-        keyword_id: client.query_keywords(keyword_id)[0] for keyword_id in keyword_ids
-    }
+    # The iterator is depleted on its first unpacking, so need to re-query
+    keywords = [
+        result.specification.keywords
+        for result in client.query_records(
+            record_id=record_ids,
+            limit=client.server_info["api_limits"]["get_records"],
+        )
+    ]
 
     return results, keywords
 
 
 def _process_result(
     result_tuple: Tuple[
-        "qcportal.models.ResultRecord",
+        "qcportal.record_models.BaseRecord",
         "qcelemental.models.Molecule",
         "qcportal.models.KeywordSet",
     ],
@@ -98,7 +91,11 @@ def _process_result(
     help="The number of processes to compute the ESP across.",
     show_default=True,
 )
-def reconstruct(record_ids_path: str, grid_settings_path: str, n_processors: int):
+def reconstruct(
+    record_ids_path: str,
+    grid_settings_path: str,
+    n_processors: int,
+):
     import openeye
     import psi4
     import qcelemental
@@ -126,7 +123,7 @@ def reconstruct(record_ids_path: str, grid_settings_path: str, n_processors: int
                         for (qc_molecule, qc_result) in qc_results
                     ],
                 ),
-                total=len(qc_results),
+                total=len([*qc_results]),
             )
         )
 

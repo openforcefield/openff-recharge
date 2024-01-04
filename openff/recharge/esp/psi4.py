@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING, Optional, Tuple
 
 import jinja2
 import numpy
-from openff.units import unit
+from openff.units import unit, Quantity
 from openff.units.elements import SYMBOLS
 from openff.utilities import get_data_file_path, temporary_cd
 
@@ -25,7 +25,7 @@ class Psi4ESPGenerator(ESPGenerator):
     def _generate_input(
         cls,
         molecule: "Molecule",
-        conformer: unit.Quantity,
+        conformer: Quantity,
         settings: ESPSettings,
         minimize: bool,
         compute_esp: bool,
@@ -124,15 +124,15 @@ class Psi4ESPGenerator(ESPGenerator):
     def _generate(
         cls,
         molecule: "Molecule",
-        conformer: unit.Quantity,
-        grid: unit.Quantity,
+        conformer: Quantity,
+        grid: Quantity,
         settings: ESPSettings,
         directory: str,
         minimize: bool,
         compute_esp: bool,
         compute_field: bool,
         n_threads: int,
-    ) -> Tuple[unit.Quantity, Optional[unit.Quantity], Optional[unit.Quantity]]:
+    ) -> Tuple[Quantity, Optional[Quantity], Optional[Quantity]]:
         # Perform the calculation in a temporary directory
         with temporary_cd(directory):
             # Store the input file.

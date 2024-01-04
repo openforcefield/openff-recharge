@@ -8,7 +8,7 @@ from contextlib import contextmanager
 from typing import TYPE_CHECKING, ContextManager, Dict, List, Optional
 
 import numpy
-from openff.units import unit
+from openff.units import unit, Quantity
 from openff.recharge._pydantic import BaseModel, Field
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
@@ -84,29 +84,29 @@ class MoleculeESPRecord(BaseModel):
     )
 
     @property
-    def conformer_quantity(self) -> unit.Quantity:
+    def conformer_quantity(self) -> Quantity:
         return self.conformer * unit.angstrom
 
     @property
-    def grid_coordinates_quantity(self) -> unit.Quantity:
+    def grid_coordinates_quantity(self) -> Quantity:
         return self.grid_coordinates * unit.angstrom
 
     @property
-    def esp_quantity(self) -> unit.Quantity:
+    def esp_quantity(self) -> Quantity:
         return self.esp * unit.hartree / unit.e
 
     @property
-    def electric_field_quantity(self) -> unit.Quantity:
+    def electric_field_quantity(self) -> Quantity:
         return self.electric_field * unit.hartree / (unit.bohr * unit.e)
 
     @classmethod
     def from_molecule(
         cls,
         molecule: "Molecule",
-        conformer: unit.Quantity,
-        grid_coordinates: unit.Quantity,
-        esp: unit.Quantity,
-        electric_field: Optional[unit.Quantity],
+        conformer: Quantity,
+        grid_coordinates: Quantity,
+        esp: Quantity,
+        electric_field: Optional[Quantity],
         esp_settings: ESPSettings,
     ) -> "MoleculeESPRecord":
         """Creates a new ``MoleculeESPRecord`` from an existing molecule

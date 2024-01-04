@@ -3,7 +3,7 @@ import logging
 from typing import TYPE_CHECKING, List, Literal, Optional
 
 import numpy
-from openff.units import unit
+from openff.units import unit, Quantity
 from openff.recharge._pydantic import BaseModel, Field
 
 from openff.recharge.conformers.exceptions import ConformerGenerationError
@@ -43,7 +43,7 @@ class ConformerGenerator:
         cls,
         molecule: "Molecule",
         settings: ConformerSettings,
-    ) -> List[unit.Quantity]:
+    ) -> List[Quantity]:
         oe_molecule = molecule.to_openeye()
 
         from openeye import oeomega, oequacpac
@@ -90,7 +90,7 @@ class ConformerGenerator:
         cls,
         molecule: "Molecule",
         settings: ConformerSettings,
-    ) -> List[unit.Quantity]:
+    ) -> List[Quantity]:
         """Generates a set of conformers for a given molecule.
 
         Notes

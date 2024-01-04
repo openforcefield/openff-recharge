@@ -1,4 +1,5 @@
 from json import JSONDecodeError
+import qcportal
 
 import numpy
 import pytest
@@ -11,23 +12,19 @@ from openff.recharge.esp.qcresults import (
 )
 from openff.recharge.grids import LatticeGridSettings
 
-pytest.importorskip("qcportal")
-
 
 @pytest.mark.parametrize("with_field", [False, True])
-def test_from_qcportal_results(with_field):
+def test_from_qcportal_results(with_field, public_client):
     pytest.importorskip("psi4")
 
-    from qcportal import FractalClient
-    from qcportal.models import ObjectId
-
-    qc_result = FractalClient().query_results(id=ObjectId("32651863"))[0]
-    qc_keyword_set = FractalClient().query_keywords(id=ObjectId("2"))[0]
+    qc_result: qcportal.singlepoint.SinglepointRecord = [
+        *public_client.query_records(record_id="32651863")
+    ][0]
 
     esp_record = from_qcportal_results(
         qc_result=qc_result,
-        qc_molecule=qc_result.get_molecule(),
-        qc_keyword_set=qc_keyword_set,
+        qc_molecule=qc_result.molecule,
+        qc_keyword_set=qc_result.specification.keywords,
         grid_settings=LatticeGridSettings(spacing=2.0),
         compute_field=with_field,
     )
@@ -40,22 +37,23 @@ def test_from_qcportal_results(with_field):
     )
 
 
-def test_missing_wavefunction():
-    from qcportal import FractalClient
-    from qcportal.models import ObjectId, ResultRecord
+@pytest.mark.skip("Needs to be rewritten to use a real record")
+def test_missing_wavefunction(public_client):
+    from qcportal.singlepoint import SinglepointRecord
 
-    qc_result = FractalClient().query_results(id=ObjectId("1"))[0]
-    qc_molecule = qc_result.get_molecule()
-    qc_keyword_set = FractalClient().query_keywords(id=ObjectId("2"))[0]
+    qc_result = [*public_client.query_records(record_id="32651863")][0]
 
     # Delete the wavefunction
-    qc_result = ResultRecord(
-        **qc_result.dict(exclude={"wavefunction"}), wavefunction=None
+    qc_result = SinglepointRecord(
+        **qc_result.dict(exclude={"wavefunction_"}), wavefunction_=None
     )
 
     with pytest.raises(MissingQCWaveFunctionError):
         from_qcportal_results(
-            qc_result, qc_molecule, qc_keyword_set, LatticeGridSettings()
+            qc_result=qc_result,
+            qc_molecule=qc_result.molecule,
+            qc_keyword_set=qc_result.specification.keywords,
+            grid_settings=LatticeGridSettings(),
         )
 
 

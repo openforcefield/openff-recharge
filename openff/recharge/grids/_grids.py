@@ -3,7 +3,7 @@ import itertools
 from typing import TYPE_CHECKING, Literal, Optional, Union
 
 import numpy
-from openff.units import unit
+from openff.units import unit, Quantity
 from openff.recharge._pydantic import BaseModel, Field
 
 from openff.recharge.utilities.pydantic import wrapped_float_validator
@@ -39,7 +39,7 @@ class LatticeGridSettings(BaseModel):
     )
 
     @property
-    def spacing_quantity(self) -> unit.Quantity:
+    def spacing_quantity(self) -> Quantity:
         return self.spacing * unit.angstrom
 
     _validate_spacing = wrapped_float_validator("spacing", unit.angstrom)
@@ -56,7 +56,7 @@ class MSKGridSettings(BaseModel):
     )
 
     @property
-    def density_quantity(self) -> unit.Quantity:
+    def density_quantity(self) -> Quantity:
         return self.density * unit.angstrom**-2
 
     _validate_density = wrapped_float_validator("density", unit.angstrom**-2)
@@ -281,9 +281,9 @@ class GridGenerator:
     def generate(
         cls,
         molecule: "Molecule",
-        conformer: unit.Quantity,
+        conformer: Quantity,
         settings: GridSettingsType,
-    ) -> unit.Quantity:
+    ) -> Quantity:
         """Generates a grid of points in a shell around a specified
         molecule in a given conformer according a set of settings.
 

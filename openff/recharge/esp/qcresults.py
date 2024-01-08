@@ -246,7 +246,6 @@ def from_qcportal_results(
     """
 
     from openff.toolkit import Molecule
-    from qcelemental.models.results import WavefunctionProperties
 
     # Compute and store the ESP and electric field for each result.
     if qc_result.wavefunction is None:

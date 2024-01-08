@@ -253,15 +253,8 @@ def from_qcportal_results(
         raise MissingQCWaveFunctionError(qc_result.id)
 
     # Retrieve the wavefunction and use it to reconstruct the electron density.
-    wavefunction = WavefunctionProperties(
-        **{
-            key: getattr(qc_result.wavefunction, key)
-            for key in ["scf_eigenvalues_a", "scf_orbitals_a", "basis", "restricted"]
-        }
-    )
-
     density = reconstruct_density(
-        wavefunction=wavefunction,
+        wavefunction=qc_result.wavefunction,
         n_alpha=qc_result.properties["calcinfo_nalpha"],
     )
 
@@ -280,7 +273,7 @@ def from_qcportal_results(
     grid = GridGenerator.generate(molecule, conformer, grid_settings)
 
     # Retrieve the ESP settings from the record.
-    enable_pcm = "pcm" in qc_keyword_set.values()
+    enable_pcm = bool(qc_keyword_set.get("pcm"))
 
     esp_settings = ESPSettings(
         basis=qc_result.specification.basis,

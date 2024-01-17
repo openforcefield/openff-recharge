@@ -35,18 +35,36 @@ def test_from_qcportal_results(with_field, public_client):
         if not with_field
         else not numpy.allclose(esp_record.electric_field, 0.0, rtol=1.0e-9)
     )
+    assert esp_record.esp_settings.pcm_settings is None
 
 
-@pytest.mark.skip("Needs to be rewritten to use a real record")
-def test_missing_wavefunction(public_client):
-    from qcportal.singlepoint import SinglepointRecord
+@pytest.mark.parametrize("with_field", [False, True])
+def test_from_qcportal_results_with_pcm(with_field, public_client):
+    pytest.importorskip("psi4")
 
-    qc_result = [*public_client.query_records(record_id="32651863")][0]
+    qc_result: qcportal.singlepoint.SinglepointRecord = [
+        *public_client.query_records(record_id="32652103")
+    ][0]
 
-    # Delete the wavefunction
-    qc_result = SinglepointRecord(
-        **qc_result.dict(exclude={"wavefunction_"}), wavefunction_=None
+    esp_record = from_qcportal_results(
+        qc_result=qc_result,
+        qc_molecule=qc_result.molecule,
+        qc_keyword_set=qc_result.specification.keywords,
+        grid_settings=LatticeGridSettings(spacing=2.0),
+        compute_field=with_field,
     )
+
+    assert not numpy.allclose(esp_record.esp, 0.0, rtol=1.0e-9)
+    assert (
+        esp_record.electric_field is None
+        if not with_field
+        else not numpy.allclose(esp_record.electric_field, 0.0, rtol=1.0e-9)
+    )
+    assert esp_record.esp_settings.pcm_settings.radii_model == "Bondi"
+
+
+def test_missing_wavefunction(public_client):
+    qc_result = [*public_client.query_records(record_id="109520248")][0]
 
     with pytest.raises(MissingQCWaveFunctionError):
         from_qcportal_results(

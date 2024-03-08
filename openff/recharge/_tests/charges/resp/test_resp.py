@@ -1,3 +1,4 @@
+import importlib
 from collections import defaultdict
 from typing import List
 
@@ -540,8 +541,15 @@ def test_generate_resp_charge_parameter(meoh_esp_sto3g, n_copies: int):
     """Make sure that we get the same charges, no matter how many times we use the
     same conformer as a smoke test, and compare to the psi4 resp plugin."""
 
-    expected_charges = [0.3148, 0.0285, -0.4825, 0.0822]
-    expected_smiles = "[H:1][O:3][C:4]([H:2])([H:2])[H:2]"
+    try:
+        importlib.import_module("openeye.oechem")
+
+        expected_smiles = "[H:1][C:3]([H:1])([H:1])[O:4][H:2]"
+        expected_charges = [0.0285, 0.3148, 0.0822, -0.4825]
+
+    except ModuleNotFoundError:
+        expected_charges = [0.3148, 0.0285, -0.4825, 0.0822]
+        expected_smiles = "[H:1][O:3][C:4]([H:2])([H:2])[H:2]"
 
     solver = IterativeSolver()
 

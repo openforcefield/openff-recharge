@@ -1,4 +1,5 @@
 """Generate partial for molecules from a QC calculation."""
+
 import copy
 from typing import TYPE_CHECKING, List, Literal, cast
 

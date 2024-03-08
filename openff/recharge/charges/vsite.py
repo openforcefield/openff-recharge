@@ -657,8 +657,7 @@ class VirtualSiteGenerator:
         local_frame_coordinates: numpy.ndarray,
         local_coordinate_frames: numpy.ndarray,
         backend: Literal["numpy"],
-    ) -> numpy.ndarray:
-        ...
+    ) -> numpy.ndarray: ...
 
     @classmethod
     @overload
@@ -667,8 +666,7 @@ class VirtualSiteGenerator:
         local_frame_coordinates: "torch.Tensor",
         local_coordinate_frames: "torch.Tensor",
         backend: Literal["torch"],
-    ) -> "torch.Tensor":
-        ...
+    ) -> "torch.Tensor": ...
 
     @classmethod
     def convert_local_coordinates(

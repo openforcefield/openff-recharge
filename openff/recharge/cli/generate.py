@@ -43,7 +43,7 @@ def _compute_esp(
     # Generate a set of conformers for the molecule.
     try:
         conformers = ConformerGenerator.generate(molecule, conformer_settings)
-    except BaseException:
+    except Exception:
         _logger.exception(f"Coordinates could not be generated for {smiles}.")
         return []
 

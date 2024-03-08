@@ -5,6 +5,7 @@ Notes
 Most of the classes in the module are based off of the discussion here:
 https://github.com/samuelcolvin/pydantic/issues/380
 """
+
 from typing import Any, cast
 
 import numpy

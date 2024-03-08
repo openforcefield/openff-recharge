@@ -7,6 +7,7 @@ References
     high-quality atomic charges. AM1-BCC model: II. Parameterization and validation.
     Journal of computational chemistry, 23(16), 1623–1641.
 """
+
 import json
 import logging
 from typing import Dict, List

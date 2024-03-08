@@ -1,4 +1,5 @@
 """A module for generating conformers for molecules."""
+
 import logging
 from typing import TYPE_CHECKING, List, Literal, Optional
 

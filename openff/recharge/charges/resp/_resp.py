@@ -1,9 +1,9 @@
 import functools
-from typing import TYPE_CHECKING, Dict, List, Optional, Tuple
 import warnings
+from typing import TYPE_CHECKING, Dict, List, Optional, Tuple
 
-from openff.toolkit.utils.exceptions import AtomMappingWarning
 import numpy
+from openff.toolkit.utils.exceptions import AtomMappingWarning
 from openff.units import unit
 
 from openff.recharge.charges.library import (
@@ -354,9 +354,11 @@ def _canonicalize_smiles(smiles: str) -> str:
 
     from openff.toolkit import Molecule
 
-    return Molecule.from_smiles(smiles, allow_undefined_stereo=True).to_smiles(
-        mapped=False
-    )
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", AtomMappingWarning)
+        return Molecule.from_smiles(smiles, allow_undefined_stereo=True).to_smiles(
+            mapped=False
+        )
 
 
 def generate_resp_charge_parameter(
@@ -456,6 +458,7 @@ def generate_resp_charge_parameter(
         a,
         b,
         restraint_indices_1,
+        len(qc_data_records),
     )
 
     resp_parameter_1.value = (
@@ -511,6 +514,7 @@ def generate_resp_charge_parameter(
         a,
         b,
         restraint_indices_2,
+        len(qc_data_records),
     )
 
     for array_index, value_index in charge_map.items():

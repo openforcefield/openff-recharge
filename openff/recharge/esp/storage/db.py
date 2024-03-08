@@ -1,4 +1,5 @@
 """Utilities for storing data in a SQLite database"""
+
 import abc
 import math
 from typing import TypeVar

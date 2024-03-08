@@ -25,9 +25,7 @@ class TestRESPNonLinearSolver:
         )
         assert loss.shape == ()
 
-        expected_loss = (2.0**2 + 4.0**2) + (  # chi_esp
-            6.0 * (5.0 - 4.0)
-        )  # chi_restr
+        expected_loss = (2.0**2 + 4.0**2) + (6.0 * (5.0 - 4.0))  # chi_esp, chi_restr
 
         assert numpy.isclose(loss, expected_loss)
 

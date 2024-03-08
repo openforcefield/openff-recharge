@@ -1,5 +1,6 @@
 """A script to compare this frameworks AM1BCC implementation with the
 built-in OpenEye implementation."""
+
 import json
 import logging
 import warnings
@@ -61,7 +62,7 @@ def load_molecule(smiles: str) -> Tuple[bool, List[str]]:
 
         return True, [bcc.provenance["code"] for bcc in corrections]
 
-    except BaseException:  # lgtm [py/catch-base-exception]
+    except Exception:
         return False, []
 
 
@@ -99,7 +100,7 @@ def validate_molecule(smiles: str) -> Tuple[str, bool, bool]:
     except ChargeAssignmentError:
         tqdm.write(f"could not generate charges for {smiles}")
         return smiles, True, False
-    except BaseException:  # lgtm [py/catch-base-exception]
+    except Exception:
         tqdm.write(f"unexpected error for {smiles}")
         return smiles, True, False
 

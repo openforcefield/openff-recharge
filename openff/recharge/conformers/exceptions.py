@@ -1,4 +1,5 @@
 """Exceptions raised when generating conformers"""
+
 from openff.recharge.utilities.exceptions import RechargeException
 
 

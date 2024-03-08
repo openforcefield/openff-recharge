@@ -315,9 +315,11 @@ class ObjectiveTerm(abc.ABC):
             vsite_coordinates = VirtualSiteGenerator.convert_local_coordinates(
                 vsite_local_coordinates,
                 self.vsite_local_coordinate_frame,
-                backend="numpy"
-                if isinstance(vsite_local_coordinates, numpy.ndarray)
-                else "torch",
+                backend=(
+                    "numpy"
+                    if isinstance(vsite_local_coordinates, numpy.ndarray)
+                    else "torch"
+                ),
             )
 
             n_vsite_charges = self.vsite_charge_assignment_matrix.shape[1]

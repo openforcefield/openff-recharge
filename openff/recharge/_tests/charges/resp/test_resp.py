@@ -5,7 +5,7 @@ from typing import List
 import numpy
 import pytest
 from openff.toolkit import Molecule
-from openff.units import unit
+from openff.units import unit, Quantity
 
 from openff.recharge.charges.library import LibraryChargeParameter
 from openff.recharge.charges.resp._resp import (
@@ -75,16 +75,19 @@ def meoh_esp_sto3g() -> MoleculeESPRecord:
 
     mol = Molecule.from_mapped_smiles("[C:1]([O:2][H:6])([H:3])([H:4])[H:5]")
 
-    # fmt: off
-    input_conformer = numpy.array(
-        [[-0.3507534772694063, -0.005072983373261072, -0.01802813259570673],
-         [ 0.9643704239531461, -0.362402385308100760, -0.26011999900333500],
-         [-0.5984566510608367,  0.061649323412126030,  1.05237343039367470],
-         [-0.9862545465164105, -0.815675279603002200, -0.46260343550818340],
-         [-0.6578568673402391,  0.926898309244869800, -0.50107705552408850],
-         [ 1.6289511182337486,  0.194603015627369500,  0.18945519223763901]]
-    ) * unit.angstrom
-    # fmt: on
+    input_conformer = Quantity(
+        numpy.array(
+            [
+                [-0.3507534772694063, -0.005072983373261072, -0.01802813259570673],
+                [0.9643704239531461, -0.362402385308100760, -0.26011999900333500],
+                [-0.5984566510608367, 0.061649323412126030, 1.05237343039367470],
+                [-0.9862545465164105, -0.815675279603002200, -0.46260343550818340],
+                [-0.6578568673402391, 0.926898309244869800, -0.50107705552408850],
+                [1.6289511182337486, 0.194603015627369500, 0.18945519223763901],
+            ],
+        ),
+        unit.angstrom,
+    )
 
     conformer, grid, esp, electric_field = Psi4ESPGenerator.generate(
         mol,

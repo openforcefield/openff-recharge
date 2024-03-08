@@ -1,4 +1,5 @@
 """Uniform API for performing common cheminformatics tasks / queries"""
+
 from enum import Enum
 from typing import TYPE_CHECKING, Dict, List, Tuple, cast
 

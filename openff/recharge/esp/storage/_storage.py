@@ -1,6 +1,7 @@
 """This module contains classes which are able to store and retrieve
 calculated electrostatic potentials in unified data collections.
 """
+
 import warnings
 import functools
 from collections import defaultdict
@@ -287,9 +288,11 @@ class MoleculeESPStore:
                     grid_settings=DBGridSettings.db_to_instance(
                         db_conformer.grid_settings
                     ),
-                    pcm_settings=None
-                    if not db_conformer.pcm_settings
-                    else DBPCMSettings.db_to_instance(db_conformer.pcm_settings),
+                    pcm_settings=(
+                        None
+                        if not db_conformer.pcm_settings
+                        else DBPCMSettings.db_to_instance(db_conformer.pcm_settings)
+                    ),
                 ),
             )
             for db_record in db_records
@@ -334,9 +337,11 @@ class MoleculeESPStore:
                 grid_settings=DBGridSettings.unique(
                     db, record.esp_settings.grid_settings
                 ),
-                pcm_settings=None
-                if not record.esp_settings.pcm_settings
-                else DBPCMSettings.unique(db, record.esp_settings.pcm_settings),
+                pcm_settings=(
+                    None
+                    if not record.esp_settings.pcm_settings
+                    else DBPCMSettings.unique(db, record.esp_settings.pcm_settings)
+                ),
                 esp_settings=DBESPSettings.unique(db, record.esp_settings),
             )
             for record in records

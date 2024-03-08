@@ -1,4 +1,5 @@
 """Generate partial charges for molecules from a collection of library parameters."""
+
 from collections import defaultdict
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple
 import warnings

@@ -2,7 +2,7 @@ ci:
     autoupdate_schedule: quarterly
 repos:
 - repo: https://github.com/psf/black
-  rev: 24.2.0
+  rev: 24.3.0
   hooks:
   - id: black
 - repo: https://github.com/PyCQA/flake8
@@ -19,14 +19,14 @@ repos:
   hooks:
     - id: yesqa
 - repo: https://github.com/asottile/pyupgrade
-  rev: v3.15.1
+  rev: v3.15.2
   hooks:
   - id: pyupgrade
     exclude: openff/recharge/_version.py|setup.py
     args:
     - --py38-plus
 - repo: https://github.com/nbQA-dev/nbQA
-  rev: 1.8.4
+  rev: 1.8.5
   hooks:
   - id: nbqa-pyupgrade
     files: ^examples
@@ -40,7 +40,7 @@ repos:
   - id: nbstripout
     files: ^examples
 - repo: https://github.com/nbQA-dev/nbQA
-  rev: 1.8.4
+  rev: 1.8.5
   hooks:
   - id: nbqa-isort
   - id: nbqa-flake8

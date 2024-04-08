@@ -342,6 +342,14 @@ def test_combine_terms(objective_class, backend, hcl_parameters):
     combined_term = objective_class._objective_term().combine(*objective_terms)
     combined_loss = combined_term.loss(charge_values, coordinate_values)
 
+    # Cast to scalar since some auto-conversion is deprecated, and different API with torch
+    if backend == "numpy":
+        summed_loss = summed_loss.item(0)
+        combined_loss = combined_loss.item(0)
+    elif backend == "torch":
+        summed_loss = summed_loss.item()
+        combined_loss = combined_loss.item()
+
     assert numpy.isclose(float(summed_loss), float(combined_loss))
 
 

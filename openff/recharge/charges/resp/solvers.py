@@ -135,8 +135,10 @@ class RESPNonLinearSolver(abc.ABC):
                         if i not in restraint_indices
                         else float(
                             constraint_matrix[0, i]
-                            * beta[i]
-                            / numpy.sqrt(beta[i] * beta[i] + restraint_b * restraint_b)
+                            * beta[i].item(0)
+                            / numpy.sqrt(
+                                beta[i] * beta[i] + restraint_b * restraint_b
+                            ).item(0)
                         )
                     )
                     for i in range(len(beta))
@@ -349,6 +351,8 @@ class IterativeSolver(RESPNonLinearSolver):
         restraint_indices: list[int],
         n_conformers: int,
     ):
+        beta = beta.reshape(-1, 1)
+
         b_matrix = (
             numpy.eye(design_matrix.shape[1])
             * numpy.array(
@@ -360,7 +364,7 @@ class IterativeSolver(RESPNonLinearSolver):
                         if i in restraint_indices
                         else 0.0
                     )
-                    for i, value in enumerate(beta)
+                    for i, value in enumerate(beta.flatten())
                 ]
             )
             * n_conformers

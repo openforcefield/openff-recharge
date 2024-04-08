@@ -1,25 +1,24 @@
 import os.path
 
 import numpy
-from pkg_resources import resource_filename
+
+from importlib_resources import files
 
 UNIT_CONNOLLY_SPHERE = numpy.genfromtxt(
-    resource_filename(
+    files(
         "openff.recharge",
-        os.path.join("_tests", "data", "grids", "unit-connolly-sphere.txt"),
-    ),
+    )
+    / os.path.join("_tests", "data", "grids", "unit-connolly-sphere.txt"),
     delimiter=" ",
 )
 
 ARGON_FCC_GRID = numpy.genfromtxt(
-    resource_filename(
-        "openff.recharge", os.path.join("_tests", "data", "grids", "argon-fcc-grid.txt")
-    ),
+    files("openff.recharge")
+    / os.path.join("_tests", "data", "grids", "argon-fcc-grid.txt"),
     delimiter=" ",
 )
 WATER_MSK_GRID = numpy.genfromtxt(
-    resource_filename(
-        "openff.recharge", os.path.join("_tests", "data", "grids", "water-msk-grid.txt")
-    ),
+    files("openff.recharge")
+    / os.path.join("_tests", "data", "grids", "water-msk-grid.txt"),
     delimiter=" ",
 )

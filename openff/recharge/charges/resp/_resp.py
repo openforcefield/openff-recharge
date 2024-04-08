@@ -172,7 +172,9 @@ def _deduplicate_constraints(
             continue
 
         deduplicated_rows.append(constraint_row)
-        deduplicated_values.append([float(constraint_value)])
+
+        assert constraint_value.shape == (1,)
+        deduplicated_values.append([float(constraint_value[0])])
 
         found_constraints.add(constraint_row)
 
@@ -518,6 +520,6 @@ def generate_resp_charge_parameter(
     )
 
     for array_index, value_index in charge_map.items():
-        resp_parameter_2.value[value_index] = float(resp_charges_2[array_index])
+        resp_parameter_2.value[value_index] = float(resp_charges_2[array_index].item(0))
 
     return resp_parameter_2

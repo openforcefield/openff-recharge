@@ -1,7 +1,7 @@
 """Uniform API for performing common cheminformatics tasks / queries"""
 
 from enum import Enum
-from typing import TYPE_CHECKING, Dict, List, Tuple, cast
+from typing import TYPE_CHECKING, cast
 
 import numpy
 from openff.toolkit.utils import ToolkitUnavailableException
@@ -18,19 +18,19 @@ class VdWRadiiType(Enum):
     Bondi = "Bondi"
 
 
-def _bond_key(index_a: int, index_b: int) -> Tuple[int, int]:
-    return cast(Tuple[int, int], tuple(sorted((index_a, index_b))))
+def _bond_key(index_a: int, index_b: int) -> tuple[int, int]:
+    return cast(tuple[int, int], tuple(sorted((index_a, index_b))))
 
 
 @requires_oe_module("oechem")
 def _oe_match_smirks(
     smirks: str,
     molecule: "Molecule",
-    is_atom_aromatic: Dict[int, bool],
-    is_bond_aromatic: Dict[Tuple[int, int], bool],
+    is_atom_aromatic: dict[int, bool],
+    is_bond_aromatic: dict[tuple[int, int], bool],
     unique: bool,
     kekulize: bool = False,
-) -> List[Dict[int, int]]:
+) -> list[dict[int, int]]:
     from openeye import oechem
 
     oe_molecule = molecule.to_openeye()
@@ -70,11 +70,11 @@ def _oe_match_smirks(
 def _rd_match_smirks(
     smirks: str,
     molecule: "Molecule",
-    is_atom_aromatic: Dict[int, bool],
-    is_bond_aromatic: Dict[Tuple[int, int], bool],
+    is_atom_aromatic: dict[int, bool],
+    is_bond_aromatic: dict[tuple[int, int], bool],
     unique: bool,
     kekulize: bool = False,
-) -> List[Dict[int, int]]:
+) -> list[dict[int, int]]:
     from rdkit import Chem
 
     rd_molecule: Chem.Mol = molecule.to_rdkit()
@@ -117,11 +117,11 @@ def _rd_match_smirks(
 def match_smirks(
     smirks: str,
     molecule: "Molecule",
-    is_atom_aromatic: Dict[int, bool],
-    is_bond_aromatic: Dict[Tuple[int, int], bool],
+    is_atom_aromatic: dict[int, bool],
+    is_bond_aromatic: dict[tuple[int, int], bool],
     unique: bool = False,
     kekulize: bool = False,
-) -> List[Dict[int, int]]:
+) -> list[dict[int, int]]:
     """Attempt to find the indices (optionally unique) of all atoms which
     match a particular SMIRKS pattern.
 
@@ -206,7 +206,7 @@ def compute_vdw_radii(
 @requires_oe_module("oechem")
 def _oe_apply_mdl_aromaticity_model(
     molecule: "Molecule",
-) -> Tuple[Dict[int, bool], Dict[Tuple[int, int], bool]]:
+) -> tuple[dict[int, bool], dict[tuple[int, int], bool]]:
     oe_molecule = molecule.to_openeye()
 
     from openeye import oechem
@@ -228,7 +228,7 @@ def _oe_apply_mdl_aromaticity_model(
 @requires_package("rdkit")
 def _rd_apply_mdl_aromaticity_model(
     molecule: "Molecule",
-) -> Tuple[Dict[int, bool], Dict[Tuple[int, int], bool]]:
+) -> tuple[dict[int, bool], dict[tuple[int, int], bool]]:
     rd_molecule = molecule.to_rdkit()
 
     from rdkit import Chem
@@ -248,7 +248,7 @@ def _rd_apply_mdl_aromaticity_model(
 
 def apply_mdl_aromaticity_model(
     molecule: "Molecule",
-) -> Tuple[Dict[int, bool], Dict[Tuple[int, int], bool]]:
+) -> tuple[dict[int, bool], dict[tuple[int, int], bool]]:
     """Returns whether each atom and bond in a molecule is aromatic or not according
     to the MDL aromaticity model.
 
@@ -274,7 +274,7 @@ def apply_mdl_aromaticity_model(
 
 
 @requires_oe_module("oechem")
-def _oe_get_atom_symmetries(molecule: "Molecule") -> List[int]:
+def _oe_get_atom_symmetries(molecule: "Molecule") -> list[int]:
     from openeye import oechem
 
     oe_mol = molecule.to_openeye()
@@ -287,14 +287,14 @@ def _oe_get_atom_symmetries(molecule: "Molecule") -> List[int]:
 
 
 @requires_package("rdkit")
-def _rd_get_atom_symmetries(molecule: "Molecule") -> List[int]:
+def _rd_get_atom_symmetries(molecule: "Molecule") -> list[int]:
     from rdkit import Chem
 
     rd_mol = molecule.to_rdkit()
     return list(Chem.CanonicalRankAtoms(rd_mol, breakTies=False))
 
 
-def get_atom_symmetries(molecule: "Molecule") -> List[int]:
+def get_atom_symmetries(molecule: "Molecule") -> list[int]:
     """Returns indices that describe which atoms in a molecule a topologically
     symmetrical.
 
@@ -320,11 +320,11 @@ def get_atom_symmetries(molecule: "Molecule") -> List[int]:
 
 
 @requires_oe_module("oechem")
-def _oe_molecule_to_tagged_smiles(molecule: "Molecule", indices: List[int]) -> str:
+def _oe_molecule_to_tagged_smiles(molecule: "Molecule", indices: list[int]) -> str:
     from openeye import oechem
 
     oe_mol: oechem.OEMol = molecule.to_openeye()
-    oe_atoms: Dict[int, oechem.OEAtomBase] = {
+    oe_atoms: dict[int, oechem.OEAtomBase] = {
         oe_atom.GetIdx(): oe_atom for oe_atom in oe_mol.GetAtoms()
     }
 
@@ -335,11 +335,11 @@ def _oe_molecule_to_tagged_smiles(molecule: "Molecule", indices: List[int]) -> s
 
 
 @requires_package("rdkit")
-def _rd_molecule_to_tagged_smiles(molecule: "Molecule", indices: List[int]) -> str:
+def _rd_molecule_to_tagged_smiles(molecule: "Molecule", indices: list[int]) -> str:
     from rdkit import Chem
 
     rd_mol: Chem.Mol = molecule.to_rdkit()
-    rd_atoms: Dict[int, Chem.Atom] = {
+    rd_atoms: dict[int, Chem.Atom] = {
         rd_atom.GetIdx(): rd_atom for rd_atom in rd_mol.GetAtoms()
     }
 
@@ -349,7 +349,7 @@ def _rd_molecule_to_tagged_smiles(molecule: "Molecule", indices: List[int]) -> s
     return Chem.MolToSmiles(rd_mol)
 
 
-def molecule_to_tagged_smiles(molecule: "Molecule", indices: List[int]) -> str:
+def molecule_to_tagged_smiles(molecule: "Molecule", indices: list[int]) -> str:
     """Returns a SMILES pattern whereby each atom has been tagged with a specified
     index
 

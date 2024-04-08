@@ -5,7 +5,7 @@ import os
 import pwd
 from datetime import datetime
 from multiprocessing import Pool
-from typing import TYPE_CHECKING, Dict, List, Tuple
+from typing import TYPE_CHECKING
 
 import click
 from tqdm import tqdm
@@ -26,11 +26,11 @@ QCFractalResults = list[
         "qcportal.record_models.BaseRecord",
     ]
 ]
-QCFractalKeywords = Dict[str, "qcportal.models.KeywordSet"]
+QCFractalKeywords = dict[str, "qcportal.models.KeywordSet"]
 
 
 def _retrieve_result_records(
-    record_ids: List[int],
+    record_ids: list[int],
 ) -> tuple["qcportal.record_models.RecordQueryIterator", list[dict]]:
     import qcportal
 
@@ -56,7 +56,7 @@ def _retrieve_result_records(
 
 
 def _process_result(
-    result_tuple: Tuple[
+    result_tuple: tuple[
         "qcportal.record_models.BaseRecord",
         "qcelemental.models.Molecule",
         "qcportal.models.KeywordSet",

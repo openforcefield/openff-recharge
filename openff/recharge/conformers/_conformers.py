@@ -1,7 +1,7 @@
 """A module for generating conformers for molecules."""
 
 import logging
-from typing import TYPE_CHECKING, List, Literal, Optional
+from typing import TYPE_CHECKING, Literal
 
 import numpy
 from openff.units import unit, Quantity
@@ -28,7 +28,7 @@ class ConformerSettings(BaseModel):
         "dense", description="The mode in which to generate the conformers."
     )
 
-    max_conformers: Optional[int] = Field(
+    max_conformers: int | None = Field(
         5, description="The maximum number of conformers to generate."
     )
 
@@ -44,7 +44,7 @@ class ConformerGenerator:
         cls,
         molecule: "Molecule",
         settings: ConformerSettings,
-    ) -> List[Quantity]:
+    ) -> list[Quantity]:
         oe_molecule = molecule.to_openeye()
 
         from openeye import oeomega, oequacpac
@@ -91,7 +91,7 @@ class ConformerGenerator:
         cls,
         molecule: "Molecule",
         settings: ConformerSettings,
-    ) -> List[Quantity]:
+    ) -> list[Quantity]:
         """Generates a set of conformers for a given molecule.
 
         Notes

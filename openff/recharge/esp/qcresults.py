@@ -3,7 +3,7 @@
 import json
 import logging
 import re
-from typing import TYPE_CHECKING, Optional, Tuple
+from typing import TYPE_CHECKING
 
 import numpy
 from openff.units import unit, Quantity
@@ -161,7 +161,7 @@ def compute_esp(
     esp_settings: ESPSettings,
     grid: Quantity,
     compute_field: bool = True,
-) -> Tuple[Quantity, Optional[Quantity]]:
+) -> tuple[Quantity, Quantity | None]:
     """Computes the ESP and electric field for a particular molecule on
     a specified grid and using the specified settings.
 

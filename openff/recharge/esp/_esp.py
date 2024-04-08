@@ -1,7 +1,7 @@
 import abc
 import os
 from enum import Enum
-from typing import TYPE_CHECKING, Literal, Optional, Tuple
+from typing import TYPE_CHECKING, Literal
 
 from openff.units import Quantity
 from openff.recharge._pydantic import BaseModel, Field
@@ -81,7 +81,7 @@ class ESPSettings(BaseModel):
         "electrostatic potential on.",
     )
 
-    pcm_settings: Optional[PCMSettings] = Field(
+    pcm_settings: PCMSettings | None = Field(
         None,
         description="The settings to use if including a polarizable continuum "
         "model in the ESP calculation.",
@@ -112,7 +112,7 @@ class ESPGenerator(abc.ABC):
         compute_esp: bool,
         compute_field: bool,
         n_threads: int,
-    ) -> Tuple[Quantity, Optional[Quantity], Optional[Quantity]]:
+    ) -> tuple[Quantity, Quantity | None, Quantity | None]:
         """The implementation of the public ``generate`` function which
         should return the ESP for the provided conformer.
 
@@ -157,7 +157,7 @@ class ESPGenerator(abc.ABC):
         compute_esp: bool = True,
         compute_field: bool = True,
         n_threads: int = 1,
-    ) -> Tuple[Quantity, Quantity, Optional[Quantity], Optional[Quantity]]:
+    ) -> tuple[Quantity, Quantity, Quantity | None, Quantity | None]:
         """Generate the electrostatic potential (ESP) on a grid defined by
         a provided set of settings.
 

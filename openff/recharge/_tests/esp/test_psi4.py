@@ -1,5 +1,3 @@
-from typing import List
-
 import numpy
 import pytest
 from openff.units import unit
@@ -117,7 +115,7 @@ def test_generate_input_base(compute_esp, compute_field, expected_properties):
     ],
 )
 def test_generate_input_dft_settings(
-    dft_grid_settings: DFTGridSettings, expected_grid_settings: List[str]
+    dft_grid_settings: DFTGridSettings, expected_grid_settings: list[str]
 ):
     """Test that the correct input is generated from the
     jinja template."""

@@ -1,7 +1,7 @@
 """Generate partial for molecules from a QC calculation."""
 
 import copy
-from typing import TYPE_CHECKING, List, Literal, cast
+from typing import TYPE_CHECKING, Literal, cast
 
 import numpy
 from openff.units import unit, Quantity
@@ -225,7 +225,7 @@ class QCChargeGenerator:
     def generate(
         cls,
         molecule: "Molecule",
-        conformers: List[Quantity],
+        conformers: list[Quantity],
         settings: QCChargeSettings,
     ) -> numpy.ndarray:
         """Generates the averaged partial charges from multiple conformers of a

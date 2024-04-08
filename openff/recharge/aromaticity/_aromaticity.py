@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import TYPE_CHECKING, Dict, List, Tuple
+from typing import TYPE_CHECKING
 
 from openff.recharge.utilities.molecule import find_ring_bonds
 from openff.recharge.utilities.toolkits import apply_mdl_aromaticity_model, match_smirks
@@ -34,10 +34,10 @@ class AromaticityModel:
     @classmethod
     def _set_aromatic(
         cls,
-        ring_matches: List[Dict[int, int]],
-        is_bond_in_ring: Dict[Tuple[int, int], bool],
-        is_atom_aromatic: Dict[int, bool],
-        is_bond_aromatic: Dict[Tuple[int, int], bool],
+        ring_matches: list[dict[int, int]],
+        is_bond_in_ring: dict[tuple[int, int], bool],
+        is_atom_aromatic: dict[int, bool],
+        is_bond_aromatic: dict[tuple[int, int], bool],
     ):
         """Flag all specified ring atoms and all ring bonds between those atoms
         as being aromatic.
@@ -71,7 +71,7 @@ class AromaticityModel:
     @classmethod
     def _assign_am1bcc(
         cls, molecule: "Molecule"
-    ) -> Tuple[Dict[int, bool], Dict[Tuple[int, int], bool]]:
+    ) -> tuple[dict[int, bool], dict[tuple[int, int], bool]]:
         """Applies aromaticity flags based upon the aromaticity model
         outlined in the original AM1BCC publications _[1].
 
@@ -282,7 +282,7 @@ class AromaticityModel:
     @classmethod
     def apply(
         cls, molecule: "Molecule", model: AromaticityModels
-    ) -> Tuple[Dict[int, bool], Dict[Tuple[int, int], bool]]:
+    ) -> tuple[dict[int, bool], dict[tuple[int, int], bool]]:
         """Returns whether each atom and bond in a molecule is aromatic or not according
         to a given aromaticity model.
 

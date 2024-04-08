@@ -1,6 +1,5 @@
 import importlib
 from collections import defaultdict
-from typing import List
 
 import numpy
 import pytest
@@ -24,7 +23,7 @@ from openff.recharge.optimize import ESPObjective
 
 
 @pytest.fixture()
-def mock_esp_records() -> List[MoleculeESPRecord]:
+def mock_esp_records() -> list[MoleculeESPRecord]:
     conformer = numpy.array(
         [
             [-0.5, +0.0, +0.0],
@@ -319,7 +318,7 @@ def test_molecule_to_resp_library_charge(
     assert len(actual_groupings) == len(expected_groupings)
     assert {*actual_groupings} == {*expected_groupings}
 
-    def compare_expected(dict_key: str, expected_values: List[int]):
+    def compare_expected(dict_key: str, expected_values: list[int]):
         actual_values = []
 
         for index in parameter.provenance[dict_key]:

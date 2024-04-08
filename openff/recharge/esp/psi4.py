@@ -2,7 +2,7 @@
 
 import os
 import subprocess
-from typing import TYPE_CHECKING, Optional, Tuple
+from typing import TYPE_CHECKING
 
 import jinja2
 import numpy
@@ -133,7 +133,7 @@ class Psi4ESPGenerator(ESPGenerator):
         compute_esp: bool,
         compute_field: bool,
         n_threads: int,
-    ) -> Tuple[Quantity, Optional[Quantity], Optional[Quantity]]:
+    ) -> tuple[Quantity, Quantity | None, Quantity | None]:
         # Perform the calculation in a temporary directory
         with temporary_cd(directory):
             # Store the input file.

@@ -2,7 +2,7 @@
 
 import abc
 import functools
-from typing import List, Literal, cast
+from typing import Literal, cast
 
 import numpy
 
@@ -25,7 +25,7 @@ class RESPNonLinearSolver(abc.ABC):
         constraint_matrix: numpy.ndarray,
         restraint_a: float,
         restraint_b: float,
-        restraint_indices: List[int],
+        restraint_indices: list[int],
         n_conformers: int,
     ) -> numpy.ndarray:
         """Returns the current value of the loss function complete with restraints
@@ -88,7 +88,7 @@ class RESPNonLinearSolver(abc.ABC):
         constraint_matrix: numpy.ndarray,
         restraint_a: float,
         restraint_b: float,
-        restraint_indices: List[int],
+        restraint_indices: list[int],
         n_conformers: int,
     ):
         """Returns the jacobian of the loss function with respect to ``beta``.
@@ -154,7 +154,7 @@ class RESPNonLinearSolver(abc.ABC):
         constraint_matrix: numpy.ndarray,
         constraint_values: numpy.ndarray,
         restraint_a: float,
-        restraint_indices: List[int],
+        restraint_indices: list[int],
         n_conformers: int,
     ) -> numpy.ndarray:
         """Compute an initial guess of the charge values by solving the lagrangian
@@ -223,7 +223,7 @@ class RESPNonLinearSolver(abc.ABC):
         constraint_values: numpy.ndarray,
         restraint_a: float,
         restraint_b: float,
-        restraint_indices: List[int],
+        restraint_indices: list[int],
         n_conformers: int,
     ) -> numpy.ndarray:
         """The internal implementation of ``solve``
@@ -270,7 +270,7 @@ class RESPNonLinearSolver(abc.ABC):
         constraint_values: numpy.ndarray,
         restraint_a: float,
         restraint_b: float,
-        restraint_indices: List[int],
+        restraint_indices: list[int],
         n_conformers: int,
     ) -> numpy.ndarray:
         """Attempts to find a minimum solution to the RESP loss function.
@@ -346,7 +346,7 @@ class IterativeSolver(RESPNonLinearSolver):
         constraint_values: numpy.ndarray,
         restraint_a: float,
         restraint_b: float,
-        restraint_indices: List[int],
+        restraint_indices: list[int],
         n_conformers: int,
     ):
         b_matrix = (
@@ -385,7 +385,7 @@ class IterativeSolver(RESPNonLinearSolver):
         constraint_values: numpy.ndarray,
         restraint_a: float,
         restraint_b: float,
-        restraint_indices: List[int],
+        restraint_indices: list[int],
         n_conformers: int,
     ) -> numpy.ndarray:
         initial_guess = self.initial_guess(
@@ -454,7 +454,7 @@ class SciPySolver(RESPNonLinearSolver):
         constraint_values: numpy.ndarray,
         restraint_a: float,
         restraint_b: float,
-        restraint_indices: List[int],
+        restraint_indices: list[int],
         n_conformers: int,
     ) -> numpy.ndarray:
         from scipy.optimize import LinearConstraint, minimize

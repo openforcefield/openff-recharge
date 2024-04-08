@@ -1,5 +1,3 @@
-from typing import Optional
-
 import pytest
 from openff.toolkit import Molecule
 from openff.toolkit._tests.utils import requires_openeye
@@ -54,7 +52,7 @@ def test_generate_omega_conformers_error():
 @pytest.mark.parametrize("max_conformers", [1, None])
 @requires_openeye
 def test_generate_conformers(
-    method: str, sampling_mode: str, max_conformers: Optional[int]
+    method: str, sampling_mode: str, max_conformers: int | None
 ):
     """Tests conformer generator."""
     molecule = smiles_to_molecule("CO")

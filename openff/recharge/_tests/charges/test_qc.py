@@ -1,5 +1,3 @@
-from typing import Tuple
-
 import numpy
 import pytest
 from openff.toolkit import Molecule
@@ -17,7 +15,7 @@ from openff.toolkit._tests.utils import (
 
 
 @pytest.fixture(scope="module")
-def methane() -> Tuple[Molecule, numpy.ndarray]:
+def methane() -> tuple[Molecule, numpy.ndarray]:
     molecule: Molecule = Molecule.from_mapped_smiles(
         "[C:1]([H:2])([H:3])([H:4])([H:5])"
     )

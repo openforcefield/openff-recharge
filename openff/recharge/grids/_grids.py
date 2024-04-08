@@ -1,6 +1,6 @@
 import functools
 import itertools
-from typing import TYPE_CHECKING, Literal, Optional, Union
+from typing import TYPE_CHECKING, Literal, Union
 
 import numpy
 from openff.units import unit, Quantity
@@ -251,8 +251,8 @@ class GridGenerator:
         conformer: numpy.ndarray,
         grid: numpy.ndarray,
         inner_radii: numpy.ndarray,
-        outer_radii: Optional[numpy.ndarray] = None,
-        exclusion_mask: Optional[numpy.ndarray] = None,
+        outer_radii: numpy.ndarray | None = None,
+        exclusion_mask: numpy.ndarray | None = None,
     ) -> numpy.ndarray:
         """Removes all points that are either within or outside a vdW shell around a
         given conformer.

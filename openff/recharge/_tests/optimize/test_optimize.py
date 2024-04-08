@@ -1,4 +1,5 @@
-from typing import Callable, Literal, Tuple, Type
+from typing import Literal
+from collections.abc import Callable
 
 import numpy
 import pytest
@@ -52,7 +53,7 @@ def hcl_esp_record() -> MoleculeESPRecord:
 
 
 @pytest.fixture()
-def hcl_parameters() -> Tuple[BCCCollection, VirtualSiteCollection]:
+def hcl_parameters() -> tuple[BCCCollection, VirtualSiteCollection]:
     bcc_collection = BCCCollection(
         parameters=[
             BCCParameter(smirks="[#17:1]-[#1:2]", value=-1.0, provenance={}),
@@ -88,7 +89,7 @@ def hcl_parameters() -> Tuple[BCCCollection, VirtualSiteCollection]:
     ),
 )
 def test_term_to_backend(
-    input_type: Callable, output_type: Type, backend: Literal["numpy", "torch"]
+    input_type: Callable, output_type: type, backend: Literal["numpy", "torch"]
 ):
     objective_term = ESPObjectiveTerm(
         atom_charge_design_matrix=input_type([[1.0, 2.0]]),
@@ -141,7 +142,7 @@ def test_term_to_backend(
 )
 @pytest.mark.parametrize("backend", backends)
 def test_term_loss_atom_charge_only(
-    term_class: Type[ObjectiveTerm],
+    term_class: type[ObjectiveTerm],
     design_matrix_precursor: numpy.ndarray,
     expected_loss: numpy.ndarray,
     backend: Literal["numpy", "torch"],
@@ -189,7 +190,7 @@ def test_term_loss_atom_charge_only(
 )
 @pytest.mark.parametrize("backend", backends)
 def test_term_evaluate_vsite_only(
-    term_class: Type[ObjectiveTerm],
+    term_class: type[ObjectiveTerm],
     expected_loss: numpy.ndarray,
     backend: Literal["numpy", "torch"],
 ):
@@ -340,6 +341,14 @@ def test_combine_terms(objective_class, backend, hcl_parameters):
     # Combine the terms and re-compute the loss
     combined_term = objective_class._objective_term().combine(*objective_terms)
     combined_loss = combined_term.loss(charge_values, coordinate_values)
+
+    # Cast to scalar since some auto-conversion is deprecated, and different API with torch
+    if backend == "numpy":
+        summed_loss = summed_loss.item(0)
+        combined_loss = combined_loss.item(0)
+    elif backend == "torch":
+        summed_loss = summed_loss.item()
+        combined_loss = combined_loss.item()
 
     assert numpy.isclose(float(summed_loss), float(combined_loss))
 

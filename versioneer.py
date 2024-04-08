@@ -315,7 +315,8 @@ import re
 import subprocess
 import sys
 from pathlib import Path
-from typing import Any, Callable, cast, Dict, List, Optional, Tuple, Union
+from typing import Any, cast
+from collections.abc import Callable
 from typing import NoReturn
 import functools
 
@@ -336,9 +337,9 @@ class VersioneerConfig:
     style: str
     tag_prefix: str
     versionfile_source: str
-    versionfile_build: Optional[str]
-    parentdir_prefix: Optional[str]
-    verbose: Optional[bool]
+    versionfile_build: str | None
+    parentdir_prefix: str | None
+    verbose: bool | None
 
 
 def get_root() -> str:
@@ -403,7 +404,7 @@ def get_config_from_root(root: str) -> VersioneerConfig:
     root_pth = Path(root)
     pyproject_toml = root_pth / "pyproject.toml"
     setup_cfg = root_pth / "setup.cfg"
-    section: Union[Dict[str, Any], configparser.SectionProxy, None] = None
+    section: dict[str, Any] | configparser.SectionProxy | None = None
     if pyproject_toml.exists() and have_tomllib:
         try:
             with open(pyproject_toml, "rb") as fobj:
@@ -447,8 +448,8 @@ class NotThisMethod(Exception):
 
 
 # these dictionaries contain VCS-specific tools
-LONG_VERSION_PY: Dict[str, str] = {}
-HANDLERS: Dict[str, Dict[str, Callable]] = {}
+LONG_VERSION_PY: dict[str, str] = {}
+HANDLERS: dict[str, dict[str, Callable]] = {}
 
 
 def register_vcs_handler(vcs: str, method: str) -> Callable:  # decorator
@@ -463,18 +464,18 @@ def register_vcs_handler(vcs: str, method: str) -> Callable:  # decorator
 
 
 def run_command(
-    commands: List[str],
-    args: List[str],
-    cwd: Optional[str] = None,
+    commands: list[str],
+    args: list[str],
+    cwd: str | None = None,
     verbose: bool = False,
     hide_stderr: bool = False,
-    env: Optional[Dict[str, str]] = None,
-) -> Tuple[Optional[str], Optional[int]]:
+    env: dict[str, str] | None = None,
+) -> tuple[str | None, int | None]:
     """Call the given command(s)."""
     assert isinstance(commands, list)
     process = None
 
-    popen_kwargs: Dict[str, Any] = {}
+    popen_kwargs: dict[str, Any] = {}
     if sys.platform == "win32":
         # This hides the console window if pythonw.exe is used
         startupinfo = subprocess.STARTUPINFO()
@@ -1203,13 +1204,13 @@ def get_versions() -> Dict[str, Any]:
 
 
 @register_vcs_handler("git", "get_keywords")
-def git_get_keywords(versionfile_abs: str) -> Dict[str, str]:
+def git_get_keywords(versionfile_abs: str) -> dict[str, str]:
     """Extract version information from the given file."""
     # the code embedded in _version.py can just fetch the value of these
     # keywords. When used from setup.py, we don't want to import _version.py,
     # so we do it with a regexp instead. This function is not used from
     # _version.py.
-    keywords: Dict[str, str] = {}
+    keywords: dict[str, str] = {}
     try:
         with open(versionfile_abs) as fobj:
             for line in fobj:
@@ -1232,10 +1233,10 @@ def git_get_keywords(versionfile_abs: str) -> Dict[str, str]:
 
 @register_vcs_handler("git", "keywords")
 def git_versions_from_keywords(
-    keywords: Dict[str, str],
+    keywords: dict[str, str],
     tag_prefix: str,
     verbose: bool,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Get version information from git keywords."""
     if "refnames" not in keywords:
         raise NotThisMethod("Short version file found")
@@ -1308,7 +1309,7 @@ def git_versions_from_keywords(
 @register_vcs_handler("git", "pieces_from_vcs")
 def git_pieces_from_vcs(
     tag_prefix: str, root: str, verbose: bool, runner: Callable = run_command
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Get version from 'git describe' in the root of the source tree.
 
     This only gets called if the git-archive 'subst' keywords were *not*
@@ -1356,7 +1357,7 @@ def git_pieces_from_vcs(
         raise NotThisMethod("'git rev-parse' failed")
     full_out = full_out.strip()
 
-    pieces: Dict[str, Any] = {}
+    pieces: dict[str, Any] = {}
     pieces["long"] = full_out
     pieces["short"] = full_out[:7]  # maybe improved later
     pieces["error"] = None
@@ -1448,7 +1449,7 @@ def git_pieces_from_vcs(
     return pieces
 
 
-def do_vcs_install(versionfile_source: str, ipy: Optional[str]) -> None:
+def do_vcs_install(versionfile_source: str, ipy: str | None) -> None:
     """Git-specific installation logic for Versioneer.
 
     For Git, this means creating/changing .gitattributes to mark _version.py
@@ -1490,7 +1491,7 @@ def versions_from_parentdir(
     parentdir_prefix: str,
     root: str,
     verbose: bool,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Try to determine the version from the parent directory name.
 
     Source tarballs conventionally unpack into a directory that includes both
@@ -1538,7 +1539,7 @@ def get_versions():
 """
 
 
-def versions_from_file(filename: str) -> Dict[str, Any]:
+def versions_from_file(filename: str) -> dict[str, Any]:
     """Try to determine the version from _version.py if present."""
     try:
         with open(filename) as f:
@@ -1557,7 +1558,7 @@ def versions_from_file(filename: str) -> Dict[str, Any]:
     return json.loads(mo.group(1))
 
 
-def write_to_version_file(filename: str, versions: Dict[str, Any]) -> None:
+def write_to_version_file(filename: str, versions: dict[str, Any]) -> None:
     """Write the given version number to the given _version.py file."""
     contents = json.dumps(versions, sort_keys=True, indent=1, separators=(",", ": "))
     with open(filename, "w") as f:
@@ -1566,14 +1567,14 @@ def write_to_version_file(filename: str, versions: Dict[str, Any]) -> None:
     print("set {} to '{}'".format(filename, versions["version"]))
 
 
-def plus_or_dot(pieces: Dict[str, Any]) -> str:
+def plus_or_dot(pieces: dict[str, Any]) -> str:
     """Return a + if we don't already have one, else return a ."""
     if "+" in pieces.get("closest-tag", ""):
         return "."
     return "+"
 
 
-def render_pep440(pieces: Dict[str, Any]) -> str:
+def render_pep440(pieces: dict[str, Any]) -> str:
     """Build up version string, with post-release "local version identifier".
 
     Our goal: TAG[+DISTANCE.gHEX[.dirty]] . Note that if you
@@ -1597,7 +1598,7 @@ def render_pep440(pieces: Dict[str, Any]) -> str:
     return rendered
 
 
-def render_pep440_branch(pieces: Dict[str, Any]) -> str:
+def render_pep440_branch(pieces: dict[str, Any]) -> str:
     """TAG[[.dev0]+DISTANCE.gHEX[.dirty]] .
 
     The ".dev0" means not master branch. Note that .dev0 sorts backwards
@@ -1626,7 +1627,7 @@ def render_pep440_branch(pieces: Dict[str, Any]) -> str:
     return rendered
 
 
-def pep440_split_post(ver: str) -> Tuple[str, Optional[int]]:
+def pep440_split_post(ver: str) -> tuple[str, int | None]:
     """Split pep440 version string at the post-release segment.
 
     Returns the release segments before the post-release and the
@@ -1636,7 +1637,7 @@ def pep440_split_post(ver: str) -> Tuple[str, Optional[int]]:
     return vc[0], int(vc[1] or 0) if len(vc) == 2 else None
 
 
-def render_pep440_pre(pieces: Dict[str, Any]) -> str:
+def render_pep440_pre(pieces: dict[str, Any]) -> str:
     """TAG[.postN.devDISTANCE] -- No -dirty.
 
     Exceptions:
@@ -1660,7 +1661,7 @@ def render_pep440_pre(pieces: Dict[str, Any]) -> str:
     return rendered
 
 
-def render_pep440_post(pieces: Dict[str, Any]) -> str:
+def render_pep440_post(pieces: dict[str, Any]) -> str:
     """TAG[.postDISTANCE[.dev0]+gHEX] .
 
     The ".dev0" means dirty. Note that .dev0 sorts backwards
@@ -1687,7 +1688,7 @@ def render_pep440_post(pieces: Dict[str, Any]) -> str:
     return rendered
 
 
-def render_pep440_post_branch(pieces: Dict[str, Any]) -> str:
+def render_pep440_post_branch(pieces: dict[str, Any]) -> str:
     """TAG[.postDISTANCE[.dev0]+gHEX[.dirty]] .
 
     The ".dev0" means not master branch.
@@ -1716,7 +1717,7 @@ def render_pep440_post_branch(pieces: Dict[str, Any]) -> str:
     return rendered
 
 
-def render_pep440_old(pieces: Dict[str, Any]) -> str:
+def render_pep440_old(pieces: dict[str, Any]) -> str:
     """TAG[.postDISTANCE[.dev0]] .
 
     The ".dev0" means dirty.
@@ -1738,7 +1739,7 @@ def render_pep440_old(pieces: Dict[str, Any]) -> str:
     return rendered
 
 
-def render_git_describe(pieces: Dict[str, Any]) -> str:
+def render_git_describe(pieces: dict[str, Any]) -> str:
     """TAG[-DISTANCE-gHEX][-dirty].
 
     Like 'git describe --tags --dirty --always'.
@@ -1758,7 +1759,7 @@ def render_git_describe(pieces: Dict[str, Any]) -> str:
     return rendered
 
 
-def render_git_describe_long(pieces: Dict[str, Any]) -> str:
+def render_git_describe_long(pieces: dict[str, Any]) -> str:
     """TAG-DISTANCE-gHEX[-dirty].
 
     Like 'git describe --tags --dirty --always -long'.
@@ -1778,7 +1779,7 @@ def render_git_describe_long(pieces: Dict[str, Any]) -> str:
     return rendered
 
 
-def render(pieces: Dict[str, Any], style: str) -> Dict[str, Any]:
+def render(pieces: dict[str, Any], style: str) -> dict[str, Any]:
     """Render the given version pieces into the requested style."""
     if pieces["error"]:
         return {
@@ -1824,7 +1825,7 @@ class VersioneerBadRootError(Exception):
     """The project root directory is unknown or missing key files."""
 
 
-def get_versions(verbose: bool = False) -> Dict[str, Any]:
+def get_versions(verbose: bool = False) -> dict[str, Any]:
     """Get the project version from whatever source is available.
 
     Returns dict with two keys: 'version' and 'full'.
@@ -1910,7 +1911,7 @@ def get_version() -> str:
     return get_versions()["version"]
 
 
-def get_cmdclass(cmdclass: Optional[Dict[str, Any]] = None):
+def get_cmdclass(cmdclass: dict[str, Any] | None = None):
     """Get the custom setuptools subclasses used by Versioneer.
 
     If the package uses a different cmdclass (e.g. one from numpy), it
@@ -1938,8 +1939,8 @@ def get_cmdclass(cmdclass: Optional[Dict[str, Any]] = None):
 
     class cmd_version(Command):
         description = "report generated version string"
-        user_options: List[Tuple[str, str, str]] = []
-        boolean_options: List[str] = []
+        user_options: list[tuple[str, str, str]] = []
+        boolean_options: list[str] = []
 
         def initialize_options(self) -> None:
             pass
@@ -2159,7 +2160,7 @@ def get_cmdclass(cmdclass: Optional[Dict[str, Any]] = None):
             self.distribution.metadata.version = versions["version"]
             return _sdist.run(self)
 
-        def make_release_tree(self, base_dir: str, files: List[str]) -> None:
+        def make_release_tree(self, base_dir: str, files: list[str]) -> None:
             root = get_root()
             cfg = get_config_from_root(root)
             _sdist.make_release_tree(self, base_dir, files)
@@ -2254,7 +2255,7 @@ def do_setup() -> int:
         )
 
     ipy = os.path.join(os.path.dirname(cfg.versionfile_source), "__init__.py")
-    maybe_ipy: Optional[str] = ipy
+    maybe_ipy: str | None = ipy
     if os.path.exists(ipy):
         try:
             with open(ipy) as f:

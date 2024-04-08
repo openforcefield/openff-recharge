@@ -2,15 +2,10 @@ import abc
 from collections import defaultdict
 from typing import (
     TYPE_CHECKING,
-    Generator,
-    List,
     Literal,
-    Optional,
-    Tuple,
-    Type,
     TypeVar,
-    Union,
 )
+from collections.abc import Generator
 
 import numpy
 from openff.units import unit
@@ -58,23 +53,23 @@ class ObjectiveTerm(abc.ABC):
 
     @classmethod
     @abc.abstractmethod
-    def _objective(cls) -> Type["Objective"]:
+    def _objective(cls) -> type["Objective"]:
         """The objective class that this term is associated with."""
         raise NotImplementedError()
 
     def __init__(
         self,
-        atom_charge_design_matrix: Optional[TensorType],
+        atom_charge_design_matrix: TensorType | None,
         #
-        vsite_charge_assignment_matrix: Optional[TensorType],
-        vsite_fixed_charges: Optional[TensorType],
+        vsite_charge_assignment_matrix: TensorType | None,
+        vsite_fixed_charges: TensorType | None,
         #
-        vsite_coord_assignment_matrix: Optional[TensorType],
-        vsite_fixed_coords: Optional[TensorType],
+        vsite_coord_assignment_matrix: TensorType | None,
+        vsite_fixed_coords: TensorType | None,
         #
-        vsite_local_coordinate_frame: Optional[TensorType],
+        vsite_local_coordinate_frame: TensorType | None,
         #
-        grid_coordinates: Optional[TensorType],
+        grid_coordinates: TensorType | None,
         reference_values: TensorType,
     ):
         """
@@ -189,7 +184,7 @@ class ObjectiveTerm(abc.ABC):
         self.reference_values = converter(self.reference_values)
 
     @classmethod
-    def combine(cls: Type[_TERM_T], *terms: _TERM_T) -> _TERM_T:
+    def combine(cls: type[_TERM_T], *terms: _TERM_T) -> _TERM_T:
         """Combines multiple objective term objects into a single object that can
         be evaluated more efficiently by stacking the cached terms in a way that
         allows vectorized operations.
@@ -255,7 +250,7 @@ class ObjectiveTerm(abc.ABC):
     def predict(
         self,
         charge_parameters: TensorType,
-        vsite_coordinate_parameters: Optional[TensorType],
+        vsite_coordinate_parameters: TensorType | None,
     ):
         """Predict the value of the electrostatic property of interest using the
         current values of the parameter.
@@ -370,7 +365,7 @@ class ObjectiveTerm(abc.ABC):
     def loss(
         self,
         charge_parameters: TensorType,
-        vsite_coordinate_parameters: Optional[TensorType],
+        vsite_coordinate_parameters: TensorType | None,
     ) -> TensorType:
         """Evaluate the L2 loss function (i.e ``(target_values - predict(q, c)) ** 2)``
         using the current values of the parameters being trained.
@@ -414,7 +409,7 @@ class Objective(abc.ABC):
 
     @classmethod
     @abc.abstractmethod
-    def _objective_term(cls) -> Type[ObjectiveTerm]:
+    def _objective_term(cls) -> type[ObjectiveTerm]:
         """The objective term class associated with this objective."""
         raise NotImplementedError()
 
@@ -460,8 +455,8 @@ class Objective(abc.ABC):
         cls,
         molecule: "Molecule",
         charge_collection: LibraryChargeCollection,
-        charge_parameter_keys: List[Tuple[str, Tuple[int, ...]]],
-    ) -> Tuple[numpy.ndarray, numpy.ndarray]:
+        charge_parameter_keys: list[tuple[str, tuple[int, ...]]],
+    ) -> tuple[numpy.ndarray, numpy.ndarray]:
         assignment_matrix = LibraryChargeGenerator.build_assignment_matrix(
             molecule, charge_collection
         )
@@ -504,8 +499,8 @@ class Objective(abc.ABC):
         cls,
         molecule: "Molecule",
         bcc_collection: BCCCollection,
-        bcc_parameter_keys: List[str],
-    ) -> Tuple[numpy.ndarray, numpy.ndarray]:
+        bcc_parameter_keys: list[str],
+    ) -> tuple[numpy.ndarray, numpy.ndarray]:
         flat_collection_keys = [
             parameter.smirks for parameter in bcc_collection.parameters
         ]
@@ -543,8 +538,8 @@ class Objective(abc.ABC):
         molecule: "Molecule",
         conformer: numpy.ndarray,
         vsite_collection: VirtualSiteCollection,
-        vsite_coordinate_parameter_keys: List[VirtualSiteGeometryKey],
-    ) -> Tuple[numpy.ndarray, numpy.ndarray, numpy.ndarray]:
+        vsite_coordinate_parameter_keys: list[VirtualSiteGeometryKey],
+    ) -> tuple[numpy.ndarray, numpy.ndarray, numpy.ndarray]:
         parameters_by_key = {
             (parameter.smirks, parameter.type, parameter.name): parameter
             for parameter in vsite_collection.parameters
@@ -610,8 +605,8 @@ class Objective(abc.ABC):
         cls,
         molecule: "Molecule",
         vsite_collection: VirtualSiteCollection,
-        vsite_charge_parameter_keys: List[VirtualSiteChargeKey],
-    ) -> Tuple[numpy.ndarray, numpy.ndarray]:
+        vsite_charge_parameter_keys: list[VirtualSiteChargeKey],
+    ) -> tuple[numpy.ndarray, numpy.ndarray]:
         flat_collection_keys = [
             (parameter.smirks, parameter.type, parameter.name, i)
             for parameter in vsite_collection.parameters
@@ -649,16 +644,14 @@ class Objective(abc.ABC):
     @classmethod
     def compute_objective_terms(
         cls,
-        esp_records: List[MoleculeESPRecord],
-        charge_collection: Optional[
-            Union[QCChargeSettings, LibraryChargeCollection]
-        ] = None,
-        charge_parameter_keys: Optional[List[Tuple[str, Tuple[int, ...]]]] = None,
-        bcc_collection: Optional[BCCCollection] = None,
-        bcc_parameter_keys: Optional[List[str]] = None,
-        vsite_collection: Optional[VirtualSiteCollection] = None,
-        vsite_charge_parameter_keys: Optional[List[VirtualSiteChargeKey]] = None,
-        vsite_coordinate_parameter_keys: Optional[List[VirtualSiteGeometryKey]] = None,
+        esp_records: list[MoleculeESPRecord],
+        charge_collection: None | (QCChargeSettings | LibraryChargeCollection) = None,
+        charge_parameter_keys: list[tuple[str, tuple[int, ...]]] | None = None,
+        bcc_collection: BCCCollection | None = None,
+        bcc_parameter_keys: list[str] | None = None,
+        vsite_collection: VirtualSiteCollection | None = None,
+        vsite_charge_parameter_keys: list[VirtualSiteChargeKey] | None = None,
+        vsite_coordinate_parameter_keys: list[VirtualSiteGeometryKey] | None = None,
     ) -> Generator[ObjectiveTerm, None, None]:
         """Pre-calculates the terms that contribute to the total objective function.
 
@@ -879,7 +872,7 @@ class ESPObjectiveTerm(ObjectiveTerm):
     """
 
     @classmethod
-    def _objective(cls) -> Type["ESPObjective"]:
+    def _objective(cls) -> type["ESPObjective"]:
         return ESPObjective
 
 
@@ -890,7 +883,7 @@ class ESPObjective(Objective):
     computed by a QM calculation."""
 
     @classmethod
-    def _objective_term(cls) -> Type[ESPObjectiveTerm]:
+    def _objective_term(cls) -> type[ESPObjectiveTerm]:
         return ESPObjectiveTerm
 
     @classmethod
@@ -928,7 +921,7 @@ class ElectricFieldObjectiveTerm(ObjectiveTerm):
     """
 
     @classmethod
-    def _objective(cls) -> Type["ElectricFieldObjective"]:
+    def _objective(cls) -> type["ElectricFieldObjective"]:
         return ElectricFieldObjective
 
 
@@ -939,7 +932,7 @@ class ElectricFieldObjective(Objective):
     electric field computed by a QM calculation."""
 
     @classmethod
-    def _objective_term(cls) -> Type[ElectricFieldObjectiveTerm]:
+    def _objective_term(cls) -> type[ElectricFieldObjectiveTerm]:
         return ElectricFieldObjectiveTerm
 
     @classmethod

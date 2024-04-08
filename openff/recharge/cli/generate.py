@@ -2,7 +2,6 @@ import functools
 import json
 import logging
 from multiprocessing import Pool
-from typing import List
 
 import click
 
@@ -19,7 +18,7 @@ def _compute_esp(
     conformer_settings: ConformerSettings,
     settings: ESPSettings,
     minimize_conformer: bool,
-) -> List[MoleculeESPRecord]:
+) -> list[MoleculeESPRecord]:
     """Compute the ESP for a molecule in different conformers.
 
     Parameters

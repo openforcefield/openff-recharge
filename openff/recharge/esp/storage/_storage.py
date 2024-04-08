@@ -6,7 +6,7 @@ import warnings
 import functools
 from collections import defaultdict
 from contextlib import contextmanager
-from typing import TYPE_CHECKING, ContextManager, Dict, List, Optional
+from typing import TYPE_CHECKING, ContextManager
 
 import numpy
 from openff.units import unit, Quantity
@@ -66,7 +66,7 @@ class MoleculeESPRecord(BaseModel):
         description="The value of the ESP [Hartree / e] at each of the grid "
         "coordinates with shape=(n_grid_points, 1).",
     )
-    electric_field: Optional[Array[float]] = Field(
+    electric_field: Array[float] | None = Field(
         ...,
         description="The value of the electric field [Hartree / (e . a0)] at each of "
         "the grid coordinates with shape=(n_grid_points, 3).",
@@ -107,7 +107,7 @@ class MoleculeESPRecord(BaseModel):
         conformer: Quantity,
         grid_coordinates: Quantity,
         esp: Quantity,
-        electric_field: Optional[Quantity],
+        electric_field: Quantity | None,
         esp_settings: ESPSettings,
     ) -> "MoleculeESPRecord":
         """Creates a new ``MoleculeESPRecord`` from an existing molecule
@@ -169,7 +169,7 @@ class MoleculeESPStore:
             return db_info.version
 
     @property
-    def general_provenance(self) -> Dict[str, str]:
+    def general_provenance(self) -> dict[str, str]:
         with self._get_session() as db:
             db_info = db.query(DBInformation).first()
 
@@ -179,7 +179,7 @@ class MoleculeESPStore:
             }
 
     @property
-    def software_provenance(self) -> Dict[str, str]:
+    def software_provenance(self) -> dict[str, str]:
         with self._get_session() as db:
             db_info = db.query(DBInformation).first()
 
@@ -218,8 +218,8 @@ class MoleculeESPStore:
 
     def set_provenance(
         self,
-        general_provenance: Dict[str, str],
-        software_provenance: Dict[str, str],
+        general_provenance: dict[str, str],
+        software_provenance: dict[str, str],
     ):
         """Set the stores provenance information.
 
@@ -260,8 +260,8 @@ class MoleculeESPStore:
 
     @classmethod
     def _db_records_to_model(
-        cls, db_records: List[DBMoleculeRecord]
-    ) -> List[MoleculeESPRecord]:
+        cls, db_records: list[DBMoleculeRecord]
+    ) -> list[MoleculeESPRecord]:
         """Maps a set of database records into their corresponding
         data models.
 
@@ -301,7 +301,7 @@ class MoleculeESPStore:
 
     @classmethod
     def _store_smiles_records(
-        cls, db: Session, smiles: str, records: List[MoleculeESPRecord]
+        cls, db: Session, smiles: str, records: list[MoleculeESPRecord]
     ) -> DBMoleculeRecord:
         """Stores a set of records which all store information for the same
         molecule.
@@ -392,7 +392,7 @@ class MoleculeESPStore:
         """
 
         # Validate an re-partition the records by their smiles patterns.
-        records_by_smiles: Dict[str, List[MoleculeESPRecord]] = defaultdict(list)
+        records_by_smiles: dict[str, list[MoleculeESPRecord]] = defaultdict(list)
 
         for record in records:
             record = MoleculeESPRecord(**record.dict())
@@ -407,11 +407,11 @@ class MoleculeESPStore:
 
     def retrieve(
         self,
-        smiles: Optional[str] = None,
-        basis: Optional[str] = None,
-        method: Optional[str] = None,
-        implicit_solvent: Optional[bool] = None,
-    ) -> List[MoleculeESPRecord]:
+        smiles: str | None = None,
+        basis: str | None = None,
+        method: str | None = None,
+        implicit_solvent: bool | None = None,
+    ) -> list[MoleculeESPRecord]:
         """Retrieve records stored in this data store, optionally
         according to a set of filters."""
 
@@ -460,7 +460,7 @@ class MoleculeESPStore:
 
             return records
 
-    def list(self) -> List[str]:
+    def list(self) -> list[str]:
         """Lists the molecules which exist in and may be retrieved from the
         store."""
 

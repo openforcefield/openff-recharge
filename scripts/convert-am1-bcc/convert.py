@@ -10,7 +10,6 @@ References
 
 import json
 import logging
-from typing import Dict, List
 
 import numpy
 import pandas
@@ -23,11 +22,11 @@ logger = logging.getLogger(__name__)
 
 
 def build_bond_charge_corrections(
-    atom_codes: Dict[str, str],
-    bond_codes: Dict[str, str],
-    bcc_overrides: Dict[str, float],
-    custom_bcc_smirks: Dict[str, str],
-) -> List[BCCParameter]:
+    atom_codes: dict[str, str],
+    bond_codes: dict[str, str],
+    bcc_overrides: dict[str, float],
+    custom_bcc_smirks: dict[str, str],
+) -> list[BCCParameter]:
     # Convert the atom and bond codes into the six number codes used
     # in the AM1BCC paper.
     all_codes = [*custom_bcc_smirks]

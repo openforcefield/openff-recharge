@@ -1,3 +1,5 @@
+memory {{ memory_limit_gb }} GB
+
 molecule mol {
   noreorient
   nocom

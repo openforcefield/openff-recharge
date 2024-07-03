@@ -31,6 +31,7 @@ class Psi4ESPGenerator(ESPGenerator):
         minimize: bool,
         compute_esp: bool,
         compute_field: bool,
+        memory_limit_gb: int,
     ) -> str:
         """Generate the input files for Psi4.
 
@@ -102,6 +103,7 @@ class Psi4ESPGenerator(ESPGenerator):
             "dft_settings": settings.psi4_dft_grid_settings.value,
             "minimize": minimize,
             "properties": str(properties),
+            "memory_limit_gb": memory_limit_gb,
         }
 
         if enable_pcm:
@@ -133,12 +135,13 @@ class Psi4ESPGenerator(ESPGenerator):
         compute_esp: bool,
         compute_field: bool,
         n_threads: int,
+        memory_limit_gb: int,
     ) -> tuple[Quantity, Quantity | None, Quantity | None]:
         # Perform the calculation in a temporary directory
         with temporary_cd(directory):
             # Store the input file.
             input_contents = cls._generate_input(
-                molecule, conformer, settings, minimize, compute_esp, compute_field
+                molecule, conformer, settings, minimize, compute_esp, compute_field, memory_limit_gb
             )
 
             with open("input.dat", "w") as file:

@@ -158,7 +158,7 @@ class ESPGenerator(abc.ABC):
         compute_esp: bool = True,
         compute_field: bool = True,
         n_threads: int = 1,
-        memory_limit_gb: int=1,
+        memory_limit_gb: int = 1,
     ) -> tuple[Quantity, Quantity, Quantity | None, Quantity | None]:
         """Generate the electrostatic potential (ESP) on a grid defined by
         a provided set of settings.

@@ -141,7 +141,13 @@ class Psi4ESPGenerator(ESPGenerator):
         with temporary_cd(directory):
             # Store the input file.
             input_contents = cls._generate_input(
-                molecule, conformer, settings, minimize, compute_esp, compute_field, memory_limit_gb
+                molecule,
+                conformer,
+                settings,
+                minimize,
+                compute_esp,
+                compute_field,
+                memory_limit_gb,
             )
 
             with open("input.dat", "w") as file:

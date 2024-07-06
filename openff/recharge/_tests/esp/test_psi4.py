@@ -216,6 +216,7 @@ def test_generate_input_pcm():
 
     assert expected_output == input_contents
 
+
 def test_generate_input_pcm_memory():
     """Test that the correct input is generated from the
     jinja template."""
@@ -231,8 +232,7 @@ def test_generate_input_pcm_memory():
     conformer = numpy.array([[0.1, 0.0, 0.0]]) * unit.nanometer
 
     input_contents = Psi4ESPGenerator._generate_input(
-        molecule, conformer, settings, False, True, True,
-        memory=2 * unit.gigabytes
+        molecule, conformer, settings, False, True, True, memory=2 * unit.gigabytes
     )
 
     expected_output = "\n".join(

@@ -177,6 +177,68 @@ def test_generate_input_pcm():
 
     expected_output = "\n".join(
         [
+            "memory 256 MB",
+            "",
+            "molecule mol {",
+            "  noreorient",
+            "  nocom",
+            "  -1 1",
+            "  Cl  1.000000000  0.000000000  0.000000000",
+            "}",
+            "",
+            "set {",
+            "  basis 6-31g*",
+            "",
+            "  pcm true",
+            "  pcm_scf_type total",
+            "}",
+            "pcm = {",
+            "  Units = Angstrom",
+            "  Medium {",
+            "  SolverType = CPCM",
+            "  Solvent = Water",
+            "  }",
+            "",
+            "  Cavity {",
+            "  RadiiSet = Bondi",
+            "  Type = GePol",
+            "  Scaling = True",
+            "  Area = 0.3",
+            "  Mode = Implicit",
+            "  }",
+            "}",
+            "",
+            "E,wfn = prop('hf', properties = ['GRID_ESP', 'GRID_FIELD'], "
+            "return_wfn=True)",
+            "mol.save_xyz_file('final-geometry.xyz',1)",
+        ]
+    )
+
+    assert expected_output == input_contents
+
+def test_generate_input_pcm_memory():
+    """Test that the correct input is generated from the
+    jinja template."""
+    pytest.importorskip("psi4")
+
+    # Define the settings to use.
+    settings = ESPSettings(
+        pcm_settings=PCMSettings(), grid_settings=LatticeGridSettings()
+    )
+
+    # Create a closed shell molecule.
+    molecule = smiles_to_molecule("[Cl-]")
+    conformer = numpy.array([[0.1, 0.0, 0.0]]) * unit.nanometer
+
+    input_contents = Psi4ESPGenerator._generate_input(
+        molecule, conformer, settings, False, True, True,
+        memory=2 * unit.gigabytes
+    )
+
+    expected_output = "\n".join(
+        [
+            "memory 2 GB",
+            "",
             "molecule mol {",
             "  noreorient",
             "  nocom",

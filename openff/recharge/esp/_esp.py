@@ -112,6 +112,7 @@ class ESPGenerator(abc.ABC):
         compute_esp: bool,
         compute_field: bool,
         n_threads: int,
+        memory: Quantity = 500 * unit.mebibytes,
     ) -> tuple[Quantity, Quantity | None, Quantity | None]:
         """The implementation of the public ``generate`` function which
         should return the ESP for the provided conformer.
@@ -136,6 +137,8 @@ class ESPGenerator(abc.ABC):
             Whether to compute the ESP at each grid point.
         compute_field
             Whether to compute the field at each grid point.
+        memory
+            The memory to make available for computation
 
         Returns
         -------

@@ -31,7 +31,7 @@ class Psi4ESPGenerator(ESPGenerator):
         minimize: bool,
         compute_esp: bool,
         compute_field: bool,
-        memory: Quantity = 256 * unit.megabytes,
+        memory: Quantity = 500 * unit.mebibytes,
     ) -> str:
         """Generate the input files for Psi4.
 
@@ -137,7 +137,7 @@ class Psi4ESPGenerator(ESPGenerator):
         compute_esp: bool,
         compute_field: bool,
         n_threads: int,
-        memory: Quantity = 256 * unit.megabytes,
+        memory: Quantity = 500 * unit.mebibytes,
     ) -> tuple[Quantity, Quantity | None, Quantity | None]:
         # Perform the calculation in a temporary directory
         with temporary_cd(directory):

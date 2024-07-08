@@ -39,6 +39,8 @@ def test_generate_input_base(compute_esp, compute_field, expected_properties):
 
     expected_output = "\n".join(
         [
+            "memory 500 MiB",
+            "",
             "molecule mol {",
             "  noreorient",
             "  nocom",
@@ -68,6 +70,8 @@ def test_generate_input_base(compute_esp, compute_field, expected_properties):
 
     expected_output = "\n".join(
         [
+            "memory 500 MiB",
+            "",
             "molecule mol {",
             "  noreorient",
             "  nocom",
@@ -136,6 +140,8 @@ def test_generate_input_dft_settings(
 
     expected_output = "\n".join(
         [
+            "memory 500 MiB",
+            "",
             "molecule mol {",
             "  noreorient",
             "  nocom",

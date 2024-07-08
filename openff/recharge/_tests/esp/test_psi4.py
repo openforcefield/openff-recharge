@@ -177,7 +177,7 @@ def test_generate_input_pcm():
 
     expected_output = "\n".join(
         [
-            "memory 256 MB",
+            "memory 500 MiB",
             "",
             "molecule mol {",
             "  noreorient",

@@ -207,7 +207,7 @@ class ESPGenerator(abc.ABC):
             compute_esp,
             compute_field,
             n_threads,
-            memory=memory
+            memory=memory,
         )
 
         return conformer, grid, esp, electric_field

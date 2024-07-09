@@ -138,7 +138,7 @@ class ESPGenerator(abc.ABC):
         compute_field
             Whether to compute the field at each grid point.
         memory
-            The memory to make available for computation
+            The memory to make available for computation_
 
         Returns
         -------
@@ -184,7 +184,9 @@ class ESPGenerator(abc.ABC):
         compute_field
             Whether to compute the field at each grid point.
         memory
-            The memory to make available to Psi4 for computation
+            The memory to make available to Psi4 for computation.
+            Default is 500 MiB, as is the default in Psi4
+            (see psicode.org/psi4manual/master/psithoninput.html#memory-specification).
 
 
         Returns

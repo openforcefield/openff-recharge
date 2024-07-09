@@ -3,7 +3,7 @@ import os
 from enum import Enum
 from typing import TYPE_CHECKING, Literal
 
-from openff.units import Quantity
+from openff.units import unit, Quantity
 from openff.recharge._pydantic import BaseModel, Field
 
 from openff.recharge.grids import GridGenerator, GridSettingsType
@@ -112,6 +112,7 @@ class ESPGenerator(abc.ABC):
         compute_esp: bool,
         compute_field: bool,
         n_threads: int,
+        memory: Quantity = 500 * unit.mebibytes,
     ) -> tuple[Quantity, Quantity | None, Quantity | None]:
         """The implementation of the public ``generate`` function which
         should return the ESP for the provided conformer.
@@ -136,6 +137,8 @@ class ESPGenerator(abc.ABC):
             Whether to compute the ESP at each grid point.
         compute_field
             Whether to compute the field at each grid point.
+        memory
+            The memory to make available for computation_
 
         Returns
         -------
@@ -157,6 +160,7 @@ class ESPGenerator(abc.ABC):
         compute_esp: bool = True,
         compute_field: bool = True,
         n_threads: int = 1,
+        memory: Quantity = 500 * unit.mebibytes,
     ) -> tuple[Quantity, Quantity, Quantity | None, Quantity | None]:
         """Generate the electrostatic potential (ESP) on a grid defined by
         a provided set of settings.
@@ -179,6 +183,11 @@ class ESPGenerator(abc.ABC):
             Whether to compute the ESP at each grid point.
         compute_field
             Whether to compute the field at each grid point.
+        memory
+            The memory to make available to Psi4 for computation.
+            Default is 500 MiB, as is the default in Psi4
+            (see psicode.org/psi4manual/master/psithoninput.html#memory-specification).
+
 
         Returns
         -------
@@ -203,6 +212,7 @@ class ESPGenerator(abc.ABC):
             compute_esp,
             compute_field,
             n_threads,
+            memory=memory,
         )
 
         return conformer, grid, esp, electric_field

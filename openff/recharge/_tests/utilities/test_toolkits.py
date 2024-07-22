@@ -194,10 +194,13 @@ def test_match_smirks_invalid_rd():
         )
 
 
-@pytest.mark.parametrize("mapped_smiles, expected_radii", [
-    ("[C:1]([H:2])([H:3])([H:4])([H:5])", [1.7, 1.2, 1.2, 1.2, 1.2]),
-    ("[K:1][Cl:2]", [2.75, 1.75]),
-])
+@pytest.mark.parametrize(
+    "mapped_smiles, expected_radii",
+    [
+        ("[C:1]([H:2])([H:3])([H:4])([H:5])", [1.7, 1.2, 1.2, 1.2, 1.2]),
+        ("[K:1][Cl:2]", [2.75, 1.75]),
+    ],
+)
 def test_compute_vdw_radii(mapped_smiles, expected_radii):
     molecule = Molecule.from_mapped_smiles(mapped_smiles)
     radii = compute_vdw_radii(molecule)

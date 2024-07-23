@@ -1,4 +1,5 @@
 import numpy
+import scipy
 import pytest
 
 from openff.recharge.utilities.tensors import (
@@ -9,6 +10,8 @@ from openff.recharge.utilities.tensors import (
     pairwise_differences,
     to_numpy,
     to_torch,
+    as_sparse,
+    as_dense,
 )
 
 try:
@@ -135,3 +138,41 @@ def test_concatenate(tensor_type):
 
 def test_concatenate_none():
     assert concatenate(None, None) is None
+
+
+def test_as_sparse_numpy():
+    input_tensor = numpy.array([[1.0, 2.0], [3.0, 4.0]])
+    output_tensor = as_sparse(input_tensor)
+
+    assert type(output_tensor) is scipy.sparse.coo_array
+
+def test_as_sparse_scipy():
+    input_tensor = scipy.sparse.coo_array([[1.0, 2.0], [3.0, 4.0]])
+    output_tensor = as_sparse(input_tensor)
+
+    assert input_tensor is output_tensor
+
+def test_as_sparse_torch():
+    input_tensor = torch.tensor([[1.0, 2.0], [3.0, 4.0]])
+    output_tensor = as_sparse(input_tensor)
+
+    assert output_tensor.is_sparse
+
+def test_as_dense_numpy():
+    input_tensor = numpy.array([[1.0, 2.0], [3.0, 4.0]])
+    output_tensor = as_dense(input_tensor)
+
+    assert input_tensor is output_tensor
+
+def test_as_dense_scipy():
+    input_tensor = scipy.sparse.coo_array([[1.0, 2.0], [3.0, 4.0]])
+    output_tensor = as_dense(input_tensor)
+
+    assert type(output_tensor) is numpy.ndarray
+
+def test_as_dense_torch():
+    input_tensor = as_sparse(torch.tensor([[1.0, 2.0], [3.0, 4.0]]))
+    assert input_tensor.is_sparse
+
+    output_tensor = as_dense(input_tensor)
+    assert not output_tensor.is_sparse

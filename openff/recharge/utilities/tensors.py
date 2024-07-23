@@ -3,6 +3,7 @@
 from typing import TYPE_CHECKING, Union, overload
 
 import numpy
+import scipy
 from openff.utilities import requires_package
 
 if TYPE_CHECKING:
@@ -167,6 +168,8 @@ def concatenate(*arrays: None, dimension: int = 0) -> None: ...
 @overload
 def concatenate(*arrays: numpy.ndarray, dimension: int = 0) -> numpy.ndarray: ...
 
+@overload
+def concatenate(*arrays: scipy.sparse.coo_array, dimension: int = 0) -> scipy.sparse.coo_array: ...
 
 @overload
 def concatenate(*arrays: "torch.Tensor", dimension: int = 0) -> "torch.Tensor": ...
@@ -182,9 +185,54 @@ def concatenate(*arrays, dimension: int = 0):
         return None
     elif isinstance(arrays[0], numpy.ndarray):
         return numpy.concatenate([*arrays], axis=dimension)
+    elif isinstance(arrays[0], scipy.sparse.coo_array):
+        return scipy.sparse.vstack([*arrays])
     elif arrays[0].__module__.startswith("torch"):
         import torch
 
         return torch.cat([*arrays], dim=dimension)
+
+    raise NotImplementedError()
+
+
+@overload
+def as_sparse(array: scipy.sparse.coo_array) -> scipy.sparse.coo_array: ...
+
+@overload
+def as_sparse(array: numpy.ndarray) -> scipy.sparse.coo_array: ...
+
+@overload
+def as_sparse(array: "torch.Tensor") -> "torch.Tensor": ...
+
+
+def as_sparse(array):
+    """Converts an array-like object into a sparse representation (COO format)."""
+    if isinstance(array, scipy.sparse.coo_array):
+        return array
+    elif isinstance(array, numpy.ndarray):
+        return scipy.sparse.coo_array(array)
+    elif array.__module__.startswith("torch"):
+        return array.to_sparse()
+
+    raise NotImplementedError()
+
+
+@overload
+def as_dense(array: numpy.ndarray) -> numpy.ndarray: ...
+
+@overload
+def as_dense(array: "torch.Tensor") -> "torch.Tensor": ...
+
+@overload
+def as_dense(array: scipy.sparse.coo_array) -> numpy.ndarray: ...
+
+def as_dense(array):
+    """Converts an array-like object into a dense representation."""
+    if isinstance(array, numpy.ndarray):
+        return array
+    elif array.__module__.startswith("torch"):
+        return array.to_dense()
+    elif isinstance(array, scipy.sparse.coo_array):
+        return array.todense()
 
     raise NotImplementedError()

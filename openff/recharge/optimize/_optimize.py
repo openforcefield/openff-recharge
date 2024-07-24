@@ -660,6 +660,147 @@ class Objective(abc.ABC):
         trainable_assignment_matrix = assignment_matrix[:, trainable_parameter_indices]
 
         return trainable_assignment_matrix, fixed_charges.reshape(-1, 1)
+    
+
+    @classmethod
+    def compute_objective_term(
+        cls,
+        esp_record: MoleculeESPRecord,
+        charge_collection: None | (QCChargeSettings | LibraryChargeCollection) = None,
+        charge_parameter_keys: list[tuple[str, tuple[int, ...]]] | None = None,
+        bcc_collection: BCCCollection | None = None,
+        bcc_parameter_keys: list[str] | None = None,
+        vsite_collection: VirtualSiteCollection | None = None,
+        vsite_charge_parameter_keys: list[VirtualSiteChargeKey] | None = None,
+        vsite_coordinate_parameter_keys: list[VirtualSiteGeometryKey] | None = None,
+    ) -> ObjectiveTerm:
+        from openff.toolkit import Molecule
+
+        molecule: Molecule = Molecule.from_mapped_smiles(
+            esp_record.tagged_smiles, allow_undefined_stereo=True
+        )
+        ordered_conformer = esp_record.conformer
+
+        fixed_atom_charges = numpy.zeros((molecule.n_atoms, 1))
+
+        # Pre-compute the design matrix precursor (e.g inverse distance matrix for
+        # ESP) for this molecule as this is an 'expensive' step in the optimization.
+        design_matrix_precursor = cls._compute_design_matrix_precursor(
+            esp_record.grid_coordinates, ordered_conformer
+        )
+
+        (
+            atom_charge_design_matrices,
+            vsite_charge_assignment_matrix,
+            vsite_fixed_charges,
+            vsite_coord_assignment_matrix,
+            vsite_fixed_coords,
+            vsite_local_coordinate_frame,
+            grid_coordinates,
+        ) = ([], None, None, None, None, None, None)
+
+        if charge_collection is None:
+            pass
+        elif isinstance(charge_collection, QCChargeSettings):
+            assert (
+                charge_parameter_keys is None
+            ), "charges generated using `QCChargeSettings` cannot be trained"
+
+            fixed_atom_charges += QCChargeGenerator.generate(
+                molecule, [ordered_conformer * unit.angstrom], charge_collection
+            )
+
+        elif isinstance(charge_collection, LibraryChargeCollection):
+            (
+                library_assignment_matrix,
+                library_fixed_charges,
+            ) = cls._compute_library_charge_terms(
+                molecule,
+                charge_collection,
+                charge_parameter_keys,
+            )
+
+            fixed_atom_charges += library_fixed_charges
+
+            atom_charge_design_matrices.append(
+                design_matrix_precursor @ library_assignment_matrix
+            )
+        else:
+            raise NotImplementedError()
+
+        if bcc_collection is not None:
+            (
+                bcc_assignment_matrix,
+                bcc_fixed_charges,
+            ) = cls._compute_bcc_charge_terms(
+                molecule, bcc_collection, bcc_parameter_keys
+            )
+
+            fixed_atom_charges += bcc_fixed_charges
+
+            atom_charge_design_matrices.append(
+                design_matrix_precursor @ bcc_assignment_matrix
+            )
+
+        if vsite_collection is not None:
+            (
+                vsite_charge_assignment_matrix,
+                vsite_fixed_charges,
+            ) = cls._compute_vsite_charge_terms(
+                molecule, vsite_collection, vsite_charge_parameter_keys
+            )
+            (
+                vsite_coord_assignment_matrix,
+                vsite_fixed_coords,
+                vsite_local_coordinate_frame,
+            ) = cls._compute_vsite_coord_terms(
+                molecule,
+                ordered_conformer,
+                vsite_collection,
+                vsite_coordinate_parameter_keys or [],
+            )
+
+            fixed_atom_charges += vsite_fixed_charges[: molecule.n_atoms]
+            vsite_fixed_charges = vsite_fixed_charges[molecule.n_atoms :]
+
+            atom_charge_assignment_matrix = vsite_charge_assignment_matrix[
+                : molecule.n_atoms
+            ]
+            atom_charge_design_matrices.append(
+                design_matrix_precursor @ atom_charge_assignment_matrix
+            )
+
+            vsite_charge_assignment_matrix = vsite_charge_assignment_matrix[
+                molecule.n_atoms :
+            ]
+
+            grid_coordinates = esp_record.grid_coordinates
+
+        atom_charge_design_matrix = (
+            None
+            if len(atom_charge_design_matrices) == 0
+            else numpy.concatenate(atom_charge_design_matrices, axis=-1)
+        )
+
+        if cls._flatten_charges():
+            fixed_atom_charges = fixed_atom_charges.flatten()
+
+        reference_values = (
+            cls._electrostatic_property(esp_record)
+            - design_matrix_precursor @ fixed_atom_charges
+        )
+
+        return cls._objective_term()(
+            atom_charge_design_matrix,
+            vsite_charge_assignment_matrix,
+            vsite_fixed_charges,
+            vsite_coord_assignment_matrix,
+            vsite_fixed_coords,
+            vsite_local_coordinate_frame,
+            grid_coordinates,
+            reference_values,
+        )
+    
 
     @classmethod
     def compute_objective_terms(
@@ -754,132 +895,16 @@ class Objective(abc.ABC):
             contribution to the objective function.
         """
 
-        from openff.toolkit import Molecule
-
         for esp_record in esp_records:
-            molecule: Molecule = Molecule.from_mapped_smiles(
-                esp_record.tagged_smiles, allow_undefined_stereo=True
-            )
-            ordered_conformer = esp_record.conformer
-
-            fixed_atom_charges = numpy.zeros((molecule.n_atoms, 1))
-
-            # Pre-compute the design matrix precursor (e.g inverse distance matrix for
-            # ESP) for this molecule as this is an 'expensive' step in the optimization.
-            design_matrix_precursor = cls._compute_design_matrix_precursor(
-                esp_record.grid_coordinates, ordered_conformer
-            )
-
-            (
-                atom_charge_design_matrices,
-                vsite_charge_assignment_matrix,
-                vsite_fixed_charges,
-                vsite_coord_assignment_matrix,
-                vsite_fixed_coords,
-                vsite_local_coordinate_frame,
-                grid_coordinates,
-            ) = ([], None, None, None, None, None, None)
-
-            if charge_collection is None:
-                pass
-            elif isinstance(charge_collection, QCChargeSettings):
-                assert (
-                    charge_parameter_keys is None
-                ), "charges generated using `QCChargeSettings` cannot be trained"
-
-                fixed_atom_charges += QCChargeGenerator.generate(
-                    molecule, [ordered_conformer * unit.angstrom], charge_collection
-                )
-
-            elif isinstance(charge_collection, LibraryChargeCollection):
-                (
-                    library_assignment_matrix,
-                    library_fixed_charges,
-                ) = cls._compute_library_charge_terms(
-                    molecule,
-                    charge_collection,
-                    charge_parameter_keys,
-                )
-
-                fixed_atom_charges += library_fixed_charges
-
-                atom_charge_design_matrices.append(
-                    design_matrix_precursor @ library_assignment_matrix
-                )
-            else:
-                raise NotImplementedError()
-
-            if bcc_collection is not None:
-                (
-                    bcc_assignment_matrix,
-                    bcc_fixed_charges,
-                ) = cls._compute_bcc_charge_terms(
-                    molecule, bcc_collection, bcc_parameter_keys
-                )
-
-                fixed_atom_charges += bcc_fixed_charges
-
-                atom_charge_design_matrices.append(
-                    design_matrix_precursor @ bcc_assignment_matrix
-                )
-
-            if vsite_collection is not None:
-                (
-                    vsite_charge_assignment_matrix,
-                    vsite_fixed_charges,
-                ) = cls._compute_vsite_charge_terms(
-                    molecule, vsite_collection, vsite_charge_parameter_keys
-                )
-                (
-                    vsite_coord_assignment_matrix,
-                    vsite_fixed_coords,
-                    vsite_local_coordinate_frame,
-                ) = cls._compute_vsite_coord_terms(
-                    molecule,
-                    ordered_conformer,
-                    vsite_collection,
-                    vsite_coordinate_parameter_keys or [],
-                )
-
-                fixed_atom_charges += vsite_fixed_charges[: molecule.n_atoms]
-                vsite_fixed_charges = vsite_fixed_charges[molecule.n_atoms :]
-
-                atom_charge_assignment_matrix = vsite_charge_assignment_matrix[
-                    : molecule.n_atoms
-                ]
-                atom_charge_design_matrices.append(
-                    design_matrix_precursor @ atom_charge_assignment_matrix
-                )
-
-                vsite_charge_assignment_matrix = vsite_charge_assignment_matrix[
-                    molecule.n_atoms :
-                ]
-
-                grid_coordinates = esp_record.grid_coordinates
-
-            atom_charge_design_matrix = (
-                None
-                if len(atom_charge_design_matrices) == 0
-                else numpy.concatenate(atom_charge_design_matrices, axis=-1)
-            )
-
-            if cls._flatten_charges():
-                fixed_atom_charges = fixed_atom_charges.flatten()
-
-            reference_values = (
-                cls._electrostatic_property(esp_record)
-                - design_matrix_precursor @ fixed_atom_charges
-            )
-
-            yield cls._objective_term()(
-                atom_charge_design_matrix,
-                vsite_charge_assignment_matrix,
-                vsite_fixed_charges,
-                vsite_coord_assignment_matrix,
-                vsite_fixed_coords,
-                vsite_local_coordinate_frame,
-                grid_coordinates,
-                reference_values,
+            yield cls.compute_objective_term(
+                esp_record,
+                charge_collection,
+                charge_parameter_keys,
+                bcc_collection,
+                bcc_parameter_keys,
+                vsite_collection,
+                vsite_charge_parameter_keys,
+                vsite_coordinate_parameter_keys,
             )
 
 
@@ -973,3 +998,30 @@ class ElectricFieldObjective(Objective):
     @classmethod
     def _electrostatic_property(cls, record: MoleculeESPRecord) -> numpy.ndarray:
         return record.electric_field
+
+
+# class DipoleObjectiveTerm(ObjectiveTerm):
+
+#     @classmethod
+#     def _objective(cls) -> type["DipoleObjective"]:
+#         return DipoleObjective
+
+
+
+# class DipoleObjective(Objective):
+
+#     @classmethod
+#     def _objective_term(cls) -> type[DipoleObjectiveTerm]:
+#         return DipoleObjectiveTerm
+    
+#     @classmethod
+#     def _flatten_charges(cls) -> bool:
+#         return True
+    
+#     @classmethod
+#     def _compute_design_matrix_precursor(
+#         cls,
+#         grid_coordinates: numpy.ndarray,
+#         conformer: numpy.ndarray,
+#     ):
+#         # center conformer

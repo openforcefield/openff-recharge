@@ -289,11 +289,14 @@ def from_qcportal_results(
         qc_molecule, density, esp_settings, grid, compute_field
     )
 
+    dipole = numpy.array(qc_result.properties["scf_dipole_moment"]).reshape((3, 1))
+
     return MoleculeESPRecord.from_molecule(
         molecule,
         conformer=conformer,
         grid_coordinates=grid,
         esp=esp,
         electric_field=electric_field,
+        dipole=dipole,
         esp_settings=esp_settings,
     )

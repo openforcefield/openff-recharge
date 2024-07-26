@@ -72,6 +72,12 @@ class MoleculeESPRecord(BaseModel):
         "the grid coordinates with shape=(n_grid_points, 3).",
     )
 
+    dipole: Array[float] | None = Field(
+        ...,
+        description="The value of the dipole [e . a0] at each of the grid coordinates "
+        "with shape=(3, 1).",
+    )
+
     esp_settings: ESPSettings = Field(
         ..., description="The settings used to generate the ESP stored in this record."
     )
@@ -108,6 +114,7 @@ class MoleculeESPRecord(BaseModel):
         grid_coordinates: Quantity,
         esp: Quantity,
         electric_field: Quantity | None,
+        dipole: Quantity | None,
         esp_settings: ESPSettings,
     ) -> "MoleculeESPRecord":
         """Creates a new ``MoleculeESPRecord`` from an existing molecule
@@ -128,6 +135,8 @@ class MoleculeESPRecord(BaseModel):
         electric_field
             The value of the electric field [Hartree / (e . a0)] at each of
             the grid coordinates with shape=(n_grid_points, 3).
+        dipole
+            The value of the dipole [e . a0] with shape=(3, 1).
         esp_settings
             The settings used to generate the ESP stored in this record.
 
@@ -146,6 +155,7 @@ class MoleculeESPRecord(BaseModel):
             grid_coordinates=grid_coordinates,
             esp=esp,
             electric_field=electric_field,
+            dipole=dipole,
             esp_settings=esp_settings,
         )
 

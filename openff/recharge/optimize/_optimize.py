@@ -1000,28 +1000,34 @@ class ElectricFieldObjective(Objective):
         return record.electric_field
 
 
-# class DipoleObjectiveTerm(ObjectiveTerm):
+class DipoleObjectiveTerm(ObjectiveTerm):
 
-#     @classmethod
-#     def _objective(cls) -> type["DipoleObjective"]:
-#         return DipoleObjective
+    @classmethod
+    def _objective(cls) -> type["DipoleObjective"]:
+        return DipoleObjective
 
 
 
-# class DipoleObjective(Objective):
+class DipoleObjective(Objective):
 
-#     @classmethod
-#     def _objective_term(cls) -> type[DipoleObjectiveTerm]:
-#         return DipoleObjectiveTerm
+    @classmethod
+    def _objective_term(cls) -> type[DipoleObjectiveTerm]:
+        return DipoleObjectiveTerm
     
-#     @classmethod
-#     def _flatten_charges(cls) -> bool:
-#         return True
+    @classmethod
+    def _flatten_charges(cls) -> bool:
+        return False
     
-#     @classmethod
-#     def _compute_design_matrix_precursor(
-#         cls,
-#         grid_coordinates: numpy.ndarray,
-#         conformer: numpy.ndarray,
-#     ):
-#         # center conformer
+    @classmethod
+    def _compute_design_matrix_precursor(
+        cls,
+        grid_coordinates: numpy.ndarray,
+        conformer: numpy.ndarray,
+    ):
+        # convert conformer to bohr
+        conformer = unit.convert(conformer, unit.angstrom, unit.bohr).T
+        return conformer
+    
+    @classmethod
+    def _electrostatic_property(cls, record: MoleculeESPRecord) -> numpy.ndarray:
+        return record.dipole

@@ -34,7 +34,8 @@ from openff.recharge.utilities.tensors import (
     to_numpy,
     to_torch,
     as_sparse,
-    as_dense
+    as_dense,
+    flatten
 )
 
 if TYPE_CHECKING:
@@ -321,7 +322,7 @@ class ObjectiveTerm(abc.ABC):
             self.vsite_local_coordinate_frame is not None
             and self.vsite_local_coordinate_frame.shape[1] > 0
         ):
-            trainable_coordinates = append_zero(vsite_coordinate_parameters.flatten())[
+            trainable_coordinates = append_zero(flatten(vsite_coordinate_parameters))[
                 self.vsite_coord_assignment_matrix
             ]
 

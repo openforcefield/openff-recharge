@@ -201,6 +201,28 @@ def concatenate(*arrays, dimension: int = 0):
 
 
 @overload
+def flatten(array: numpy.ndarray) -> numpy.ndarray: ...
+
+def flatten(array: "torch.Tensor") -> "torch.Tensor": ...
+
+def flatten(array):
+    """Flattens a tensor into a 1D tensor."""
+
+    if isinstance(array, numpy.ndarray):
+        return array.flatten()
+
+    elif array.__module__.startswith("torch"):
+        if array.is_sparse:
+            arr = array.to_sparse_coo()
+            flat = arr.flatten()
+            return flat.to_sparse_csr()
+
+        return array.flatten()
+
+    raise NotImplementedError()
+
+
+@overload
 def as_sparse(array: scipy.sparse.coo_array) -> scipy.sparse.coo_array: ...
 
 @overload

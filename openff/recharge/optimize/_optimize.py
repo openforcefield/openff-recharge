@@ -322,9 +322,8 @@ class ObjectiveTerm(abc.ABC):
             self.vsite_local_coordinate_frame is not None
             and self.vsite_local_coordinate_frame.shape[1] > 0
         ):
-            trainable_coordinates = append_zero(flatten(vsite_coordinate_parameters))[
-                self.vsite_coord_assignment_matrix
-            ]
+            appended = append_zero(flatten(vsite_coordinate_parameters))
+            trainable_coordinates = appended[self.vsite_coord_assignment_matrix]
 
             vsite_local_coordinates = self.vsite_fixed_coords + trainable_coordinates
             # noinspection PyTypeChecker

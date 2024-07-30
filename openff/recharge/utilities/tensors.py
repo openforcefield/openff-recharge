@@ -190,12 +190,7 @@ def concatenate(*arrays, dimension: int = 0):
     elif arrays[0].__module__.startswith("torch"):
         import torch
 
-        if arrays[0].is_sparse:
-            arrays = [arr.to_sparse_coo() for arr in arrays]
-            concatenated = torch.cat([*arrays], dim=dimension)
-            return concatenated.to_sparse_csr()
-        else:
-            return torch.cat([*arrays], dim=dimension)
+        return torch.cat([*arrays], dim=dimension)
 
     raise NotImplementedError()
 

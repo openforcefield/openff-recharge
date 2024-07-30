@@ -191,18 +191,18 @@ class ObjectiveTerm(abc.ABC):
 
         self.atom_charge_design_matrix = as_sparse(self.atom_charge_design_matrix)
 
-        self.vsite_charge_assignment_matrix = as_sparse(self.vsite_charge_assignment_matrix)
+        # self.vsite_charge_assignment_matrix = as_sparse(self.vsite_charge_assignment_matrix)
 
-        self.vsite_coord_assignment_matrix = as_sparse(self.vsite_coord_assignment_matrix)
+        # self.vsite_coord_assignment_matrix = as_sparse(self.vsite_coord_assignment_matrix)
 
     def as_dense(self):
         """Converts sparse matrices to a dense format."""
 
         self.atom_charge_design_matrix = as_dense(self.atom_charge_design_matrix)
 
-        self.vsite_charge_assignment_matrix = as_dense(self.vsite_charge_assignment_matrix)
+        # self.vsite_charge_assignment_matrix = as_dense(self.vsite_charge_assignment_matrix)
 
-        self.vsite_coord_assignment_matrix = as_dense(self.vsite_coord_assignment_matrix)
+        # self.vsite_coord_assignment_matrix = as_dense(self.vsite_coord_assignment_matrix)
 
     @classmethod
     def combine(cls: type[_TERM_T], *terms: _TERM_T) -> _TERM_T:

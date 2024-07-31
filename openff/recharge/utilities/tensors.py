@@ -1,5 +1,6 @@
 """Utilities for manipulating numpy and pytorch tensors using a consistent API."""
 
+import math
 from typing import TYPE_CHECKING, Union, overload
 
 import numpy
@@ -257,4 +258,64 @@ def as_dense(array):
     elif isinstance(array, scipy.sparse.coo_array):
         return array.todense()
 
+    raise NotImplementedError()
+
+
+def _reshape_to_dim_2(array):
+    """Reshapes a tensor into a 2D tensor."""
+    if isinstance(array, numpy.ndarray):
+        return array.reshape(-1, array.shape[-1])
+
+    elif array.__module__.startswith("torch"):
+        if array.is_sparse:
+            import torch
+            
+            old_shape = list(array.shape)[:-1][::-1]
+            new_x_indices = []
+            for indices in array.indices().T:
+                output_index = 0
+                total_size = 1
+                indices = list(indices)[::-1]
+
+                # generically calculate flattened index
+                for index_index, index_value in enumerate(indices[1:]):
+                    output_index += (index_value * total_size)
+                    total_size *= old_shape[index_index]
+                new_x_indices.append(output_index)
+
+            new_indices = (new_x_indices, array.indices()[-1])
+            new_tensor = torch.sparse_coo_tensor(new_indices, array.values())
+            return new_tensor
+            
+
+        else:
+            return array.reshape((-1, array.shape[-1]))
+
+    raise NotImplementedError()
+
+
+def _matmul_ndim(left_tensor, right_tensor):
+    if isinstance(left_tensor, numpy.ndarray):
+        return left_tensor @ right_tensor
+
+    if left_tensor.__module__.startswith("torch"):
+        if left_tensor.ndim == 2:
+            return left_tensor @ right_tensor
+        
+        else:
+
+            # TODO: add support for 2D second tensor
+            assert right_tensor.ndim == 1, "Second tensor must be 1D"
+
+            # first reshape sparse_tensor into 2D shape
+            flattened = _reshape_to_dim_2(left_tensor)
+            product = flattened @ right_tensor
+
+            # TODO: reshape into original shape without going through to_dense
+            if product.is_sparse:
+                product = product.to_dense()
+            
+            original_shape = left_tensor.shape[:-1]
+            return product.reshape(original_shape)
+        
     raise NotImplementedError()

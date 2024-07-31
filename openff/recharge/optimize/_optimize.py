@@ -300,6 +300,7 @@ class ObjectiveTerm(abc.ABC):
             The predicted value of the electrostatic property represented by this term
             with the same units and shape as ``reference_values``.
         """
+        from openff.recharge.utilities.tensors import _matmul_ndim
 
         if (
             self.vsite_local_coordinate_frame is None
@@ -314,7 +315,15 @@ class ObjectiveTerm(abc.ABC):
             charge_parameters = charge_parameters.flatten()
 
         if self.atom_charge_design_matrix is not None:
-            atom_contribution = self.atom_charge_design_matrix @ charge_parameters
+            if self.atom_charge_design_matrix.is_sparse and self.atom_charge_design_matrix.ndim > 2:
+                # broadcasting isn't supported for matmul operations with ndim > 2
+                # use a special hacky operation
+                atom_contribution = _matmul_ndim(
+                    self.atom_charge_design_matrix, charge_parameters
+                )
+
+            else:
+                atom_contribution = self.atom_charge_design_matrix @ charge_parameters
         else:
             atom_contribution = 0.0
 

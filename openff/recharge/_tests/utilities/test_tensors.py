@@ -12,6 +12,8 @@ from openff.recharge.utilities.tensors import (
     to_torch,
     as_sparse,
     as_dense,
+    _reshape_to_dim_2,
+    _matmul_ndim
 )
 
 try:
@@ -176,3 +178,28 @@ def test_as_dense_torch():
 
     output_tensor = as_dense(input_tensor)
     assert not output_tensor.is_sparse
+
+
+@pytest.mark.parametrize("tensor_type", tensor_types)
+@pytest.mark.parametrize("shape", [(51, 3, 217), (11, 16, 3, 4)])
+def test_reshape_to_dim_2(tensor_type, shape):
+    array = numpy.random.rand(*shape)
+    tensor = tensor_type(array)
+    reference = array.reshape((-1, shape[-1]))
+    reshaped = _reshape_to_dim_2(tensor)
+    assert numpy.allclose(to_numpy(reshaped), reference)
+
+
+@pytest.mark.parametrize("tensor_type", tensor_types)
+@pytest.mark.parametrize("shape", [(51, 3, 217), (11, 16, 3, 4)])
+def test__matmul_ndim(tensor_type, shape):
+    left_ = numpy.random.rand(*shape)
+    right_ = numpy.random.rand(shape[-1])
+    reference = left_ @ right_
+
+    left = tensor_type(left_)
+    right = tensor_type(right_)
+    result = _matmul_ndim(left, right)
+
+    assert numpy.allclose(to_numpy(result), reference)
+

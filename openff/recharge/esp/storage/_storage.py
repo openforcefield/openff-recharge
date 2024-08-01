@@ -114,8 +114,8 @@ class MoleculeESPRecord(BaseModel):
         grid_coordinates: Quantity,
         esp: Quantity,
         electric_field: Quantity | None,
-        dipole: Quantity | None,
         esp_settings: ESPSettings,
+        dipole: Quantity | None = None,
     ) -> "MoleculeESPRecord":
         """Creates a new ``MoleculeESPRecord`` from an existing molecule
         object, taking care of creating the InChI and SMARTS representations.

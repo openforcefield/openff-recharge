@@ -24,6 +24,8 @@ from openff.recharge.optimize import (
     ElectricFieldObjectiveTerm,
     ESPObjective,
     ESPObjectiveTerm,
+    SparseElectricFieldObjective,
+    SparseElectricFieldObjectiveTerm,
 )
 from openff.recharge.optimize._optimize import Objective, ObjectiveTerm
 from openff.recharge.utilities.molecule import smiles_to_molecule
@@ -138,6 +140,17 @@ def test_term_to_backend(
                 + 1.0
             ),
         ),
+        (
+            SparseElectricFieldObjectiveTerm,
+            numpy.array(
+                [[+0.0, -4.0 / 125.0], [+3.0 / 27.0, +3.0 / 125.0], [+0.0, +0.0]]
+            ),
+            (
+                (1.0 - 2.0 * (0.0 - -4.0 / 125.0)) ** 2
+                + (1.0 - 2.0 * (3.0 / 27.0 - 3.0 / 125.0)) ** 2
+                + 1.0
+            ),
+        )
     ],
 )
 @pytest.mark.parametrize("backend", backends)
@@ -227,7 +240,7 @@ def test_term_evaluate_vsite_only(
 
     output_loss = float(term.loss(charge_values, coordinate_values))
 
-    assert numpy.isclose(expected_loss, output_loss)
+    assert numpy.isclose(expected_loss, output_loss), (expected_loss, output_loss)
 
 
 @pytest.mark.parametrize(
@@ -295,7 +308,7 @@ def test_term_evaluate_atom_charge_and_vsite(
     assert numpy.isclose(expected_loss, output_loss)
 
 
-@pytest.mark.parametrize("objective_class", [ESPObjective, ElectricFieldObjective])
+@pytest.mark.parametrize("objective_class", [ESPObjective, ElectricFieldObjective, SparseElectricFieldObjective])
 @pytest.mark.parametrize("backend", backends)
 def test_combine_terms(objective_class, backend, hcl_parameters):
     bcc_collection, vsite_collection = hcl_parameters
@@ -737,3 +750,88 @@ def test_compute_field_objective_terms(hcl_esp_record, hcl_parameters):
             ]
         ),
     )
+
+
+def test_compute_sparse_field_objective_terms(hcl_esp_record, hcl_parameters):
+    bcc_collection, vsite_collection = hcl_parameters
+
+    objective_terms_generator = SparseElectricFieldObjective.compute_objective_terms(
+        [hcl_esp_record],
+        None,
+        bcc_collection=bcc_collection,
+        bcc_parameter_keys=["[#17:1]-[#1:2]"],
+        vsite_collection=vsite_collection,
+        vsite_charge_parameter_keys=[("[#17:1]-[#1:2]", "BondCharge", "EP", 0)],
+        vsite_coordinate_parameter_keys=[
+            ("[#17:1]-[#1:2]", "BondCharge", "EP", "distance")
+        ],
+    )
+    objective_terms = [*objective_terms_generator]
+
+    assert len(objective_terms) == 1
+    objective_term = objective_terms[0]
+
+    # Distance between H and the grid point at (4, 3, 0)
+    h_distance = numpy.sqrt(3.0 * 3.0 + 8.0 * 8.0)
+
+    expected_design_matrix = numpy.array(
+        [
+            [[0.0, -4.0 / 5.0**3], [3.0 / 3.0**3, 3.0 / 5.0**3], [0.0, 0.0]],
+            [
+                [8.0 / h_distance**3, 4.0 / 5.0**3],
+                [3.0 / h_distance**3, 3.0 / 5.0**3],
+                [0.0, 0.0],
+            ],
+        ]
+    ) @ numpy.array([[-1, 0], [1, 1]])
+    expected_design_matrix = expected_design_matrix.reshape((6, 2))
+
+    assert (
+        objective_term.atom_charge_design_matrix.shape == expected_design_matrix.shape
+    )
+    assert numpy.allclose(
+        objective_term.atom_charge_design_matrix, expected_design_matrix
+    )
+
+    assert objective_term.vsite_charge_assignment_matrix.shape == (1, 1)
+    assert numpy.isclose(objective_term.vsite_charge_assignment_matrix, -1)
+
+    assert objective_term.vsite_fixed_charges.shape == (1, 1)
+    assert numpy.isclose(objective_term.vsite_fixed_charges, -0.1)
+
+    assert objective_term.vsite_coord_assignment_matrix.shape == (1, 3)
+    assert numpy.allclose(
+        objective_term.vsite_coord_assignment_matrix, numpy.array([[0, -1, -1]])
+    )
+
+    assert objective_term.vsite_fixed_coords.shape == (1, 3)
+    assert numpy.allclose(
+        objective_term.vsite_fixed_coords, numpy.array([[0.0, 180.0, 0.0]])
+    )
+
+    assert objective_term.vsite_local_coordinate_frame.shape == (4, 1, 3)
+
+    assert (
+        hcl_esp_record.grid_coordinates.shape == objective_term.grid_coordinates.shape
+    )
+    assert numpy.allclose(
+        hcl_esp_record.grid_coordinates, objective_term.grid_coordinates
+    )
+
+    assert objective_term.reference_values.shape == (6, 1)
+    assert numpy.allclose(
+        objective_term.reference_values,
+        numpy.array(
+            [
+                [1.0 - 0.0, 2.0 - 0.1 * 3.0 / 3.0**3, 3.0 - 0.0],
+                [
+                    1.0 - 0.1 * 8.0 / h_distance**3,
+                    2.0 - 0.1 * 3.0 / h_distance**3,
+                    3.0 - 0.0,
+                ],
+            ]
+        ).reshape((-1, 1)),
+    )
+
+
+

@@ -315,14 +315,14 @@ class ObjectiveTerm(abc.ABC):
             charge_parameters = charge_parameters.flatten()
 
         if self.atom_charge_design_matrix is not None:
-            if self.atom_charge_design_matrix.is_sparse and self.atom_charge_design_matrix.ndim > 2:
-                # broadcasting isn't supported for matmul operations with ndim > 2
-                # use a special hacky operation
-                atom_contribution = _matmul_ndim(
-                    self.atom_charge_design_matrix, charge_parameters
-                )
+            # if self.atom_charge_design_matrix.is_sparse and self.atom_charge_design_matrix.ndim > 2:
+            #     # broadcasting isn't supported for matmul operations with ndim > 2
+            #     # use a special hacky operation
+            #     atom_contribution = _matmul_ndim(
+            #         self.atom_charge_design_matrix, charge_parameters
+            #     )
 
-            else:
+            # else:
                 atom_contribution = self.atom_charge_design_matrix @ charge_parameters
         else:
             atom_contribution = 0.0
@@ -1007,6 +1007,36 @@ class ElectricFieldObjective(Objective):
     @classmethod
     def _electrostatic_property(cls, record: MoleculeESPRecord) -> numpy.ndarray:
         return record.electric_field
+
+
+class SparseElectricFieldObjectiveTerm(ObjectiveTerm):
+    @classmethod
+    def _objective(cls) -> type["SparseElectricFieldObjective"]:
+        return SparseElectricFieldObjective
+
+
+class SparseElectricFieldObjective(Objective):
+    @classmethod
+    def _objective_term(cls) -> type[SparseElectricFieldObjectiveTerm]:
+        return SparseElectricFieldObjectiveTerm
+    
+    @classmethod
+    def _flatten_charges(cls) -> bool:
+        return False
+    
+    @classmethod
+    def _compute_design_matrix_precursor(
+        cls, grid_coordinates: numpy.ndarray, conformer: numpy.ndarray
+    ):
+        precursor = ElectricFieldObjective._compute_design_matrix_precursor(
+            grid_coordinates, conformer
+        )
+        reshaped = precursor.reshape(-1, precursor.shape[-1])
+        return as_sparse(reshaped)
+    
+    @classmethod
+    def _electrostatic_property(cls, record: MoleculeESPRecord) -> numpy.ndarray:
+        return record.electric_field.reshape((-1, 1))
 
 
 class DipoleObjectiveTerm(ObjectiveTerm):

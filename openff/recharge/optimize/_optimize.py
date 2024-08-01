@@ -389,9 +389,6 @@ class ObjectiveTerm(abc.ABC):
         else:
             vsite_contribution = 0.0
 
-        print(atom_contribution.shape)
-        print(vsite_contribution.shape)
-
         return atom_contribution + vsite_contribution
 
     def loss(
@@ -1074,7 +1071,6 @@ class SparseElectricFieldObjective(Objective):
         x = math.prod(precursor.shape[:-1])
         new_shape = (x, precursor.shape[-1])
         reshaped = precursor.reshape(new_shape)
-        print("precursor_shape", precursor.shape, reshaped.shape)
         return as_sparse(reshaped)
     
     @classmethod

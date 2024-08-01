@@ -389,6 +389,9 @@ class ObjectiveTerm(abc.ABC):
         else:
             vsite_contribution = 0.0
 
+        print(atom_contribution.shape)
+        print(vsite_contribution.shape)
+
         return atom_contribution + vsite_contribution
 
     def loss(
@@ -1013,6 +1016,41 @@ class SparseElectricFieldObjectiveTerm(ObjectiveTerm):
     @classmethod
     def _objective(cls) -> type["SparseElectricFieldObjective"]:
         return SparseElectricFieldObjective
+    
+    # @classmethod
+    # def combine(cls: type[_TERM_T], *terms: _TERM_T) -> _TERM_T:
+    #     """Combines multiple objective term objects into a single object that can
+    #     be evaluated more efficiently by stacking the cached terms in a way that
+    #     allows vectorized operations.
+
+    #     Notes
+    #     -----
+    #     * This feature is very experimental and should only be used if you know what
+    #       you are doing.
+
+    #     Parameters
+    #     ----------
+    #     terms
+    #         The terms to combine.
+
+    #     Returns
+    #     -------
+    #         The combined term.
+    #     """
+    #     return_value = super().combine(*terms)
+
+    #     if return_value.grid_coordinates is not None:
+    #         return_value._grid_batches = [(0, 0)]
+
+    #         n_grid_points, n_vsites = 0, 0
+
+    #         for term in terms:
+    #             n_grid_points += len(term.grid_coordinates) * 3
+    #             n_vsites += len(term.vsite_fixed_charges)
+
+    #             return_value._grid_batches.append((n_grid_points, n_vsites))
+
+    #     return return_value
 
 
 class SparseElectricFieldObjective(Objective):
@@ -1028,13 +1066,15 @@ class SparseElectricFieldObjective(Objective):
     def _compute_design_matrix_precursor(
         cls, grid_coordinates: numpy.ndarray, conformer: numpy.ndarray
     ):
+        import math
+
         precursor = ElectricFieldObjective._compute_design_matrix_precursor(
             grid_coordinates, conformer
         )
-        if len(precursor.flatten()):
-            reshaped = precursor.reshape(-1, precursor.shape[-1])
-        else:
-            reshaped = precursor.reshape(0, precursor.shape[-1])
+        x = math.prod(precursor.shape[:-1])
+        new_shape = (x, precursor.shape[-1])
+        reshaped = precursor.reshape(new_shape)
+        print("precursor_shape", precursor.shape, reshaped.shape)
         return as_sparse(reshaped)
     
     @classmethod

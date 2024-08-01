@@ -1031,7 +1031,10 @@ class SparseElectricFieldObjective(Objective):
         precursor = ElectricFieldObjective._compute_design_matrix_precursor(
             grid_coordinates, conformer
         )
-        reshaped = precursor.reshape(-1, precursor.shape[-1])
+        if len(precursor.flatten()):
+            reshaped = precursor.reshape(-1, precursor.shape[-1])
+        else:
+            reshaped = precursor.reshape(0, precursor.shape[-1])
         return as_sparse(reshaped)
     
     @classmethod

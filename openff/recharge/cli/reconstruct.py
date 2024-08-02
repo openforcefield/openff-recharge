@@ -112,15 +112,16 @@ def reconstruct(
 
     # Pull down the QCA result records.
     qc_results, qc_keyword_sets = _retrieve_result_records(record_ids)
-
+    print(qc_keyword_sets)
     with Pool(processes=n_processors) as pool:
         esp_records = list(
             tqdm(
                 pool.imap(
                     functools.partial(_process_result, grid_settings=grid_settings),
                     [
-                        (qc_result, qc_molecule, qc_keyword_sets[qc_result.keywords])
-                        for (qc_molecule, qc_result) in qc_results
+                        (qc_result, qc_molecule, qc_keyword_sets[index])
+                        for index, qc_result in enumerate(qc_results)
+                        for qc_molecule in [qc_result.molecule]
                     ],
                 ),
                 total=len([*qc_results]),

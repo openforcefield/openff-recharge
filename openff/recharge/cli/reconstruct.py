@@ -4,7 +4,7 @@ import logging
 import os
 import pwd
 from datetime import datetime
-from multiprocessing import Pool
+from multiprocessing import Pool, get_context
 from typing import TYPE_CHECKING
 
 import click
@@ -59,7 +59,7 @@ def _process_result(
     result_tuple: tuple[
         "qcportal.record_models.BaseRecord",
         "qcelemental.models.Molecule",
-        "qcportal.models.KeywordSet",
+        "qcportal.models.Molecule.keywords",
     ],
     grid_settings: GridSettingsType,
 ):
@@ -108,14 +108,18 @@ def reconstruct(
         record_ids = json.load(file)
 
     # Load in the ESP settings.
-    grid_settings = GridSettings.parse_file(grid_settings_path)
+    grid_settings = GridSettings.parse_file(grid_settings_path)           
 
     # Pull down the QCA result records.
     qc_results, qc_keyword_sets = _retrieve_result_records(record_ids)
-    print(qc_keyword_sets)
-    with Pool(processes=n_processors) as pool:
+
+    partial = functools.partial(_process_result, grid_settings=grid_settings)
+    qc_result = next(qc_results)
+    result = partial((qc_result, qc_result.molecule, qc_keyword_sets[0]))
+
+    with get_context("spawn").Pool(processes=n_processors) as pool:
         esp_records = list(
-            tqdm(
+           tqdm(
                 pool.imap(
                     functools.partial(_process_result, grid_settings=grid_settings),
                     [
@@ -127,14 +131,14 @@ def reconstruct(
                 total=len([*qc_results]),
             )
         )
-
+    
     # Store the ESP records in a data store.
     esp_store = MoleculeESPStore()
     esp_store.set_provenance(
         general_provenance={
             "user": pwd.getpwuid(os.getuid()).pw_name,
             "date": datetime.now().strftime("%d-%m-%Y"),
-            "record_ids": ",".join(record_ids),
+            "record_ids": ",".join(str(record_ids)),
         },
         software_provenance={
             "openff-recharge": openff.recharge.__version__,

@@ -39,7 +39,6 @@ def _retrieve_result_records(
 
     results = client.query_records(
         record_id=record_ids,
-        limit=client.server_info["api_limits"]["get_records"],
     )
 
     # Fetch the corresponding record keywords.
@@ -48,7 +47,6 @@ def _retrieve_result_records(
         result.specification.keywords
         for result in client.query_records(
             record_id=record_ids,
-            limit=client.server_info["api_limits"]["get_records"],
         )
     ]
 
@@ -106,6 +104,7 @@ def reconstruct(
     # Load in the record ids.
     with open(record_ids_path) as file:
         record_ids = json.load(file)
+    print(len(record_ids))
 
     # Load in the ESP settings.
     grid_settings = GridSettings.parse_file(grid_settings_path)           

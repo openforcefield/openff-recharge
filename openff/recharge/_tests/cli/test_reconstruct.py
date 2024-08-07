@@ -60,3 +60,4 @@ def test_reconstruct(runner, monkeypatch):
 
     esp_store = MoleculeESPStore()
     assert len(esp_store.retrieve("O")) == 1
+

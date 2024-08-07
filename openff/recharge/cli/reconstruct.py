@@ -59,7 +59,7 @@ def _process_result(
     result_tuple: tuple[
         "qcportal.record_models.BaseRecord",
         "qcelemental.models.Molecule",
-        "qcportal.models.Molecule.keywords",
+        dict,
     ],
     grid_settings: GridSettingsType,
 ):
@@ -112,10 +112,6 @@ def reconstruct(
 
     # Pull down the QCA result records.
     qc_results, qc_keyword_sets = _retrieve_result_records(record_ids)
-
-    partial = functools.partial(_process_result, grid_settings=grid_settings)
-    qc_result = next(qc_results)
-    result = partial((qc_result, qc_result.molecule, qc_keyword_sets[0]))
 
     with get_context("spawn").Pool(processes=n_processors) as pool:
         esp_records = list(

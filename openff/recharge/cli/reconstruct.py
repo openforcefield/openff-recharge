@@ -104,7 +104,6 @@ def reconstruct(
     # Load in the record ids.
     with open(record_ids_path) as file:
         record_ids = json.load(file)
-    print(len(record_ids))
 
     # Load in the ESP settings.
     grid_settings = GridSettings.parse_file(grid_settings_path)           

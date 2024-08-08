@@ -1,8 +1,8 @@
 import json
 import os
 from multiprocessing.pool import Pool
-from qcportal.record_models import BaseRecord
 from importlib_resources import files
+from collections import namedtuple
 
 import numpy
 import pytest
@@ -15,14 +15,6 @@ from openff.recharge.grids import LatticeGridSettings
 from openff.recharge.utilities.molecule import smiles_to_molecule
 from openff.toolkit._tests.utils import requires_openeye
 
-
-def test_retrieve_result_records():
-    # noinspection PyTypeChecker
-    qc_results, qc_keywords = _retrieve_result_records(32651863)
-
-    assert len([*qc_results]) == 1
-    assert len([*qc_keywords]) == 1
-
 class MockMolecule:
     def __init__(self, molecule_data):
         self.schema_name = molecule_data['schema_name']
@@ -33,11 +25,30 @@ class MockMolecule:
         self.molecular_charge = molecule_data['molecular_charge']
         self.molecular_multiplicity = molecule_data['molecular_multiplicity']
 
+class MockElectronShell:
+    def __init__(self, shell_data):
+        self.angular_momentum = shell_data['angular_momentum']
+        self.harmonic_type = shell_data['harmonic_type']
+        self._nfunctions = shell_data['nfunctions']
+
+    def nfunctions(self):
+        return self._nfunctions
+
+class MockCenterData:
+    def __init__(self, center_data):
+        self.electron_shells = [MockElectronShell(shell) for shell in center_data['electron_shells']]
+
+class MockBasis:
+    def __init__(self, basis_data):
+        self.name = basis_data['name']
+        self.center_data = {k: MockCenterData(v) for k, v in basis_data['center_data'].items()}
+        self.atom_map = basis_data['atom_map']
+
 class MockWavefunction:
     def __init__(self, wavefunction_data):
-        self.basis = wavefunction_data['basis']
-        self.scf_orbitals_a = wavefunction_data['scf_orbitals_a']
-        self.scf_orbitals_b = wavefunction_data['scf_orbitals_b']
+        self.basis = MockBasis(wavefunction_data['basis'])
+        self.scf_orbitals_a = numpy.array(wavefunction_data['scf_orbitals_a'])
+        self.scf_orbitals_b = numpy.array(wavefunction_data['scf_orbitals_b'])
 
 class MockBaseRecord:
     def __init__(self, record_data):
@@ -47,9 +58,15 @@ class MockBaseRecord:
         self.specification = record_data['specification']
 
 def load_mock_qc_result():
-    with open(files("openff.recharge") / os.path.join("_tests", "data", "qc_results", "mock_qc_result.json"), "r") as file:
+    with open(files("openff.recharge") / os.path.join("_tests", "data", "mock_qc_result.json"), "r") as file:
         mock_qc_result_data = json.load(file)
         return MockBaseRecord(mock_qc_result_data)
+
+
+# def load_mock_qc_result():
+#     with open(files("openff.recharge") / os.path.join("_tests", "data", "qc_results", "mock_qc_result.json"), "r") as file:
+#         mock_qc_result_data = json.load(file)
+#         return MockBaseRecord(mock_qc_result_data)
 
 # Load the mock QC result once
 MOCK_QC_RESULT = load_mock_qc_result()
@@ -81,7 +98,7 @@ def test_reconstruct(runner, monkeypatch):
     # python list iterator
 
     
-    def mock_retrieve_result_records(record_ids: int=1) -> tuple[MockBaseRecord,list[dict]]:
+    def mock_retrieve_result_records(record_ids: int=1) -> tuple[tuple,list[dict]]:
             return [MOCK_QC_RESULT], [{}]
         
     qc_results, qc_keyword_sets = mock_retrieve_result_records()

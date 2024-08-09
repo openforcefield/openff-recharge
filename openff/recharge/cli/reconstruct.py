@@ -20,9 +20,7 @@ if TYPE_CHECKING:
     import qcportal.record_models
 
 
-QCFractalResults = list[
-        "qcportal.record_models.BaseRecord"
-]
+QCFractalResults = list["qcportal.record_models.BaseRecord"]
 
 QCFractalKeywords = dict[str, "qcportal.models.KeywordSet"]
 
@@ -102,9 +100,7 @@ def reconstruct(
             tqdm(
                 pool.imap(
                     functools.partial(_process_result, grid_settings=grid_settings),
-                    [
-                        qc_result for qc_result in qc_results
-                    ],
+                    [qc_result for qc_result in qc_results],
                 ),
                 total=len([*qc_results]),
             )

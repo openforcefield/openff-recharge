@@ -21,6 +21,7 @@ class MockMolecule:
         self.symbols = molecule_data["symbols"]
         self.geometry = molecule_data["geometry"]
 
+
 class MockWavefunction:
     def __init__(self, wavefunction_data):
         self.basis = wavefunction_data["basis"]
@@ -59,7 +60,9 @@ def mock_process_result(
         esp_settings=ESPSettings(grid_settings=LatticeGridSettings()),
     )
 
+
 MOCK_QC_RESULT = load_mock_qc_result()
+
 
 @requires_openeye
 def test_reconstruct(runner, monkeypatch):

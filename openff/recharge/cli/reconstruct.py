@@ -5,6 +5,8 @@ import os
 import pwd
 from datetime import datetime
 from multiprocessing import Pool, get_context
+from concurrent.futures import ProcessPoolExecutor, as_completed
+import concurrent
 from typing import TYPE_CHECKING
 
 import click
@@ -46,7 +48,8 @@ def _process_result(
     qc_result: "qcportal.record_models.BaseRecord",
     grid_settings: GridSettingsType,
 ):
-    result_tuple = (qc_result, qc_result.molecule, qc_result.specfication.keywords)
+    result_tuple = (qc_result, qc_result.molecule, qc_result.specification.keywords)
+
     return from_qcportal_results(*result_tuple, grid_settings=grid_settings)
 
 
@@ -97,19 +100,6 @@ def reconstruct(
     # Pull down the QCA result records.
     qc_results = _retrieve_result_records(record_ids)
 
-    with get_context("spawn").Pool(processes=n_processors) as pool:
-        esp_records = list(
-            tqdm(
-                pool.imap(
-                    functools.partial(_process_result, grid_settings=grid_settings),
-                    [
-                        qc_result for qc_result in qc_results
-                    ],
-                ),
-                total=len([*qc_results]),
-            )
-        )
-
     # Store the ESP records in a data store.
     esp_store = MoleculeESPStore()
     esp_store.set_provenance(
@@ -126,5 +116,22 @@ def reconstruct(
             "qcelemental": qcelemental.__version__,
         },
     )
+    
+    with ProcessPoolExecutor(max_workers=n_processors, mp_context=get_context("spawn")) as pool:
+ 
+        futures = [
+            pool.submit(
+                functools.partial(_process_result, grid_settings=grid_settings),
+                qc_result
+            )
+            for qc_result in qc_results
+        ]
+        
+        for future in tqdm(as_completed(futures), total=len(futures)):
+            esp_record = future.result()
+            esp_store.store(esp_record)
 
-    esp_store.store(*esp_records)
+               
+
+
+

@@ -1,6 +1,5 @@
 import json
 import os
-from multiprocessing.pool import Pool
 from importlib_resources import files
 from collections import namedtuple
 

@@ -39,7 +39,7 @@ def load_mock_qc_result():
         mock_qc_result_data = json.load(file)
         return MockBaseRecord(mock_qc_result_data)
 
-#top-level function to allow it to be used in multiprocessing
+#top-level function to allow it to be pickled in spawn() multiprocesses
 def mock_process_result(result_tuple, grid_settings: GridSettingsType,):
     return  MoleculeESPRecord.from_molecule(
             smiles_to_molecule("O"),
@@ -52,10 +52,11 @@ def mock_process_result(result_tuple, grid_settings: GridSettingsType,):
     
 MOCK_QC_RESULT = load_mock_qc_result()
 
-# @requires_openeye
+@requires_openeye
 def test_reconstruct(runner, monkeypatch):
     pytest.importorskip("psi4")
     
+    #mock the process result function
     def mock_retrieve_result_records(record_ids: int=1) -> tuple[tuple,list[dict]]:
             return [MOCK_QC_RESULT], [{}]
         
@@ -63,7 +64,6 @@ def test_reconstruct(runner, monkeypatch):
         "openff.recharge.cli.reconstruct._retrieve_result_records", 
         mock_retrieve_result_records
     )
-
     monkeypatch.setattr("openff.recharge.cli.reconstruct._process_result",
                        mock_process_result
     )

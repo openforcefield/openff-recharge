@@ -21,11 +21,9 @@ if TYPE_CHECKING:
 
 
 QCFractalResults = list[
-    tuple[
-        "qcelemental.models.Molecule",
-        "qcportal.record_models.BaseRecord",
-    ]
+        "qcportal.record_models.BaseRecord"
 ]
+
 QCFractalKeywords = dict[str, "qcportal.models.KeywordSet"]
 
 
@@ -41,26 +39,14 @@ def _retrieve_result_records(
         record_id=record_ids,
     )
 
-    # Fetch the corresponding record keywords.
-    # The iterator is depleted on its first unpacking, so need to re-query
-    keywords = [
-        result.specification.keywords
-        for result in client.query_records(
-            record_id=record_ids,
-        )
-    ]
-
-    return results, keywords
+    return results
 
 
 def _process_result(
-    result_tuple: tuple[
-        "qcportal.record_models.BaseRecord",
-        "qcelemental.models.Molecule",
-        dict,
-    ],
+    qc_result: "qcportal.record_models.BaseRecord",
     grid_settings: GridSettingsType,
 ):
+    result_tuple = (qc_result, qc_result.molecule, qc_result.specfication.keywords)
     return from_qcportal_results(*result_tuple, grid_settings=grid_settings)
 
 
@@ -109,7 +95,7 @@ def reconstruct(
     grid_settings = GridSettings.parse_file(grid_settings_path)
 
     # Pull down the QCA result records.
-    qc_results, qc_keyword_sets = _retrieve_result_records(record_ids)
+    qc_results = _retrieve_result_records(record_ids)
 
     with get_context("spawn").Pool(processes=n_processors) as pool:
         esp_records = list(
@@ -117,9 +103,7 @@ def reconstruct(
                 pool.imap(
                     functools.partial(_process_result, grid_settings=grid_settings),
                     [
-                        (qc_result, qc_molecule, qc_keyword_sets[index])
-                        for index, qc_result in enumerate(qc_results)
-                        for qc_molecule in [qc_result.molecule]
+                        qc_result for qc_result in qc_results
                     ],
                 ),
                 total=len([*qc_results]),

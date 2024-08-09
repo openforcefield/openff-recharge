@@ -106,14 +106,14 @@ def reconstruct(
         record_ids = json.load(file)
 
     # Load in the ESP settings.
-    grid_settings = GridSettings.parse_file(grid_settings_path)           
+    grid_settings = GridSettings.parse_file(grid_settings_path)
 
     # Pull down the QCA result records.
     qc_results, qc_keyword_sets = _retrieve_result_records(record_ids)
 
     with get_context("spawn").Pool(processes=n_processors) as pool:
         esp_records = list(
-           tqdm(
+            tqdm(
                 pool.imap(
                     functools.partial(_process_result, grid_settings=grid_settings),
                     [
@@ -125,7 +125,7 @@ def reconstruct(
                 total=len([*qc_results]),
             )
         )
-    
+
     # Store the ESP records in a data store.
     esp_store = MoleculeESPStore()
     esp_store.set_provenance(

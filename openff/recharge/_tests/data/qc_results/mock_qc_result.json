@@ -24,21 +24,22 @@
                         {
                             "angular_momentum": [0],
                             "harmonic_type": "spherical",
-                            "nfunctions": 3
+                            "nfunctions" : 5
                         },
                         {
                             "angular_momentum": [1],
                             "harmonic_type": "spherical",
-                            "nfunctions": 3
+                            "nfunctions" : 5
                         }
                     ]
+
                 },
                 "STO-3G_H1": {
                     "electron_shells": [
                         {
                             "angular_momentum": [0],
                             "harmonic_type": "spherical",
-                            "nfunctions": 1
+                            "nfunctions" : 5
                         }
                     ]
                 }

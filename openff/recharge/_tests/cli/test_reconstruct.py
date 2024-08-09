@@ -15,6 +15,7 @@ from openff.recharge.grids import LatticeGridSettings, GridSettingsType
 from openff.recharge.utilities.molecule import smiles_to_molecule
 from openff.toolkit._tests.utils import requires_openeye
 
+#mock a data retreival from qc_archive, keep as minimal as possible. 
 class MockMolecule:
     def __init__(self, molecule_data):
         self.symbols = molecule_data['symbols']
@@ -65,7 +66,7 @@ def test_reconstruct(runner, monkeypatch):
         mock_retrieve_result_records
     )
     monkeypatch.setattr("openff.recharge.cli.reconstruct._process_result",
-                       mock_process_result
+        mock_process_result
     )
 
     # Create a mock set of inputs.

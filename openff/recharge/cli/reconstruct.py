@@ -114,22 +114,19 @@ def reconstruct(
             "qcelemental": qcelemental.__version__,
         },
     )
-    
-    with ProcessPoolExecutor(max_workers=n_processors, mp_context=get_context("spawn")) as pool:
- 
+
+    with ProcessPoolExecutor(
+        max_workers=n_processors, mp_context=get_context("spawn")
+    ) as pool:
+
         futures = [
             pool.submit(
                 functools.partial(_process_result, grid_settings=grid_settings),
-                qc_result
+                qc_result,
             )
             for qc_result in qc_results
         ]
-        
+
         for future in tqdm(as_completed(futures), total=len(futures)):
             esp_record = future.result()
             esp_store.store(esp_record)
-
-               
-
-
-

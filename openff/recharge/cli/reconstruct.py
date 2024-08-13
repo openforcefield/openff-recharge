@@ -119,20 +119,11 @@ def reconstruct(
 
         futures = [
             pool.submit(
-<<<<<<< HEAD
                 _process_result(qc_result, grid_settings=grid_settings),
             )
             for qc_result in qc_results
         ]
         #to avoid simultaneous writing to the db, wait for each calculation to finish then write
-=======
-                functools.partial(_process_result, grid_settings=grid_settings),
-                qc_result,
-            )
-            for qc_result in qc_results
-        ]
-
->>>>>>> 08ccc816eecf17529efc6e53bb2630c3d8885668
         for future in tqdm(as_completed(futures), total=len(futures)):
             esp_record = future.result()
             esp_store.store(esp_record)

@@ -123,7 +123,7 @@ def reconstruct(
             )
             for qc_result in qc_results
         ]
-        #to avoid simultaneous writing to the db, wait for each calculation to finish then write
+        # to avoid simultaneous writing to the db, wait for each calculation to finish then write
         for future in tqdm(as_completed(futures), total=len(futures)):
             esp_record = future.result()
             esp_store.store(esp_record)

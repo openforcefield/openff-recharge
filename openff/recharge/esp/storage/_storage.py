@@ -188,7 +188,11 @@ class MoleculeESPStore:
                 for provenance in db_info.software_provenance
             }
 
-    def __init__(self, database_path: str = "esp-store.sqlite", cache_size: Union[None,int] = None):
+    def __init__(
+        self,
+        database_path: str = "esp-store.sqlite",
+        cache_size: None | int = None,
+    ):
         """
 
         Parameters
@@ -202,14 +206,21 @@ class MoleculeESPStore:
 
         self._engine = create_engine(self._database_url, echo=False)
         DBBase.metadata.create_all(self._engine)
-                
+
         if cache_size:
+
             @event.listens_for(self._engine, "connect")
             def set_sqlite_pragma(dbapi_connection, connection_record):
                 cursor = dbapi_connection.cursor()
-                cursor.execute(f"PRAGMA cache_size = -{cache_size}")  # 20000 pages (~20MB), adjust based on your needs
-                cursor.execute("PRAGMA synchronous = OFF")   # Improves speed but less safe
-                cursor.execute("PRAGMA journal_mode = MEMORY")  # Use in-memory journaling
+                cursor.execute(
+                    f"PRAGMA cache_size = -{cache_size}"
+                )  # 20000 pages (~20MB), adjust based on your needs
+                cursor.execute(
+                    "PRAGMA synchronous = OFF"
+                )  # Improves speed but less safe
+                cursor.execute(
+                    "PRAGMA journal_mode = MEMORY"
+                )  # Use in-memory journaling
                 cursor.close()
 
         self._session_maker = sessionmaker(

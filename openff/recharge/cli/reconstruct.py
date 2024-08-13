@@ -1,4 +1,3 @@
-import functools
 import json
 import logging
 import os
@@ -6,7 +5,6 @@ import pwd
 from datetime import datetime
 from multiprocessing import Pool, get_context
 from concurrent.futures import ProcessPoolExecutor, as_completed
-import concurrent
 from typing import TYPE_CHECKING
 
 import click
@@ -119,12 +117,11 @@ def reconstruct(
  
         futures = [
             pool.submit(
-                functools.partial(_process_result, grid_settings=grid_settings),
-                qc_result
+                _process_result(qc_result, grid_settings=grid_settings),
             )
             for qc_result in qc_results
         ]
-        
+        #to avoid simultaneous writing to the db, wait for each calculation to finish then write
         for future in tqdm(as_completed(futures), total=len(futures)):
             esp_record = future.result()
             esp_store.store(esp_record)

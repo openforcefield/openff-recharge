@@ -348,10 +348,23 @@ class ObjectiveTerm(abc.ABC):
 
             n_vsite_charges = self.vsite_charge_assignment_matrix.shape[1]
 
+            # if fitting multiple sites, we need to care more about shape here
+            # vsite_charge_assignment_matrix has shape (n_sites, n_charges)
+            # if charge_parameters has shape (n_charges,)
+            # arr := vsite_charge_assignment_matrix @ charge_parameters gives (n_sites,)
+            # If fixed_charges has shape (n_sites, 1),
+            # then arr + fixed_charges broadcasts to (n_sites, n_sites)
+            # which is wrong and results in problems trying
+            # to multiply with the design matrix precursor
+
+            fixed_charges = self.vsite_fixed_charges
+            if self._objective()._flatten_charges():
+                fixed_charges = fixed_charges.flatten()
+
             vsite_charges = (
                 self.vsite_charge_assignment_matrix
                 @ charge_parameters[-n_vsite_charges:]
-                + self.vsite_fixed_charges
+                + fixed_charges
             )
 
             if self._objective()._flatten_charges():

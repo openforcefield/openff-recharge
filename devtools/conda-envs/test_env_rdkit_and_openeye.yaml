@@ -12,7 +12,7 @@ dependencies:
   - numpy
   - scipy
   - jinja2
-  - pydantic
+  - pydantic >=1.10.17,<3
   - openff-utilities
   - openff-units >=0.2
   - openff-toolkit-base >=0.14

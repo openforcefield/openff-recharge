@@ -1,12 +1,10 @@
 import json
 import os
 from importlib_resources import files
-from collections import namedtuple
 
 import numpy
 import pytest
 
-from openff.recharge.cli.reconstruct import _retrieve_result_records
 from openff.recharge.cli.reconstruct import reconstruct as reconstruct_cli
 from openff.recharge.esp import ESPSettings
 from openff.recharge.esp.storage import MoleculeESPRecord, MoleculeESPStore

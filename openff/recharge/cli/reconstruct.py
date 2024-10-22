@@ -3,7 +3,7 @@ import logging
 import os
 import pwd
 from datetime import datetime
-from multiprocessing import Pool, get_context
+from multiprocessing import get_context
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from typing import TYPE_CHECKING
 
@@ -16,7 +16,6 @@ from openff.recharge.esp.storage import MoleculeESPStore
 from openff.recharge.grids import GridSettings, GridSettingsType
 
 if TYPE_CHECKING:
-    import qcelemental.models
     import qcportal.record_models
 
 
@@ -123,7 +122,8 @@ def reconstruct(
             )
             for qc_result in qc_results
         ]
-        # to avoid simultaneous writing to the db, wait for each calculation to finish then write
+        # to avoid simultaneous writing to the db, wait for each calculation
+        # to finish then write
         for future in tqdm(as_completed(futures), total=len(futures)):
             esp_record = future.result()
             esp_store.store(esp_record)

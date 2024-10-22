@@ -6,7 +6,7 @@ import warnings
 import functools
 from collections import defaultdict
 from contextlib import contextmanager
-from typing import TYPE_CHECKING, ContextManager, Union
+from typing import TYPE_CHECKING, ContextManager
 
 import numpy
 from openff.units import unit, Quantity

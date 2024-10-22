@@ -424,7 +424,7 @@ def test_molecule_to_tagged_smiles(molecule_to_tagged_smiles_func):
 
     # Do a quick canary test to make sure the toolkit doesn't stop parsing molecules
     # with duplicate indices correctly
-    recreated_map = Molecule.from_mapped_smiles(tagged_smiles).properties["atom_map"]
+    recreated_map = Molecule.from_smiles(tagged_smiles).properties["atom_map"]
     assert len(recreated_map) == 6 and {*recreated_map.values()} == {1, 2, 3, 4}
 
 

@@ -122,7 +122,7 @@ def test_generate_dummy_values(smiles, expected_values):
     actual_values = _generate_dummy_values(smiles)
     assert actual_values == expected_values
 
-    molecule = Molecule.from_mapped_smiles(smiles, allow_undefined_stereo=True)
+    molecule = Molecule.from_smiles(smiles, allow_undefined_stereo=True)
 
     total_charge = molecule.total_charge.m_as(unit.elementary_charge)
     sum_charge = sum(
@@ -300,7 +300,7 @@ def test_molecule_to_resp_library_charge(
         equivalize_within_other_hydrogen_atoms,
     )
 
-    output_molecule: Molecule = Molecule.from_mapped_smiles(parameter.smiles)
+    output_molecule: Molecule = Molecule.from_smiles(parameter.smiles)
 
     _, output_to_input_index = Molecule.are_isomorphic(
         output_molecule, input_molecule, return_atom_map=True

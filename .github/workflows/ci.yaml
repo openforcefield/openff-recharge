@@ -67,7 +67,7 @@ jobs:
           pytest -v -n auto --cov=openff openff/recharge/_tests/ --cov-report=xml
 
       - name: CodeCov
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           file: ./coverage.xml

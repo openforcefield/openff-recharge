@@ -5,7 +5,7 @@ channels:
   - conda-forge
   - openeye
 dependencies:
-  - python
+  - python <3.12
   - pip
   - click
   - tqdm

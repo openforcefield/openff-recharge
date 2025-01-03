@@ -118,7 +118,7 @@ def reconstruct(
 
         futures = [
             pool.submit(
-                _process_result(qc_result, grid_settings=grid_settings),
+                _process_result, qc_result, grid_settings=grid_settings
             )
             for qc_result in qc_results
         ]

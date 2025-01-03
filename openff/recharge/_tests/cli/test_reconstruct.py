@@ -61,7 +61,6 @@ def mock_process_result(
 
 MOCK_QC_RESULT = load_mock_qc_result()
 
-
 @requires_openeye
 def test_reconstruct(runner, monkeypatch):
     pytest.importorskip("psi4")
@@ -89,7 +88,6 @@ def test_reconstruct(runner, monkeypatch):
         reconstruct_cli,
         "--record-ids record-ids.json --grid-settings grid-settings.json",
     )
-
     if result.exit_code != 0:
         raise result.exception
 

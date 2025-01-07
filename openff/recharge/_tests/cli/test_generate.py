@@ -15,6 +15,7 @@ from openff.recharge.esp.psi4 import Psi4ESPGenerator
 from openff.recharge.esp.storage import MoleculeESPStore
 from openff.recharge.grids import LatticeGridSettings
 from openff.toolkit._tests.utils import requires_openeye
+from openff.utilities import temporary_cd
 
 
 @requires_openeye
@@ -39,62 +40,63 @@ def test_generate(runner, monkeypatch):
     monkeypatch.setattr(Psi4ESPGenerator, "generate", mock_psi4_generate)
     monkeypatch.setattr(Pool, "imap", mock_imap)
 
-    # Create a mock set of inputs.
-    with open("smiles.json", "w") as file:
-        json.dump(["C"], file)
+    with temporary_cd():
+        # Create a mock set of inputs.
+        with open("smiles.json", "w") as file:
+            json.dump(["C"], file)
 
-    with open("esp-settings.json", "w") as file:
-        file.write(ESPSettings(grid_settings=LatticeGridSettings(spacing=1.0)).json())
+        with open("esp-settings.json", "w") as file:
+            file.write(
+                ESPSettings(grid_settings=LatticeGridSettings(spacing=1.0)).json()
+            )
 
-    with open("conformer-settings.json", "w") as file:
-        file.write(ConformerSettings(method="omega", sampling_mode="sparse").json())
+        with open("conformer-settings.json", "w") as file:
+            file.write(ConformerSettings(method="omega", sampling_mode="sparse").json())
 
-    result = runner.invoke(generate_cli)
+        result = runner.invoke(generate_cli)
 
-    if result.exit_code != 0:
-        raise result.exception
+        if result.exit_code != 0:
+            raise result.exception
 
-    assert os.path.isfile("esp-store.sqlite")
+        assert os.path.isfile("esp-store.sqlite")
 
-    esp_store = MoleculeESPStore()
-    assert len(esp_store.retrieve("C")) == 1
+        esp_store = MoleculeESPStore()
+        assert len(esp_store.retrieve("C")) == 1
 
-    assert set_kwargs["minimize"] is True
+        assert set_kwargs["minimize"] is True
 
+    @pytest.mark.parametrize("error_type", [RuntimeError])
+    def test_compute_esp_oe_error(error_type, caplog, monkeypatch):
+        def mock_conformer_generate(*_):
+            raise error_type()
 
-@pytest.mark.parametrize("error_type", [RuntimeError])
-def test_compute_esp_oe_error(error_type, caplog, monkeypatch):
-    def mock_conformer_generate(*_):
-        raise error_type()
+        monkeypatch.setattr(ConformerGenerator, "generate", mock_conformer_generate)
 
-    monkeypatch.setattr(ConformerGenerator, "generate", mock_conformer_generate)
+        with caplog.at_level(logging.ERROR):
+            _compute_esp(
+                "C",
+                ConformerSettings(),
+                ESPSettings(grid_settings=LatticeGridSettings(spacing=1.0)),
+                False,
+            )
 
-    with caplog.at_level(logging.ERROR):
-        _compute_esp(
-            "C",
-            ConformerSettings(),
-            ESPSettings(grid_settings=LatticeGridSettings(spacing=1.0)),
-            False,
-        )
+        assert "Coordinates could not be generated for" in caplog.text
+        assert error_type.__name__ in caplog.text
 
-    assert "Coordinates could not be generated for" in caplog.text
-    assert error_type.__name__ in caplog.text
+    def test_compute_esp_psi4_error(caplog, monkeypatch):
+        def mock_psi4_generate(*_, **kwargs):
+            raise Psi4Error("std_out", "std_err")
 
+        monkeypatch.setattr(ConformerGenerator, "generate", lambda *args: [None])
+        monkeypatch.setattr(Psi4ESPGenerator, "generate", mock_psi4_generate)
 
-def test_compute_esp_psi4_error(caplog, monkeypatch):
-    def mock_psi4_generate(*_, **kwargs):
-        raise Psi4Error("std_out", "std_err")
+        with caplog.at_level(logging.ERROR):
+            _compute_esp(
+                "C",
+                ConformerSettings(),
+                ESPSettings(grid_settings=LatticeGridSettings(spacing=1.0)),
+                False,
+            )
 
-    monkeypatch.setattr(ConformerGenerator, "generate", lambda *args: [None])
-    monkeypatch.setattr(Psi4ESPGenerator, "generate", mock_psi4_generate)
-
-    with caplog.at_level(logging.ERROR):
-        _compute_esp(
-            "C",
-            ConformerSettings(),
-            ESPSettings(grid_settings=LatticeGridSettings(spacing=1.0)),
-            False,
-        )
-
-    assert "Psi4 failed to run for conformer" in caplog.text
-    assert "Psi4Error" in caplog.text
+        assert "Psi4 failed to run for conformer" in caplog.text
+        assert "Psi4Error" in caplog.text

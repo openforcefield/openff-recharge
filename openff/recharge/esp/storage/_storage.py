@@ -200,7 +200,7 @@ class MoleculeESPStore:
         database_path
             The path to the SQLite database to store to and retrieve data from.
         cache_size
-            The size in pages of the cache size of the db
+            The size in pages (20000 pages (~20MB)) of the cache size of the db
         """
         self._database_url = f"sqlite:///{database_path}"
 

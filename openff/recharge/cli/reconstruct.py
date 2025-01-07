@@ -121,9 +121,7 @@ def reconstruct(
     ) as pool:
 
         futures = [
-            pool.submit(
-                _process_result, qc_result, grid_settings=grid_settings
-            )
+            pool.submit(_process_result, qc_result, grid_settings=grid_settings)
             for qc_result in qc_results
         ]
         # to avoid simultaneous writing to the db, wait for each calculation

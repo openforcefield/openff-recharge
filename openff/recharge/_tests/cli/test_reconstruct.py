@@ -61,6 +61,7 @@ def mock_process_result(
 
 MOCK_QC_RESULT = load_mock_qc_result()
 
+
 @requires_openeye
 def test_reconstruct(runner, monkeypatch):
     pytest.importorskip("psi4")

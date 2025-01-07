@@ -2,10 +2,10 @@
 
 import abc
 from collections import defaultdict
-from typing import TYPE_CHECKING, List, Literal, Optional, Tuple, Union, overload
+from typing import TYPE_CHECKING, Literal, Union, overload
 
 import numpy
-from openff.units import unit
+from openff.units import unit, Quantity
 from openff.utilities import requires_package
 from openff.recharge._pydantic import BaseModel, Field, constr, validator
 
@@ -24,9 +24,9 @@ if TYPE_CHECKING:
 
 ExclusionPolicy = Literal["none", "parents"]
 
-VirtualSiteKey = Tuple[str, str, str]
-VirtualSiteChargeKey = Tuple[str, str, str, int]
-VirtualSiteGeometryKey = Tuple[
+VirtualSiteKey = tuple[str, str, str]
+VirtualSiteChargeKey = tuple[str, str, str, int]
+VirtualSiteGeometryKey = tuple[
     str, str, str, Literal["distance", "in_plane_angle", "out_of_plane_angle"]
 ]
 
@@ -43,7 +43,7 @@ class _VirtualSiteParameter(BaseModel, abc.ABC):
         description="A SMIRKS pattern that encodes the chemical environment that "
         "this parameter should be applied to.",
     )
-    name: Optional[str] = Field(
+    name: str | None = Field(
         None, description="An optional name associated with this virtual site."
     )
 
@@ -51,7 +51,7 @@ class _VirtualSiteParameter(BaseModel, abc.ABC):
         ...,
         description="The distance to place the virtual site along its associated basis.",
     )
-    charge_increments: Tuple[float, ...] = Field(
+    charge_increments: tuple[float, ...] = Field(
         ...,
         description="The amount of charge [e] to be transferred from the virtual site "
         "to each tagged atom that forms the basis for the virtual site.",
@@ -174,7 +174,7 @@ class VirtualSiteCollection(BaseModel):
     """A collection of virtual site parameters that are based off of the SMIRNOFF
     specification."""
 
-    parameters: List[VirtualSiteParameterType] = Field(
+    parameters: list[VirtualSiteParameterType] = Field(
         ...,
         description="The virtual site parameters to apply.",
     )
@@ -314,7 +314,7 @@ class VirtualSiteCollection(BaseModel):
         )
 
     def vectorize_coordinates(
-        self, parameter_keys: List[VirtualSiteGeometryKey]
+        self, parameter_keys: list[VirtualSiteGeometryKey]
     ) -> numpy.ndarray:
         """Returns a flat vector of the local frame coordinate values associated with a
         specified set of 'keys'.
@@ -348,7 +348,7 @@ class VirtualSiteCollection(BaseModel):
         return parameter_values
 
     def vectorize_charge_increments(
-        self, parameter_keys: List[VirtualSiteChargeKey]
+        self, parameter_keys: list[VirtualSiteChargeKey]
     ) -> numpy.ndarray:
         """Returns a flat vector of the charge increment values associated with a
         specified set of 'keys'.
@@ -417,7 +417,7 @@ class VirtualSiteGenerator:
     @classmethod
     def _build_charge_increment_array(
         cls, vsite_collection: VirtualSiteCollection
-    ) -> Tuple[numpy.ndarray, List[VirtualSiteChargeKey]]:
+    ) -> tuple[numpy.ndarray, list[VirtualSiteChargeKey]]:
         """Returns a flat vector of the charge increments contained within a virtual site
         collection as well as a list of keys that map each value back to its original
         parameter.
@@ -586,8 +586,8 @@ class VirtualSiteGenerator:
     def build_local_coordinate_frames(
         cls,
         conformer: numpy.ndarray,
-        assigned_parameters: List[
-            Tuple[VirtualSiteParameterType, List[Tuple[int, ...]]]
+        assigned_parameters: list[
+            tuple[VirtualSiteParameterType, list[tuple[int, ...]]]
         ],
     ) -> numpy.ndarray:
         """Builds an orthonormal coordinate frame for each virtual particle
@@ -657,8 +657,7 @@ class VirtualSiteGenerator:
         local_frame_coordinates: numpy.ndarray,
         local_coordinate_frames: numpy.ndarray,
         backend: Literal["numpy"],
-    ) -> numpy.ndarray:
-        ...
+    ) -> numpy.ndarray: ...
 
     @classmethod
     @overload
@@ -667,8 +666,7 @@ class VirtualSiteGenerator:
         local_frame_coordinates: "torch.Tensor",
         local_coordinate_frames: "torch.Tensor",
         backend: Literal["torch"],
-    ) -> "torch.Tensor":
-        ...
+    ) -> "torch.Tensor": ...
 
     @classmethod
     def convert_local_coordinates(
@@ -736,8 +734,8 @@ class VirtualSiteGenerator:
         cls,
         molecule: "Molecule",
         vsite_collection: VirtualSiteCollection,
-        conformer: unit.Quantity,
-    ) -> unit.Quantity:
+        conformer: Quantity,
+    ) -> Quantity:
         """Computes the positions of a set of virtual sites relative to a provided
         molecule in a given conformer.
 

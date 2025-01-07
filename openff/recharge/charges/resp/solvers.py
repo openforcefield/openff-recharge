@@ -1,7 +1,8 @@
 """Different solvers for solving the non-linear RESP loss function"""
+
 import abc
 import functools
-from typing import List, Literal, cast
+from typing import Literal, cast
 
 import numpy
 
@@ -24,7 +25,8 @@ class RESPNonLinearSolver(abc.ABC):
         constraint_matrix: numpy.ndarray,
         restraint_a: float,
         restraint_b: float,
-        restraint_indices: List[int],
+        restraint_indices: list[int],
+        n_conformers: int,
     ) -> numpy.ndarray:
         """Returns the current value of the loss function complete with restraints
         on specified charges.
@@ -65,7 +67,8 @@ class RESPNonLinearSolver(abc.ABC):
             constraint_matrix[0, restraint_indices] * beta[restraint_indices]
         )
         chi_restraint_sqr = (
-            restraint_a
+            n_conformers
+            * restraint_a
             * (
                 numpy.sqrt(
                     beta_restrained * beta_restrained + restraint_b * restraint_b
@@ -85,7 +88,8 @@ class RESPNonLinearSolver(abc.ABC):
         constraint_matrix: numpy.ndarray,
         restraint_a: float,
         restraint_b: float,
-        restraint_indices: List[int],
+        restraint_indices: list[int],
+        n_conformers: int,
     ):
         """Returns the jacobian of the loss function with respect to ``beta``.
 
@@ -121,17 +125,25 @@ class RESPNonLinearSolver(abc.ABC):
         delta = design_matrix @ beta - reference_values
         d_chi_esp_sqr = 2.0 * design_matrix.T @ delta
 
-        d_chi_restraint_sqr = restraint_a * numpy.array(
-            [
-                0.0
-                if i not in restraint_indices
-                else float(
-                    constraint_matrix[0, i]
-                    * beta[i]
-                    / numpy.sqrt(beta[i] * beta[i] + restraint_b * restraint_b)
-                )
-                for i in range(len(beta))
-            ]
+        d_chi_restraint_sqr = (
+            n_conformers
+            * restraint_a
+            * numpy.array(
+                [
+                    (
+                        0.0
+                        if i not in restraint_indices
+                        else float(
+                            constraint_matrix[0, i]
+                            * beta[i].item(0)
+                            / numpy.sqrt(
+                                beta[i] * beta[i] + restraint_b * restraint_b
+                            ).item(0)
+                        )
+                    )
+                    for i in range(len(beta))
+                ]
+            )
         )
 
         return d_chi_esp_sqr.flatten() + d_chi_restraint_sqr
@@ -144,7 +156,8 @@ class RESPNonLinearSolver(abc.ABC):
         constraint_matrix: numpy.ndarray,
         constraint_values: numpy.ndarray,
         restraint_a: float,
-        restraint_indices: List[int],
+        restraint_indices: list[int],
+        n_conformers: int,
     ) -> numpy.ndarray:
         """Compute an initial guess of the charge values by solving the lagrangian
         constrained ``Ax + b`` equations using harmonic rather than hyperbolic
@@ -181,14 +194,16 @@ class RESPNonLinearSolver(abc.ABC):
             * numpy.array(
                 [
                     [
-                        constraint_matrix[0, i] * restraint_a
-                        if i in restraint_indices
-                        else 0.0
+                        (
+                            constraint_matrix[0, i] * restraint_a
+                            if i in restraint_indices
+                            else 0.0
+                        )
                     ]
                     for i in range(design_matrix.shape[1])
                 ]
             )
-        )
+        ) * n_conformers
         a_matrix = numpy.block(
             [
                 [design_matrix.T @ design_matrix + b_matrix, constraint_matrix.T],
@@ -210,7 +225,8 @@ class RESPNonLinearSolver(abc.ABC):
         constraint_values: numpy.ndarray,
         restraint_a: float,
         restraint_b: float,
-        restraint_indices: List[int],
+        restraint_indices: list[int],
+        n_conformers: int,
     ) -> numpy.ndarray:
         """The internal implementation of ``solve``
 
@@ -256,7 +272,8 @@ class RESPNonLinearSolver(abc.ABC):
         constraint_values: numpy.ndarray,
         restraint_a: float,
         restraint_b: float,
-        restraint_indices: List[int],
+        restraint_indices: list[int],
+        n_conformers: int,
     ) -> numpy.ndarray:
         """Attempts to find a minimum solution to the RESP loss function.
 
@@ -303,6 +320,7 @@ class RESPNonLinearSolver(abc.ABC):
             restraint_a,
             restraint_b,
             restraint_indices,
+            n_conformers,
         )
 
         predicted_total_charge = constraint_matrix @ solution
@@ -330,19 +348,26 @@ class IterativeSolver(RESPNonLinearSolver):
         constraint_values: numpy.ndarray,
         restraint_a: float,
         restraint_b: float,
-        restraint_indices: List[int],
+        restraint_indices: list[int],
+        n_conformers: int,
     ):
-        b_matrix = numpy.eye(design_matrix.shape[1]) * numpy.array(
-            [
-                float(
-                    constraint_matrix[0, i]
-                    * restraint_a
-                    / numpy.sqrt(value * value + restraint_b * restraint_b)
-                    if i in restraint_indices
-                    else 0.0
-                )
-                for i, value in enumerate(beta)
-            ]
+        beta = beta.reshape(-1, 1)
+
+        b_matrix = (
+            numpy.eye(design_matrix.shape[1])
+            * numpy.array(
+                [
+                    float(
+                        constraint_matrix[0, i]
+                        * restraint_a
+                        / numpy.sqrt(value * value + restraint_b * restraint_b)
+                        if i in restraint_indices
+                        else 0.0
+                    )
+                    for i, value in enumerate(beta.flatten())
+                ]
+            )
+            * n_conformers
         )
         a_matrix = numpy.block(
             [
@@ -364,7 +389,8 @@ class IterativeSolver(RESPNonLinearSolver):
         constraint_values: numpy.ndarray,
         restraint_a: float,
         restraint_b: float,
-        restraint_indices: List[int],
+        restraint_indices: list[int],
+        n_conformers: int,
     ) -> numpy.ndarray:
         initial_guess = self.initial_guess(
             design_matrix,
@@ -373,6 +399,7 @@ class IterativeSolver(RESPNonLinearSolver):
             constraint_values,
             restraint_a,
             restraint_indices,
+            n_conformers,
         )
 
         iteration = 0
@@ -390,6 +417,7 @@ class IterativeSolver(RESPNonLinearSolver):
                 restraint_a,
                 restraint_b,
                 restraint_indices,
+                n_conformers,
             )
 
             beta_difference = beta_new - beta_current
@@ -430,7 +458,8 @@ class SciPySolver(RESPNonLinearSolver):
         constraint_values: numpy.ndarray,
         restraint_a: float,
         restraint_b: float,
-        restraint_indices: List[int],
+        restraint_indices: list[int],
+        n_conformers: int,
     ) -> numpy.ndarray:
         from scipy.optimize import LinearConstraint, minimize
 
@@ -442,6 +471,7 @@ class SciPySolver(RESPNonLinearSolver):
             restraint_a=restraint_a,
             restraint_b=restraint_b,
             restraint_indices=restraint_indices,
+            n_conformers=n_conformers,
         )
         jacobian_function = functools.partial(
             self.jacobian,
@@ -451,6 +481,7 @@ class SciPySolver(RESPNonLinearSolver):
             restraint_a=restraint_a,
             restraint_b=restraint_b,
             restraint_indices=restraint_indices,
+            n_conformers=n_conformers,
         )
 
         initial_guess = self.initial_guess(
@@ -460,6 +491,7 @@ class SciPySolver(RESPNonLinearSolver):
             constraint_values,
             restraint_a,
             restraint_indices,
+            n_conformers,
         )
 
         # noinspection PyTypeChecker
@@ -467,13 +499,15 @@ class SciPySolver(RESPNonLinearSolver):
             fun=loss_function,
             x0=initial_guess.flatten(),
             jac=jacobian_function,
-            constraints=LinearConstraint(
-                constraint_matrix,
-                constraint_values.flatten(),
-                constraint_values.flatten(),
-            )
-            if len(constraint_matrix) > 0
-            else (),
+            constraints=(
+                LinearConstraint(
+                    constraint_matrix,
+                    constraint_values.flatten(),
+                    constraint_values.flatten(),
+                )
+                if len(constraint_matrix) > 0
+                else ()
+            ),
             method=self._method,
             tol=1.0e-5,
         )

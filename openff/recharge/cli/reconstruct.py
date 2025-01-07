@@ -1,11 +1,11 @@
-import functools
 import json
 import logging
 import os
 import pwd
 from datetime import datetime
-from multiprocessing import Pool
-from typing import TYPE_CHECKING, Dict, List, Tuple
+from multiprocessing import get_context
+from concurrent.futures import ProcessPoolExecutor, as_completed
+from typing import TYPE_CHECKING
 
 import click
 from tqdm import tqdm
@@ -16,61 +16,40 @@ from openff.recharge.esp.storage import MoleculeESPStore
 from openff.recharge.grids import GridSettings, GridSettingsType
 
 if TYPE_CHECKING:
-    import qcelemental.models
-    import qcportal.models
+    import qcportal.record_models
 
 
-QCFractalResults = List[
-    Tuple["qcelemental.models.Molecule", "qcportal.models.ResultRecord"]
-]
-QCFractalKeywords = Dict[str, "qcportal.models.KeywordSet"]
+QCFractalResults = list["qcportal.record_models.BaseRecord"]
+
+QCFractalKeywords = dict[str, "qcportal.models.KeywordSet"]
 
 
 def _retrieve_result_records(
-    record_ids: List["qcportal.models.ObjectId"],
-) -> Tuple[QCFractalResults, QCFractalKeywords]:
+    record_ids: list[int],
+) -> tuple["qcportal.record_models.RecordQueryIterator", list[dict]]:
     import qcportal
 
     # Pull down the individual result records.
-    results = []
+    client = qcportal.PortalClient("https://api.qcarchive.molssi.org:443/")
 
-    paginating = True
-    page_index = 0
+    results = client.query_records(
+        record_id=record_ids,
+    )
 
-    client = qcportal.FractalClient()
-
-    while paginating:
-        page_results = client.query_results(
-            id=record_ids,
-            limit=client.server_info["query_limit"],
-            skip=page_index,
-        )
-
-        results.extend(
-            [(page_result.get_molecule(), page_result) for page_result in page_results]
-        )
-
-        paginating = len(page_results) > 0
-        page_index += client.server_info["query_limit"]
-
-    # Fetch the corresponding record keywords.
-    keyword_ids = list({result.keywords for (_, result) in results})
-    keywords = {
-        keyword_id: client.query_keywords(keyword_id)[0] for keyword_id in keyword_ids
-    }
-
-    return results, keywords
+    return results
 
 
 def _process_result(
-    result_tuple: Tuple[
-        "qcportal.models.ResultRecord",
-        "qcelemental.models.Molecule",
-        "qcportal.models.KeywordSet",
-    ],
+    qc_result: "qcportal.record_models.BaseRecord",
     grid_settings: GridSettingsType,
 ):
-    return from_qcportal_results(*result_tuple, grid_settings=grid_settings)
+
+    return from_qcportal_results(
+        qc_result,
+        qc_result.molecule,
+        qc_result.specification.keywords,
+        grid_settings=grid_settings,
+    )
 
 
 @click.command(
@@ -98,7 +77,11 @@ def _process_result(
     help="The number of processes to compute the ESP across.",
     show_default=True,
 )
-def reconstruct(record_ids_path: str, grid_settings_path: str, n_processors: int):
+def reconstruct(
+    record_ids_path: str,
+    grid_settings_path: str,
+    n_processors: int,
+):
     import openeye
     import psi4
     import qcelemental
@@ -114,21 +97,7 @@ def reconstruct(record_ids_path: str, grid_settings_path: str, n_processors: int
     grid_settings = GridSettings.parse_file(grid_settings_path)
 
     # Pull down the QCA result records.
-    qc_results, qc_keyword_sets = _retrieve_result_records(record_ids)
-
-    with Pool(processes=n_processors) as pool:
-        esp_records = list(
-            tqdm(
-                pool.imap(
-                    functools.partial(_process_result, grid_settings=grid_settings),
-                    [
-                        (qc_result, qc_molecule, qc_keyword_sets[qc_result.keywords])
-                        for (qc_molecule, qc_result) in qc_results
-                    ],
-                ),
-                total=len(qc_results),
-            )
-        )
+    qc_results = _retrieve_result_records(record_ids)
 
     # Store the ESP records in a data store.
     esp_store = MoleculeESPStore()
@@ -136,7 +105,7 @@ def reconstruct(record_ids_path: str, grid_settings_path: str, n_processors: int
         general_provenance={
             "user": pwd.getpwuid(os.getuid()).pw_name,
             "date": datetime.now().strftime("%d-%m-%Y"),
-            "record_ids": ",".join(record_ids),
+            "record_ids": ",".join(str(record_ids)),
         },
         software_provenance={
             "openff-recharge": openff.recharge.__version__,
@@ -147,4 +116,18 @@ def reconstruct(record_ids_path: str, grid_settings_path: str, n_processors: int
         },
     )
 
-    esp_store.store(*esp_records)
+    with ProcessPoolExecutor(
+        max_workers=n_processors, mp_context=get_context("spawn")
+    ) as pool:
+
+        futures = [
+            pool.submit(_process_result, qc_result, grid_settings=grid_settings)
+            for qc_result in qc_results
+        ]
+        # to avoid simultaneous writing to the db, wait for each calculation
+        # to finish then write
+        for future in tqdm(
+            as_completed(futures), total=len(futures), desc="Calculating ESP"
+        ):
+            esp_record = future.result()
+            esp_store.store(esp_record)

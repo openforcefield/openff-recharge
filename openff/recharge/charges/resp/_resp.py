@@ -1,9 +1,9 @@
 import functools
-from typing import TYPE_CHECKING, Dict, List, Optional, Tuple
 import warnings
+from typing import TYPE_CHECKING
 
-from openff.toolkit.utils.exceptions import AtomMappingWarning
 import numpy
+from openff.toolkit.utils.exceptions import AtomMappingWarning
 from openff.units import unit
 
 from openff.recharge.charges.library import (
@@ -22,7 +22,7 @@ if TYPE_CHECKING:
     from openff.toolkit import Molecule
 
 
-def _generate_dummy_values(smiles: str) -> List[float]:
+def _generate_dummy_values(smiles: str) -> list[float]:
     """A convenience method for generating a list of dummy values for a
     ``LibraryChargeParameter`` that sums to the correct total charge.
     """
@@ -145,7 +145,7 @@ def molecule_to_resp_library_charge(
 
 def _deduplicate_constraints(
     constraint_matrix: numpy.ndarray, constraint_values: numpy.ndarray
-) -> Tuple[numpy.ndarray, numpy.ndarray]:
+) -> tuple[numpy.ndarray, numpy.ndarray]:
     """Removes duplicate rows from a constraint matrix and corresponding values are.
 
     Parameters
@@ -172,7 +172,9 @@ def _deduplicate_constraints(
             continue
 
         deduplicated_rows.append(constraint_row)
-        deduplicated_values.append([float(constraint_value)])
+
+        assert constraint_value.shape == (1,)
+        deduplicated_values.append([float(constraint_value[0])])
 
         found_constraints.add(constraint_row)
 
@@ -181,7 +183,7 @@ def _deduplicate_constraints(
 
 def generate_resp_systems_of_equations(
     charge_parameter: LibraryChargeParameter,
-    qc_data_records: List[MoleculeESPRecord],
+    qc_data_records: list[MoleculeESPRecord],
     equivalize_between_methyl_carbons: bool,
     equivalize_between_methyl_hydrogens: bool,
     equivalize_between_other_heavy_atoms: bool,
@@ -190,13 +192,13 @@ def generate_resp_systems_of_equations(
     fix_methyl_hydrogens: bool,
     fix_other_heavy_atoms: bool,
     fix_other_hydrogen_atoms: bool,
-) -> Tuple[
+) -> tuple[
     numpy.ndarray,
     numpy.ndarray,
     numpy.ndarray,
     numpy.ndarray,
-    List[int],
-    Dict[int, int],
+    list[int],
+    dict[int, int],
 ]:
     """Generates the matrices that encode the systems of equations that form the RESP
     loss function.
@@ -354,13 +356,15 @@ def _canonicalize_smiles(smiles: str) -> str:
 
     from openff.toolkit import Molecule
 
-    return Molecule.from_smiles(smiles, allow_undefined_stereo=True).to_smiles(
-        mapped=False
-    )
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", AtomMappingWarning)
+        return Molecule.from_smiles(smiles, allow_undefined_stereo=True).to_smiles(
+            mapped=False
+        )
 
 
 def generate_resp_charge_parameter(
-    qc_data_records: List[MoleculeESPRecord], solver: Optional[RESPNonLinearSolver]
+    qc_data_records: list[MoleculeESPRecord], solver: RESPNonLinearSolver | None
 ) -> LibraryChargeParameter:
     """Generates a set of RESP charges for a molecule in multiple conformers.
 
@@ -456,6 +460,7 @@ def generate_resp_charge_parameter(
         a,
         b,
         restraint_indices_1,
+        len(qc_data_records),
     )
 
     resp_parameter_1.value = (
@@ -511,9 +516,10 @@ def generate_resp_charge_parameter(
         a,
         b,
         restraint_indices_2,
+        len(qc_data_records),
     )
 
     for array_index, value_index in charge_map.items():
-        resp_parameter_2.value[value_index] = float(resp_charges_2[array_index])
+        resp_parameter_2.value[value_index] = float(resp_charges_2[array_index].item(0))
 
     return resp_parameter_2

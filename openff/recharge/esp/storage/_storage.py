@@ -1,16 +1,17 @@
 """This module contains classes which are able to store and retrieve
 calculated electrostatic potentials in unified data collections.
 """
+
 import warnings
 import functools
 from collections import defaultdict
 from contextlib import contextmanager
-from typing import TYPE_CHECKING, ContextManager, Dict, List, Optional
+from typing import TYPE_CHECKING, ContextManager
 
 import numpy
-from openff.units import unit
+from openff.units import unit, Quantity
 from openff.recharge._pydantic import BaseModel, Field
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, event
 from sqlalchemy.orm import Session, sessionmaker
 from openff.toolkit.utils.exceptions import AtomMappingWarning
 from openff.recharge.esp import ESPSettings
@@ -65,7 +66,7 @@ class MoleculeESPRecord(BaseModel):
         description="The value of the ESP [Hartree / e] at each of the grid "
         "coordinates with shape=(n_grid_points, 1).",
     )
-    electric_field: Optional[Array[float]] = Field(
+    electric_field: Array[float] | None = Field(
         ...,
         description="The value of the electric field [Hartree / (e . a0)] at each of "
         "the grid coordinates with shape=(n_grid_points, 3).",
@@ -84,29 +85,29 @@ class MoleculeESPRecord(BaseModel):
     )
 
     @property
-    def conformer_quantity(self) -> unit.Quantity:
+    def conformer_quantity(self) -> Quantity:
         return self.conformer * unit.angstrom
 
     @property
-    def grid_coordinates_quantity(self) -> unit.Quantity:
+    def grid_coordinates_quantity(self) -> Quantity:
         return self.grid_coordinates * unit.angstrom
 
     @property
-    def esp_quantity(self) -> unit.Quantity:
+    def esp_quantity(self) -> Quantity:
         return self.esp * unit.hartree / unit.e
 
     @property
-    def electric_field_quantity(self) -> unit.Quantity:
+    def electric_field_quantity(self) -> Quantity:
         return self.electric_field * unit.hartree / (unit.bohr * unit.e)
 
     @classmethod
     def from_molecule(
         cls,
         molecule: "Molecule",
-        conformer: unit.Quantity,
-        grid_coordinates: unit.Quantity,
-        esp: unit.Quantity,
-        electric_field: Optional[unit.Quantity],
+        conformer: Quantity,
+        grid_coordinates: Quantity,
+        esp: Quantity,
+        electric_field: Quantity | None,
         esp_settings: ESPSettings,
     ) -> "MoleculeESPRecord":
         """Creates a new ``MoleculeESPRecord`` from an existing molecule
@@ -168,7 +169,7 @@ class MoleculeESPStore:
             return db_info.version
 
     @property
-    def general_provenance(self) -> Dict[str, str]:
+    def general_provenance(self) -> dict[str, str]:
         with self._get_session() as db:
             db_info = db.query(DBInformation).first()
 
@@ -178,7 +179,7 @@ class MoleculeESPStore:
             }
 
     @property
-    def software_provenance(self) -> Dict[str, str]:
+    def software_provenance(self) -> dict[str, str]:
         with self._get_session() as db:
             db_info = db.query(DBInformation).first()
 
@@ -187,18 +188,40 @@ class MoleculeESPStore:
                 for provenance in db_info.software_provenance
             }
 
-    def __init__(self, database_path: str = "esp-store.sqlite"):
+    def __init__(
+        self,
+        database_path: str = "esp-store.sqlite",
+        cache_size: None | int = None,
+    ):
         """
 
         Parameters
         ----------
         database_path
             The path to the SQLite database to store to and retrieve data from.
+        cache_size
+            The size in pages (20000 pages (~20MB)) of the cache size of the db
         """
         self._database_url = f"sqlite:///{database_path}"
 
         self._engine = create_engine(self._database_url, echo=False)
         DBBase.metadata.create_all(self._engine)
+
+        if cache_size:
+
+            @event.listens_for(self._engine, "connect")
+            def set_sqlite_pragma(dbapi_connection, connection_record):
+                cursor = dbapi_connection.cursor()
+                cursor.execute(
+                    f"PRAGMA cache_size = -{cache_size}"
+                )  # 20000 pages (~20MB), adjust based on your needs
+                cursor.execute(
+                    "PRAGMA synchronous = OFF"
+                )  # Improves speed but less safe
+                cursor.execute(
+                    "PRAGMA journal_mode = MEMORY"
+                )  # Use in-memory journaling
+                cursor.close()
 
         self._session_maker = sessionmaker(
             autocommit=False, autoflush=False, bind=self._engine
@@ -217,8 +240,8 @@ class MoleculeESPStore:
 
     def set_provenance(
         self,
-        general_provenance: Dict[str, str],
-        software_provenance: Dict[str, str],
+        general_provenance: dict[str, str],
+        software_provenance: dict[str, str],
     ):
         """Set the stores provenance information.
 
@@ -259,8 +282,8 @@ class MoleculeESPStore:
 
     @classmethod
     def _db_records_to_model(
-        cls, db_records: List[DBMoleculeRecord]
-    ) -> List[MoleculeESPRecord]:
+        cls, db_records: list[DBMoleculeRecord]
+    ) -> list[MoleculeESPRecord]:
         """Maps a set of database records into their corresponding
         data models.
 
@@ -287,9 +310,11 @@ class MoleculeESPStore:
                     grid_settings=DBGridSettings.db_to_instance(
                         db_conformer.grid_settings
                     ),
-                    pcm_settings=None
-                    if not db_conformer.pcm_settings
-                    else DBPCMSettings.db_to_instance(db_conformer.pcm_settings),
+                    pcm_settings=(
+                        None
+                        if not db_conformer.pcm_settings
+                        else DBPCMSettings.db_to_instance(db_conformer.pcm_settings)
+                    ),
                 ),
             )
             for db_record in db_records
@@ -298,7 +323,7 @@ class MoleculeESPStore:
 
     @classmethod
     def _store_smiles_records(
-        cls, db: Session, smiles: str, records: List[MoleculeESPRecord]
+        cls, db: Session, smiles: str, records: list[MoleculeESPRecord]
     ) -> DBMoleculeRecord:
         """Stores a set of records which all store information for the same
         molecule.
@@ -334,9 +359,11 @@ class MoleculeESPStore:
                 grid_settings=DBGridSettings.unique(
                     db, record.esp_settings.grid_settings
                 ),
-                pcm_settings=None
-                if not record.esp_settings.pcm_settings
-                else DBPCMSettings.unique(db, record.esp_settings.pcm_settings),
+                pcm_settings=(
+                    None
+                    if not record.esp_settings.pcm_settings
+                    else DBPCMSettings.unique(db, record.esp_settings.pcm_settings)
+                ),
                 esp_settings=DBESPSettings.unique(db, record.esp_settings),
             )
             for record in records
@@ -387,7 +414,7 @@ class MoleculeESPStore:
         """
 
         # Validate an re-partition the records by their smiles patterns.
-        records_by_smiles: Dict[str, List[MoleculeESPRecord]] = defaultdict(list)
+        records_by_smiles: dict[str, list[MoleculeESPRecord]] = defaultdict(list)
 
         for record in records:
             record = MoleculeESPRecord(**record.dict())
@@ -402,11 +429,11 @@ class MoleculeESPStore:
 
     def retrieve(
         self,
-        smiles: Optional[str] = None,
-        basis: Optional[str] = None,
-        method: Optional[str] = None,
-        implicit_solvent: Optional[bool] = None,
-    ) -> List[MoleculeESPRecord]:
+        smiles: str | None = None,
+        basis: str | None = None,
+        method: str | None = None,
+        implicit_solvent: bool | None = None,
+    ) -> list[MoleculeESPRecord]:
         """Retrieve records stored in this data store, optionally
         according to a set of filters."""
 
@@ -455,7 +482,7 @@ class MoleculeESPStore:
 
             return records
 
-    def list(self) -> List[str]:
+    def list(self) -> list[str]:
         """Lists the molecules which exist in and may be retrieved from the
         store."""
 

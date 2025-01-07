@@ -14,13 +14,11 @@ _ZERO = None
 
 
 @overload
-def to_numpy(tensor: None) -> None:
-    ...
+def to_numpy(tensor: None) -> None: ...
 
 
 @overload
-def to_numpy(tensor: TensorType) -> numpy.ndarray:
-    ...
+def to_numpy(tensor: TensorType) -> numpy.ndarray: ...
 
 
 def to_numpy(tensor):
@@ -35,13 +33,11 @@ def to_numpy(tensor):
 
 
 @overload
-def to_torch(tensor: None) -> None:
-    ...
+def to_torch(tensor: None) -> None: ...
 
 
 @overload
-def to_torch(tensor: TensorType) -> "torch.Tensor":
-    ...
+def to_torch(tensor: TensorType) -> "torch.Tensor": ...
 
 
 @requires_package("torch")
@@ -65,13 +61,11 @@ def to_torch(tensor):
 
 
 @overload
-def cdist(a: numpy.ndarray, b: numpy.ndarray) -> numpy.ndarray:
-    ...
+def cdist(a: numpy.ndarray, b: numpy.ndarray) -> numpy.ndarray: ...
 
 
 @overload
-def cdist(a: "torch.Tensor", b: "torch.Tensor") -> "torch.Tensor":
-    ...
+def cdist(a: "torch.Tensor", b: "torch.Tensor") -> "torch.Tensor": ...
 
 
 def cdist(a, b):
@@ -89,13 +83,11 @@ def cdist(a, b):
 
 
 @overload
-def inverse_cdist(a: numpy.ndarray, b: numpy.ndarray) -> numpy.ndarray:
-    ...
+def inverse_cdist(a: numpy.ndarray, b: numpy.ndarray) -> numpy.ndarray: ...
 
 
 @overload
-def inverse_cdist(a: "torch.Tensor", b: "torch.Tensor") -> "torch.Tensor":
-    ...
+def inverse_cdist(a: "torch.Tensor", b: "torch.Tensor") -> "torch.Tensor": ...
 
 
 def inverse_cdist(a, b):
@@ -111,13 +103,11 @@ def inverse_cdist(a, b):
 
 
 @overload
-def pairwise_differences(a: numpy.ndarray, b: numpy.ndarray) -> numpy.ndarray:
-    ...
+def pairwise_differences(a: numpy.ndarray, b: numpy.ndarray) -> numpy.ndarray: ...
 
 
 @overload
-def pairwise_differences(a: "torch.Tensor", b: "torch.Tensor") -> "torch.Tensor":
-    ...
+def pairwise_differences(a: "torch.Tensor", b: "torch.Tensor") -> "torch.Tensor": ...
 
 
 def pairwise_differences(a, b):
@@ -151,13 +141,11 @@ def pairwise_differences(a, b):
 
 
 @overload
-def append_zero(a: numpy.ndarray) -> numpy.ndarray:
-    ...
+def append_zero(a: numpy.ndarray) -> numpy.ndarray: ...
 
 
 @overload
-def append_zero(a: "torch.Tensor") -> "torch.Tensor":
-    ...
+def append_zero(a: "torch.Tensor") -> "torch.Tensor": ...
 
 
 def append_zero(a):
@@ -173,18 +161,15 @@ def append_zero(a):
 
 
 @overload
-def concatenate(*arrays: None, dimension: int = 0) -> None:
-    ...
+def concatenate(*arrays: None, dimension: int = 0) -> None: ...
 
 
 @overload
-def concatenate(*arrays: numpy.ndarray, dimension: int = 0) -> numpy.ndarray:
-    ...
+def concatenate(*arrays: numpy.ndarray, dimension: int = 0) -> numpy.ndarray: ...
 
 
 @overload
-def concatenate(*arrays: "torch.Tensor", dimension: int = 0) -> "torch.Tensor":
-    ...
+def concatenate(*arrays: "torch.Tensor", dimension: int = 0) -> "torch.Tensor": ...
 
 
 def concatenate(*arrays, dimension: int = 0):

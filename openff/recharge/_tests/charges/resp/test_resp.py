@@ -1,26 +1,29 @@
+import importlib
 from collections import defaultdict
-from typing import List
 
 import numpy
 import pytest
 from openff.toolkit import Molecule
-from openff.units import unit
+from openff.units import unit, Quantity
 
 from openff.recharge.charges.library import LibraryChargeParameter
 from openff.recharge.charges.resp._resp import (
     _deduplicate_constraints,
     _generate_dummy_values,
+    generate_resp_charge_parameter,
     generate_resp_systems_of_equations,
     molecule_to_resp_library_charge,
 )
+from openff.recharge.charges.resp.solvers import IterativeSolver, SciPySolver
 from openff.recharge.esp import ESPSettings
+from openff.recharge.esp.psi4 import Psi4ESPGenerator
 from openff.recharge.esp.storage import MoleculeESPRecord
-from openff.recharge.grids import GridSettings
+from openff.recharge.grids import GridSettings, MSKGridSettings
 from openff.recharge.optimize import ESPObjective
 
 
 @pytest.fixture()
-def mock_esp_records() -> List[MoleculeESPRecord]:
+def mock_esp_records() -> list[MoleculeESPRecord]:
     conformer = numpy.array(
         [
             [-0.5, +0.0, +0.0],
@@ -61,6 +64,41 @@ def mock_esp_records() -> List[MoleculeESPRecord]:
             esp_settings=ESPSettings(grid_settings=GridSettings()),
         ),
     ]
+
+
+@pytest.fixture(scope="module")
+def meoh_esp_sto3g() -> MoleculeESPRecord:
+    qc_data_settings = ESPSettings(
+        method="scf", basis="sto-3g", grid_settings=MSKGridSettings()
+    )
+
+    mol = Molecule.from_mapped_smiles("[C:1]([O:2][H:6])([H:3])([H:4])[H:5]")
+
+    input_conformer = Quantity(
+        numpy.array(
+            [
+                [-0.3507534772694063, -0.005072983373261072, -0.01802813259570673],
+                [0.9643704239531461, -0.362402385308100760, -0.26011999900333500],
+                [-0.5984566510608367, 0.061649323412126030, 1.05237343039367470],
+                [-0.9862545465164105, -0.815675279603002200, -0.46260343550818340],
+                [-0.6578568673402391, 0.926898309244869800, -0.50107705552408850],
+                [1.6289511182337486, 0.194603015627369500, 0.18945519223763901],
+            ],
+        ),
+        unit.angstrom,
+    )
+
+    conformer, grid, esp, electric_field = Psi4ESPGenerator.generate(
+        mol,
+        input_conformer,
+        qc_data_settings,
+        minimize=False,
+        compute_field=False,
+    )
+    qc_data_record = MoleculeESPRecord.from_molecule(
+        mol, conformer, grid, esp, None, qc_data_settings
+    )
+    return qc_data_record
 
 
 @pytest.mark.parametrize(
@@ -280,7 +318,7 @@ def test_molecule_to_resp_library_charge(
     assert len(actual_groupings) == len(expected_groupings)
     assert {*actual_groupings} == {*expected_groupings}
 
-    def compare_expected(dict_key: str, expected_values: List[int]):
+    def compare_expected(dict_key: str, expected_values: list[int]):
         actual_values = []
 
         for index in parameter.provenance[dict_key]:
@@ -498,3 +536,46 @@ def test_generate_resp_systems_of_equations(
 
     assert sorted(expected_restraint_indices) == sorted(resp_restraint_indices)
     assert expected_trainable_mapping == resp_trainable_mapping
+
+
+@pytest.mark.parametrize("n_copies", [1, 2, 5])
+def test_generate_resp_charge_parameter(meoh_esp_sto3g, n_copies: int):
+    """Make sure that we get the same charges, no matter how many times we use the
+    same conformer as a smoke test, and compare to the psi4 resp plugin."""
+
+    try:
+        importlib.import_module("openeye.oechem")
+
+        expected_smiles = "[H:1][C:3]([H:1])([H:1])[O:4][H:2]"
+        expected_charges = [0.0285, 0.3148, 0.0822, -0.4825]
+
+    except ModuleNotFoundError:
+        expected_charges = [0.3148, 0.0285, -0.4825, 0.0822]
+        expected_smiles = "[H:1][O:3][C:4]([H:2])([H:2])[H:2]"
+
+    solver = IterativeSolver()
+
+    parameter = generate_resp_charge_parameter([meoh_esp_sto3g] * n_copies, solver)
+
+    assert parameter.smiles == expected_smiles
+
+    assert len(parameter.value) == len(expected_charges)
+    assert numpy.allclose(parameter.value, expected_charges, atol=1e-4)
+
+
+@pytest.mark.parametrize("n_copies", [1, 2, 5])
+def test_generate_resp_charge_parameter_scipy(meoh_esp_sto3g, n_copies: int):
+    """Make sure that we get the same charges, no matter how many times we use the
+    same conformer as a smoke test. We don't compare to the psi4 resp plugin here
+    as the iterative solver tends to yield slightly different charges due to the
+    nature of solving the problem slightly more correctly (in principle...)."""
+
+    solver = SciPySolver()
+
+    parameter_1 = generate_resp_charge_parameter([meoh_esp_sto3g], solver)
+    parameter_2 = generate_resp_charge_parameter([meoh_esp_sto3g] * 2, solver)
+
+    assert parameter_1.smiles == parameter_2.smiles
+
+    assert len(parameter_1.value) == len(parameter_2.value)
+    assert numpy.allclose(parameter_1.value, parameter_2.value)

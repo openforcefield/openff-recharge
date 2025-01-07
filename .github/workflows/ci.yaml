@@ -20,7 +20,7 @@ jobs:
       fail-fast: false
       matrix:
         os: ["ubuntu-latest"]
-        python-version: ["3.9", "3.10"]
+        python-version: ["3.10", "3.11"]
         toolkits: ["rdkit_and_openeye", "rdkit"]
         pydantic-version: ["1"]
 
@@ -31,7 +31,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Setup Conda Environment
-        uses: mamba-org/setup-micromamba@v1
+        uses: mamba-org/setup-micromamba@v2
         with:
           environment-file: devtools/conda-envs/test_env_${{ matrix.toolkits }}.yaml
           create-args: >-
@@ -66,8 +66,8 @@ jobs:
           pytest -v -n auto --cov=openff openff/recharge/_tests/ --cov-report=xml
 
       - name: CodeCov
-        uses: codecov/codecov-action@v3
+        uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           file: ./coverage.xml
-          fail_ci_if_error: true
+          fail_ci_if_error: false

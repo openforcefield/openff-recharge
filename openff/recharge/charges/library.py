@@ -1,6 +1,7 @@
 """Generate partial charges for molecules from a collection of library parameters."""
+
 from collections import defaultdict
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple
+from typing import TYPE_CHECKING, Any
 import warnings
 
 import numpy
@@ -28,9 +29,9 @@ class LibraryChargeParameter(BaseModel):
         "to a value in the ``value`` field. Multiple atoms can be assigned the same "
         "index in order to indicate that they should have equivalent charges.",
     )
-    value: List[float] = Field(..., description="The values [e] of the charges.")
+    value: list[float] = Field(..., description="The values [e] of the charges.")
 
-    provenance: Optional[Dict[str, Any]] = Field(
+    provenance: dict[str, Any] | None = Field(
         None, description="Provenance information about this parameter."
     )
 
@@ -138,8 +139,8 @@ class LibraryChargeParameter(BaseModel):
         ]
 
     def generate_constraint_matrix(
-        self, trainable_indices: Optional[List[int]] = None
-    ) -> Tuple[numpy.ndarray, numpy.ndarray]:
+        self, trainable_indices: list[int] | None = None
+    ) -> tuple[numpy.ndarray, numpy.ndarray]:
         """Returns a matrix that when applied to ``value`` will yield the total charge
         on the molecule, as well as the value of the expected total charge.
 
@@ -192,7 +193,7 @@ class LibraryChargeParameter(BaseModel):
 class LibraryChargeCollection(BaseModel):
     """A library of charges sets that can be applied to molecules."""
 
-    parameters: List[LibraryChargeParameter] = Field(
+    parameters: list[LibraryChargeParameter] = Field(
         ..., description="The library charges to apply."
     )
 
@@ -251,7 +252,7 @@ class LibraryChargeCollection(BaseModel):
             ]
         )
 
-    def vectorize(self, keys: List[Tuple[str, Tuple[int, ...]]]) -> numpy.ndarray:
+    def vectorize(self, keys: list[tuple[str, tuple[int, ...]]]) -> numpy.ndarray:
         """Returns a flat vector of the charge increment values associated with each
         SMILES pattern in a specified list.
 
@@ -271,7 +272,7 @@ class LibraryChargeCollection(BaseModel):
             `i`.
         """
 
-        parameters: Dict[Tuple[str, int], LibraryChargeParameter] = {
+        parameters: dict[tuple[str, int], LibraryChargeParameter] = {
             (parameter.smiles, i): parameter.value[i]
             for parameter in self.parameters
             for i in range(len(parameter.value))

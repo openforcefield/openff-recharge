@@ -21,12 +21,11 @@ class TestRESPNonLinearSolver:
             restraint_a=6.0,
             restraint_b=4.0,
             restraint_indices=[1],
+            n_conformers=1,
         )
         assert loss.shape == ()
 
-        expected_loss = (2.0**2 + 4.0**2) + (  # chi_esp
-            6.0 * (5.0 - 4.0)
-        )  # chi_restr
+        expected_loss = (2.0**2 + 4.0**2) + (6.0 * (5.0 - 4.0))  # chi_esp, chi_restr
 
         assert numpy.isclose(loss, expected_loss)
 
@@ -38,6 +37,7 @@ class TestRESPNonLinearSolver:
             restraint_a=6.0,
             restraint_b=4.0,
             restraint_indices=[0],
+            n_conformers=1,
         )
 
         loss_func = functools.partial(RESPNonLinearSolver.loss, **kwargs)
@@ -81,6 +81,7 @@ class TestRESPNonLinearSolver:
             constraint_values=numpy.array([[0.3]]),
             restraint_a=restraint_a,
             restraint_indices=[0, 1],
+            n_conformers=1,
         )
 
         assert initial_values.shape == expected_value.shape
@@ -101,6 +102,7 @@ class TestIterativeSolver:
             restraint_a=0.0005,
             restraint_b=0.1,
             restraint_indices=[1],
+            n_conformers=1,
         )
 
         assert charges.shape == (2, 1)
@@ -121,6 +123,7 @@ class TestSciPySolver:
             restraint_a=0.0005,
             restraint_b=0.1,
             restraint_indices=[1],
+            n_conformers=1,
         )
 
         assert charges.shape == (2, 1)
@@ -138,4 +141,5 @@ class TestSciPySolver:
                 restraint_a=0.0005,
                 restraint_b=0.1,
                 restraint_indices=[1],
+                n_conformers=1,
             )

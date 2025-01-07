@@ -1,9 +1,10 @@
 """Generate partial for molecules from a QC calculation."""
+
 import copy
-from typing import TYPE_CHECKING, List, Literal, cast
+from typing import TYPE_CHECKING, Literal, cast
 
 import numpy
-from openff.units import unit
+from openff.units import unit, Quantity
 from openff.units.elements import SYMBOLS
 from openff.recharge._pydantic import BaseModel, Field
 
@@ -65,7 +66,7 @@ class QCChargeGenerator:
         return numpy.array([[average_charges[group]] for group in symmetry_groups])
 
     @classmethod
-    def _check_connectivity(cls, molecule: "Molecule", conformer: unit.Quantity):
+    def _check_connectivity(cls, molecule: "Molecule", conformer: Quantity):
         from qcelemental.molutil import guess_connectivity
 
         expected_connectivity = {
@@ -94,7 +95,7 @@ class QCChargeGenerator:
     def _generate_xtb_charges(
         cls,
         molecule: "Molecule",
-        conformer: unit.Quantity,
+        conformer: Quantity,
         settings: QCChargeSettings,
     ):
         from qcelemental.models.common_models import DriverEnum, Model
@@ -224,7 +225,7 @@ class QCChargeGenerator:
     def generate(
         cls,
         molecule: "Molecule",
-        conformers: List[unit.Quantity],
+        conformers: list[Quantity],
         settings: QCChargeSettings,
     ) -> numpy.ndarray:
         """Generates the averaged partial charges from multiple conformers of a

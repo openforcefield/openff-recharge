@@ -1,11 +1,12 @@
 """Compute ESP and electric field data using Psi4"""
+
 import os
 import subprocess
-from typing import TYPE_CHECKING, Optional, Tuple
+from typing import TYPE_CHECKING
 
 import jinja2
 import numpy
-from openff.units import unit
+from openff.units import unit, Quantity
 from openff.units.elements import SYMBOLS
 from openff.utilities import get_data_file_path, temporary_cd
 
@@ -25,11 +26,12 @@ class Psi4ESPGenerator(ESPGenerator):
     def _generate_input(
         cls,
         molecule: "Molecule",
-        conformer: unit.Quantity,
+        conformer: Quantity,
         settings: ESPSettings,
         minimize: bool,
         compute_esp: bool,
         compute_field: bool,
+        memory: Quantity = 500 * unit.mebibytes,
     ) -> str:
         """Generate the input files for Psi4.
 
@@ -48,6 +50,8 @@ class Psi4ESPGenerator(ESPGenerator):
             Whether to compute the ESP at each grid point.
         compute_field
             Whether to compute the field at each grid point.
+        memory
+            The memory to make available to Psi4 for computation
 
         Returns
         -------
@@ -101,6 +105,7 @@ class Psi4ESPGenerator(ESPGenerator):
             "dft_settings": settings.psi4_dft_grid_settings.value,
             "minimize": minimize,
             "properties": str(properties),
+            "memory": f"{memory:~P}",
         }
 
         if enable_pcm:
@@ -124,20 +129,27 @@ class Psi4ESPGenerator(ESPGenerator):
     def _generate(
         cls,
         molecule: "Molecule",
-        conformer: unit.Quantity,
-        grid: unit.Quantity,
+        conformer: Quantity,
+        grid: Quantity,
         settings: ESPSettings,
         directory: str,
         minimize: bool,
         compute_esp: bool,
         compute_field: bool,
         n_threads: int,
-    ) -> Tuple[unit.Quantity, Optional[unit.Quantity], Optional[unit.Quantity]]:
+        memory: Quantity = 500 * unit.mebibytes,
+    ) -> tuple[Quantity, Quantity | None, Quantity | None]:
         # Perform the calculation in a temporary directory
         with temporary_cd(directory):
             # Store the input file.
             input_contents = cls._generate_input(
-                molecule, conformer, settings, minimize, compute_esp, compute_field
+                molecule,
+                conformer,
+                settings,
+                minimize,
+                compute_esp,
+                compute_field,
+                memory=memory,
             )
 
             with open("input.dat", "w") as file:

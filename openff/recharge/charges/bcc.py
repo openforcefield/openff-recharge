@@ -1,7 +1,8 @@
 """Generate bond charge corrections for molecules from a collection of BCC parameters."""
+
 import json
 import os
-from typing import TYPE_CHECKING, Any, Dict, List, Optional
+from typing import TYPE_CHECKING, Any
 
 import numpy
 from openff.units import unit
@@ -37,7 +38,7 @@ class BCCParameter(BaseModel):
     )
     value: float = Field(..., description="The value [e] of this correction.")
 
-    provenance: Optional[Dict[str, Any]] = Field(
+    provenance: dict[str, Any] | None = Field(
         None, description="Provenance information about this bond charge correction."
     )
 
@@ -46,7 +47,7 @@ class BCCCollection(BaseModel):
     """The settings which describes which BCCs should be applied,
     as well as information about how they should be applied."""
 
-    parameters: List[BCCParameter] = Field(
+    parameters: list[BCCParameter] = Field(
         ..., description="The bond charge corrections to apply."
     )
     aromaticity_model: AromaticityModels = Field(
@@ -157,7 +158,7 @@ class BCCCollection(BaseModel):
 
         return cls(parameters=bcc_parameters, aromaticity_model=aromaticity_model)
 
-    def vectorize(self, smirks: List[str]) -> numpy.ndarray:
+    def vectorize(self, smirks: list[str]) -> numpy.ndarray:
         """Returns a flat vector of the charge increment values associated with each
         SMIRKS pattern in a specified list.
 
@@ -385,7 +386,7 @@ class BCCGenerator:
         cls,
         *molecules: "Molecule",
         bcc_collection: BCCCollection,
-    ) -> List[BCCParameter]:
+    ) -> list[BCCParameter]:
         """Returns the bond charge corrections which will be applied
         to a given molecule.
 

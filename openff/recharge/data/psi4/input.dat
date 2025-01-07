@@ -1,3 +1,5 @@
+memory {{ memory }}
+
 molecule mol {
   noreorient
   nocom
@@ -44,7 +46,7 @@ pcm = {
 
 {%- if minimize %}
 
-optimize('scf')
+optimize('{{ method }}')
 {%- endif %}
 
 E,wfn = prop('{%- if spin == 2 %}u{% endif %}{{ method }}', properties = {{ properties }}, return_wfn=True)

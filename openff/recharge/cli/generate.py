@@ -2,7 +2,6 @@ import functools
 import json
 import logging
 from multiprocessing import Pool
-from typing import List
 
 import click
 
@@ -19,7 +18,7 @@ def _compute_esp(
     conformer_settings: ConformerSettings,
     settings: ESPSettings,
     minimize_conformer: bool,
-) -> List[MoleculeESPRecord]:
+) -> list[MoleculeESPRecord]:
     """Compute the ESP for a molecule in different conformers.
 
     Parameters
@@ -43,7 +42,7 @@ def _compute_esp(
     # Generate a set of conformers for the molecule.
     try:
         conformers = ConformerGenerator.generate(molecule, conformer_settings)
-    except BaseException:
+    except Exception:
         _logger.exception(f"Coordinates could not be generated for {smiles}.")
         return []
 

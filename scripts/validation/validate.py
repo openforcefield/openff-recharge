@@ -1,11 +1,11 @@
 """A script to compare this frameworks AM1BCC implementation with the
 built-in OpenEye implementation."""
+
 import json
 import logging
 import warnings
 from multiprocessing import Pool
 from pprint import pprint
-from typing import Dict, List, Tuple
 
 from openeye import oechem
 from tqdm import tqdm
@@ -30,7 +30,7 @@ oechem.OEThrow.SetOutputStream(output_stream)
 oechem.OEThrow.Clear()
 
 
-def load_molecule(smiles: str) -> Tuple[bool, List[str]]:
+def load_molecule(smiles: str) -> tuple[bool, list[str]]:
     """Filters out molecules which should not be included in the
     validation set. This include molecules which contain elements
     which the bond charge corrections don't cover, over molecules
@@ -61,11 +61,11 @@ def load_molecule(smiles: str) -> Tuple[bool, List[str]]:
 
         return True, [bcc.provenance["code"] for bcc in corrections]
 
-    except BaseException:  # lgtm [py/catch-base-exception]
+    except Exception:
         return False, []
 
 
-def load_molecules() -> Dict[str, List[str]]:
+def load_molecules() -> dict[str, list[str]]:
     print("Loading molecules...")
 
     with oechem.oemolistream("validation-set.smi") as input_stream:
@@ -86,7 +86,7 @@ def load_molecules() -> Dict[str, List[str]]:
     return smiles
 
 
-def validate_molecule(smiles: str) -> Tuple[str, bool, bool]:
+def validate_molecule(smiles: str) -> tuple[str, bool, bool]:
     tqdm.write(smiles)
 
     molecule = smiles_to_molecule(smiles, guess_stereochemistry=True)
@@ -99,7 +99,7 @@ def validate_molecule(smiles: str) -> Tuple[str, bool, bool]:
     except ChargeAssignmentError:
         tqdm.write(f"could not generate charges for {smiles}")
         return smiles, True, False
-    except BaseException:  # lgtm [py/catch-base-exception]
+    except Exception:
         tqdm.write(f"unexpected error for {smiles}")
         return smiles, True, False
 

@@ -1,11 +1,12 @@
 """Reconstruct ESP and electric field data from existing QC records"""
+
 import json
 import logging
 import re
-from typing import TYPE_CHECKING, Optional, Tuple
+from typing import TYPE_CHECKING
 
 import numpy
-from openff.units import unit
+from openff.units import unit, Quantity
 from openff.utilities import requires_package
 from openff.recharge._pydantic import ValidationError
 
@@ -110,7 +111,7 @@ def reconstruct_density(
     """
 
     # Reconstruct the density in CCA order
-    orbitals = getattr(wavefunction, wavefunction.orbitals_a)
+    orbitals = wavefunction.scf_orbitals_a
     density = numpy.dot(orbitals[:, :n_alpha], orbitals[:, :n_alpha].T)
 
     # Re-order the density matrix to match the ordering expected by psi4.
@@ -158,9 +159,9 @@ def compute_esp(
     qc_molecule: "qcelemental.models.Molecule",
     density: numpy.ndarray,
     esp_settings: ESPSettings,
-    grid: unit.Quantity,
+    grid: Quantity,
     compute_field: bool = True,
-) -> Tuple[unit.Quantity, Optional[unit.Quantity]]:
+) -> tuple[Quantity, Quantity | None]:
     """Computes the ESP and electric field for a particular molecule on
     a specified grid and using the specified settings.
 
@@ -216,9 +217,9 @@ def compute_esp(
 
 @requires_package("qcportal")
 def from_qcportal_results(
-    qc_result: "qcportal.models.ResultRecord",
+    qc_result: "qcportal.record_models.BaseRecord",
     qc_molecule: "qcelemental.models.Molecule",
-    qc_keyword_set: "qcportal.models.KeywordSet",
+    qc_keyword_set: dict,
     grid_settings: GridSettingsType,
     compute_field: bool = True,
 ) -> MoleculeESPRecord:
@@ -246,21 +247,16 @@ def from_qcportal_results(
     """
 
     from openff.toolkit import Molecule
-    from qcelemental.models.results import WavefunctionProperties
 
     # Compute and store the ESP and electric field for each result.
     if qc_result.wavefunction is None:
         raise MissingQCWaveFunctionError(qc_result.id)
 
     # Retrieve the wavefunction and use it to reconstruct the electron density.
-    wavefunction = WavefunctionProperties(
-        **qc_result.get_wavefunction(
-            ["scf_eigenvalues_a", "scf_orbitals_a", "basis", "restricted"]
-        ),
-        **qc_result.wavefunction["return_map"],
+    density = reconstruct_density(
+        wavefunction=qc_result.wavefunction,
+        n_alpha=qc_result.properties["calcinfo_nalpha"],
     )
-
-    density = reconstruct_density(wavefunction, qc_result.properties.calcinfo_nalpha)
 
     # Convert the OE molecule to a QC molecule and extract the conformer of
     # interest.
@@ -277,16 +273,14 @@ def from_qcportal_results(
     grid = GridGenerator.generate(molecule, conformer, grid_settings)
 
     # Retrieve the ESP settings from the record.
-    enable_pcm = "pcm" in qc_keyword_set.values
+    enable_pcm = bool(qc_keyword_set.get("pcm"))
 
     esp_settings = ESPSettings(
-        basis=qc_result.basis,
-        method=qc_result.method,
+        basis=qc_result.specification.basis,
+        method=qc_result.specification.method,
         grid_settings=grid_settings,
         pcm_settings=(
-            None
-            if not enable_pcm
-            else _parse_pcm_input(qc_keyword_set.values["pcm__input"])
+            None if not enable_pcm else _parse_pcm_input(qc_keyword_set["pcm__input"])
         ),
     )
 

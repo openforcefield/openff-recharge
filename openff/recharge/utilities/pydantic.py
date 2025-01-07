@@ -5,10 +5,11 @@ Notes
 Most of the classes in the module are based off of the discussion here:
 https://github.com/samuelcolvin/pydantic/issues/380
 """
+
 from typing import Any, cast
 
 import numpy
-from openff.units import unit
+from openff.units import unit, Quantity
 from openff.recharge._pydantic import validator
 
 
@@ -39,8 +40,8 @@ def wrapped_float_validator(field_name: str, expected_units: unit.Unit) -> valid
         elif value is None or isinstance(value, float):
             return value
 
-        assert isinstance(value, unit.Quantity)
-        return cast(unit.Quantity, value).to(expected_units).m
+        assert isinstance(value, Quantity)
+        return cast(Quantity, value).to(expected_units).m
 
     return validator(field_name, allow_reuse=True, pre=True)(validate_unit)
 
@@ -52,7 +53,7 @@ def wrapped_array_validator(field_name: str, expected_units: unit.Unit) -> valid
         elif value is None or isinstance(value, numpy.ndarray):
             return value
 
-        assert isinstance(value, unit.Quantity)
-        return cast(unit.Quantity, value).to(expected_units).m
+        assert isinstance(value, Quantity)
+        return cast(Quantity, value).to(expected_units).m
 
     return validator(field_name, allow_reuse=True, pre=True)(validate_unit)

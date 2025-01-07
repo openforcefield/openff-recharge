@@ -2,6 +2,7 @@
 openff-recharge
 An automated framework for generating optimized partial charges for molecules.
 """
+
 import sys
 from setuptools import setup, find_namespace_packages
 import versioneer

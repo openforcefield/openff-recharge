@@ -1,9 +1,9 @@
 import abc
 import os
 from enum import Enum
-from typing import TYPE_CHECKING, Literal, Optional, Tuple
+from typing import TYPE_CHECKING, Literal
 
-from openff.units import unit
+from openff.units import unit, Quantity
 from openff.recharge._pydantic import BaseModel, Field
 
 from openff.recharge.grids import GridGenerator, GridSettingsType
@@ -81,7 +81,7 @@ class ESPSettings(BaseModel):
         "electrostatic potential on.",
     )
 
-    pcm_settings: Optional[PCMSettings] = Field(
+    pcm_settings: PCMSettings | None = Field(
         None,
         description="The settings to use if including a polarizable continuum "
         "model in the ESP calculation.",
@@ -104,15 +104,16 @@ class ESPGenerator(abc.ABC):
     def _generate(
         cls,
         molecule: "Molecule",
-        conformer: unit.Quantity,
-        grid: unit.Quantity,
+        conformer: Quantity,
+        grid: Quantity,
         settings: ESPSettings,
         directory: str,
         minimize: bool,
         compute_esp: bool,
         compute_field: bool,
         n_threads: int,
-    ) -> Tuple[unit.Quantity, Optional[unit.Quantity], Optional[unit.Quantity]]:
+        memory: Quantity = 500 * unit.mebibytes,
+    ) -> tuple[Quantity, Quantity | None, Quantity | None]:
         """The implementation of the public ``generate`` function which
         should return the ESP for the provided conformer.
 
@@ -136,6 +137,8 @@ class ESPGenerator(abc.ABC):
             Whether to compute the ESP at each grid point.
         compute_field
             Whether to compute the field at each grid point.
+        memory
+            The memory to make available for computation_
 
         Returns
         -------
@@ -150,16 +153,15 @@ class ESPGenerator(abc.ABC):
     def generate(
         cls,
         molecule: "Molecule",
-        conformer: unit.Quantity,
+        conformer: Quantity,
         settings: ESPSettings,
         directory: str = None,
         minimize: bool = False,
         compute_esp: bool = True,
         compute_field: bool = True,
         n_threads: int = 1,
-    ) -> Tuple[
-        unit.Quantity, unit.Quantity, Optional[unit.Quantity], Optional[unit.Quantity]
-    ]:
+        memory: Quantity = 500 * unit.mebibytes,
+    ) -> tuple[Quantity, Quantity, Quantity | None, Quantity | None]:
         """Generate the electrostatic potential (ESP) on a grid defined by
         a provided set of settings.
 
@@ -181,6 +183,11 @@ class ESPGenerator(abc.ABC):
             Whether to compute the ESP at each grid point.
         compute_field
             Whether to compute the field at each grid point.
+        memory
+            The memory to make available to Psi4 for computation.
+            Default is 500 MiB, as is the default in Psi4
+            (see psicode.org/psi4manual/master/psithoninput.html#memory-specification).
+
 
         Returns
         -------
@@ -205,6 +212,7 @@ class ESPGenerator(abc.ABC):
             compute_esp,
             compute_field,
             n_threads,
+            memory=memory,
         )
 
         return conformer, grid, esp, electric_field

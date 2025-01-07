@@ -1,7 +1,8 @@
 """Load, manipulate and query OpenFF molecules"""
-from typing import TYPE_CHECKING, Dict, List, Tuple, cast
 
-from openff.units import unit
+from typing import TYPE_CHECKING, cast
+
+from openff.units import Quantity
 
 if TYPE_CHECKING:
     from openff.toolkit import Molecule
@@ -32,7 +33,7 @@ def smiles_to_molecule(smiles: str, guess_stereochemistry: bool = False) -> "Mol
         if not guess_stereochemistry:
             raise
 
-        molecule: Molecule = Molecule.from_smiles(smiles, allow_undefined_stereo=True)
+        molecule = Molecule.from_smiles(smiles, allow_undefined_stereo=True)
 
         stereoisomers = molecule.enumerate_stereoisomers(
             undefined_only=True, max_isomers=1
@@ -48,17 +49,17 @@ def smiles_to_molecule(smiles: str, guess_stereochemistry: bool = False) -> "Mol
     return molecule
 
 
-def find_ring_bonds(molecule: "Molecule") -> Dict[Tuple[int, int], bool]:
+def find_ring_bonds(molecule: "Molecule") -> dict[tuple[int, int], bool]:
     """Finds all bonds that are parts of a ring system."""
 
     is_in_ring = {
-        cast(Tuple[int, int], tuple(sorted(match))): True
+        cast(tuple[int, int], tuple(sorted(match))): True
         for match in molecule.chemical_environment_matches("[*:1]@[*:2]", unique=True)
     }
 
     for bond in molecule.bonds:
         indices = cast(
-            Tuple[int, int], tuple(sorted((bond.atom1_index, bond.atom2_index)))
+            tuple[int, int], tuple(sorted((bond.atom1_index, bond.atom2_index)))
         )
 
         if indices in is_in_ring:
@@ -69,7 +70,7 @@ def find_ring_bonds(molecule: "Molecule") -> Dict[Tuple[int, int], bool]:
     return is_in_ring
 
 
-def extract_conformers(molecule: "Molecule") -> List[unit.Quantity]:
+def extract_conformers(molecule: "Molecule") -> list[Quantity]:
     """Extracts the conformers of a molecule.
 
     Parameters

@@ -48,7 +48,7 @@ def _process_result(
         qc_result,
         qc_result.molecule,
         qc_result.specification.keywords,
-        grid_settings=grid_settings
+        grid_settings=grid_settings,
     )
 
 
@@ -126,6 +126,8 @@ def reconstruct(
         ]
         # to avoid simultaneous writing to the db, wait for each calculation
         # to finish then write
-        for future in tqdm(as_completed(futures), total=len(futures),desc="Calculating ESP"):
+        for future in tqdm(
+            as_completed(futures), total=len(futures), desc="Calculating ESP"
+        ):
             esp_record = future.result()
             esp_store.store(esp_record)

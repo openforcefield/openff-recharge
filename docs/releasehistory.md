@@ -6,7 +6,21 @@ Releases follow the `major.minor.micro` scheme recommended by [PEP440](https://w
 * `minor` increments add features but do not break API compatibility
 * `micro` increments represent bugfix releases or improvements in documentation
 
-## Current development
+## 0.5.3
+
+* #166: Drop Python 3.9
+* #170: Add memory specification to file
+* #172: Expand bondi radii
+* #174: Use new Pydantic v1 backdoor
+* #177: Use multiprocessing when rebuilding ESPs
+
+## 0.5.2
+
+* #149: Update tests to use "new" QCArchive stack
+* #158: Update qcportal results with solvent
+* #159: Regenerate MSK grid with new OEChem
+* #162: Fix Psi4 always minimize with SCF
+* #161: Fix multi-conformer RESP restraint strength
 
 ## 0.5.1
 

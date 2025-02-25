@@ -1,4 +1,5 @@
-from pydantic.v1 import (
+from pydantic import (
+    ConfigDict,
     BaseModel,
     Field,
     constr,

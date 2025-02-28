@@ -15,7 +15,7 @@ dependencies:
   - openff-utilities
   - openff-units >=0.2
   - openff-toolkit-base >=0.14
-  - openff-interchange-base ~=0.4.1
+  - openff-interchange-base >=0.3.19
   - openmm
 
     # ESP storage

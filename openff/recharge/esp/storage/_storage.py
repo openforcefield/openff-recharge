@@ -6,11 +6,10 @@ import warnings
 import functools
 from collections import defaultdict
 from contextlib import contextmanager
-from typing import TYPE_CHECKING, ContextManager
+from typing import ContextManager
 
-import numpy
-from openff.units import unit, Quantity
-from openff.recharge._pydantic import BaseModel, Field
+from openff.toolkit import Quantity, Molecule
+from openff.recharge._pydantic import BaseModel, Field, ConfigDict
 from sqlalchemy import create_engine, event
 from sqlalchemy.orm import Session, sessionmaker
 from openff.toolkit.utils.exceptions import AtomMappingWarning
@@ -28,13 +27,11 @@ from openff.recharge.esp.storage.db import (
     DBSoftwareProvenance,
 )
 from openff.recharge.esp.storage.exceptions import IncompatibleDBVersion
-
-if TYPE_CHECKING:
-    from openff.toolkit import Molecule
-
-    Array = numpy.ndarray
-else:
-    from openff.recharge.utilities.pydantic import Array, wrapped_array_validator
+from openff.recharge._annotations import (
+    _ESPQuantity as ESP,
+    _ElectricFieldQuantity as ElectricField,
+    _AngstromQuantity as Positions,
+)
 
 
 class MoleculeESPRecord(BaseModel):
@@ -43,6 +40,8 @@ class MoleculeESPRecord(BaseModel):
     about how the ESP was calculated, and the values of the ESP at each of
     the grid points."""
 
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+
     tagged_smiles: str = Field(
         ...,
         description="The tagged SMILES patterns (SMARTS) which encodes both the "
@@ -50,23 +49,23 @@ class MoleculeESPRecord(BaseModel):
         "their coordinates.",
     )
 
-    conformer: Array[float] = Field(
+    conformer: Positions = Field(
         ...,
         description="The coordinates [Angstrom] of this conformer with "
         "shape=(n_atoms, 3).",
     )
 
-    grid_coordinates: Array[float] = Field(
+    grid_coordinates: Positions = Field(
         ...,
         description="The grid coordinates [Angstrom] which the ESP was calculated on "
         "with shape=(n_grid_points, 3).",
     )
-    esp: Array[float] = Field(
+    esp: ESP = Field(
         ...,
         description="The value of the ESP [Hartree / e] at each of the grid "
         "coordinates with shape=(n_grid_points, 1).",
     )
-    electric_field: Array[float] | None = Field(
+    electric_field: ElectricField | None = Field(
         ...,
         description="The value of the electric field [Hartree / (e . a0)] at each of "
         "the grid coordinates with shape=(n_grid_points, 3).",
@@ -76,34 +75,26 @@ class MoleculeESPRecord(BaseModel):
         ..., description="The settings used to generate the ESP stored in this record."
     )
 
-    _validate_conformer = wrapped_array_validator("conformer", unit.angstrom)
-    _validate_grid = wrapped_array_validator("grid_coordinates", unit.angstrom)
-
-    _validate_esp = wrapped_array_validator("esp", unit.hartree / unit.e)
-    _validate_field = wrapped_array_validator(
-        "electric_field", unit.hartree / (unit.bohr * unit.e)
-    )
-
     @property
     def conformer_quantity(self) -> Quantity:
-        return self.conformer * unit.angstrom
+        return Quantity(self.conformer, "angstrom")
 
     @property
     def grid_coordinates_quantity(self) -> Quantity:
-        return self.grid_coordinates * unit.angstrom
+        return Quantity(self.grid_coordinates, "angstrom")
 
     @property
     def esp_quantity(self) -> Quantity:
-        return self.esp * unit.hartree / unit.e
+        return Quantity(self.esp, "hartree / e")
 
     @property
     def electric_field_quantity(self) -> Quantity:
-        return self.electric_field * unit.hartree / (unit.bohr * unit.e)
+        return Quantity(self.electric_field, "hartree / (bohr * e)")
 
     @classmethod
     def from_molecule(
         cls,
-        molecule: "Molecule",
+        molecule: Molecule,
         conformer: Quantity,
         grid_coordinates: Quantity,
         esp: Quantity,
@@ -148,9 +139,6 @@ class MoleculeESPRecord(BaseModel):
             electric_field=electric_field,
             esp_settings=esp_settings,
         )
-
-    class Config:
-        orm_mode = True
 
 
 class MoleculeESPStore:

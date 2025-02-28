@@ -1,6 +1,5 @@
 name: openff-recharge-test-rdkit
 channels:
-  - jaimergp/label/unsupported-cudatoolkit-shim
   - conda-forge/label/libint_dev
   - conda-forge
 dependencies:
@@ -15,6 +14,7 @@ dependencies:
   - openff-utilities
   - openff-units >=0.2
   - openff-toolkit-base >=0.14
+  - openff-interchange-base ~=0.4.1
   - openmm
 
     # ESP storage
@@ -43,7 +43,6 @@ dependencies:
   - pytest
   - pytest-cov
   - pytest-xdist
-  - openff-interchange-base >=0.3
 
     # Typing
   - mypy

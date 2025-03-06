@@ -62,6 +62,7 @@ jobs:
       - name: Run Tests
         shell: bash -l {0}
         run: |
+          python -c "from openff.toolkit import *"
           pytest -x -n auto --cov=openff openff/recharge/_tests/ --cov-report=xml
 
       - name: CodeCov

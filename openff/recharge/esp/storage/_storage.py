@@ -28,9 +28,9 @@ from openff.recharge.esp.storage.db import (
 )
 from openff.recharge.esp.storage.exceptions import IncompatibleDBVersion
 from openff.recharge._annotations import (
-    _ESPQuantity as ESP,
-    _ElectricFieldQuantity as ElectricField,
-    _AngstromQuantity as Positions,
+    ESP,
+    ElectricField,
+    Conformer as Coordinates,
 )
 
 
@@ -49,13 +49,13 @@ class MoleculeESPRecord(BaseModel):
         "their coordinates.",
     )
 
-    conformer: Positions = Field(
+    conformer: Coordinates = Field(
         ...,
         description="The coordinates [Angstrom] of this conformer with "
         "shape=(n_atoms, 3).",
     )
 
-    grid_coordinates: Positions = Field(
+    grid_coordinates: Coordinates = Field(
         ...,
         description="The grid coordinates [Angstrom] which the ESP was calculated on "
         "with shape=(n_grid_points, 3).",

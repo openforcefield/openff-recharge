@@ -10,7 +10,7 @@ from pydantic import (
 
 
 def conformer_validator(
-    value: str | dict | numpy.ndarray | Quantity,
+    value: numpy.ndarray | Quantity,
     handler: ValidatorFunctionWrapHandler,
     info: ValidationInfo,
 ) -> numpy.ndarray:
@@ -23,14 +23,12 @@ def conformer_validator(
         return value
     elif isinstance(value, Quantity):
         return value.m_as("angstrom")
-    elif isinstance(value, (str, dict)):
-        raise NotImplementedError()
     else:
         raise ValueError(f"Invalid type {type(value)}")
 
 
 def esp_validator(
-    value: str | dict | numpy.ndarray | Quantity,
+    value: numpy.ndarray | Quantity,
     handler: ValidatorFunctionWrapHandler,
     info: ValidationInfo,
 ) -> numpy.ndarray:
@@ -43,14 +41,12 @@ def esp_validator(
         return value
     elif isinstance(value, Quantity):
         return value.m_as("hartree / e")
-    elif isinstance(value, (str, dict)):
-        raise NotImplementedError()
     else:
         raise ValueError(f"Invalid type {type(value)}")
 
 
 def electric_field_validator(
-    value: str | dict | numpy.ndarray | Quantity,
+    value: numpy.ndarray | Quantity,
     handler: ValidatorFunctionWrapHandler,
     info: ValidationInfo,
 ) -> numpy.ndarray:
@@ -63,8 +59,6 @@ def electric_field_validator(
         return value
     elif isinstance(value, Quantity):
         return value.m_as("hartree / (e * a0)")
-    elif isinstance(value, (str, dict)):
-        raise NotImplementedError()
     else:
         raise ValueError(f"Invalid type {type(value)}")
 

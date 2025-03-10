@@ -1,79 +1,44 @@
 from typing import Annotated
+from collections.abc import Callable
 from openff.toolkit import Quantity
 import numpy
-
-from pydantic import (
-    ValidationInfo,
-    ValidatorFunctionWrapHandler,
-    WrapValidator,
-)
+from functools import partial
+from pydantic import BeforeValidator
 
 
-def conformer_validator(
+def _array_validator(
     value: numpy.ndarray | Quantity,
-    handler: ValidatorFunctionWrapHandler,
-    info: ValidationInfo,
+    unit: str,
 ) -> numpy.ndarray:
-    if info.mode == "json":
-        raise NotImplementedError()
-
-    assert info.mode == "python"
-
     if isinstance(value, numpy.ndarray):
         return value
     elif isinstance(value, Quantity):
-        return value.m_as("angstrom")
+        return value.m_as(unit)
     else:
         raise ValueError(f"Invalid type {type(value)}")
 
 
-def esp_validator(
-    value: numpy.ndarray | Quantity,
-    handler: ValidatorFunctionWrapHandler,
-    info: ValidationInfo,
-) -> numpy.ndarray:
-    if info.mode == "json":
-        raise NotImplementedError()
+def validator_factory(unit: str) -> Callable:
+    """
+    Return a function that converts the input array in given implicit units.
 
-    assert info.mode == "python"
+    This is meant to be used as the argument to pydantic.BeforeValidator in an Annotated type.
 
-    if isinstance(value, numpy.ndarray):
-        return value
-    elif isinstance(value, Quantity):
-        return value.m_as("hartree / e")
-    else:
-        raise ValueError(f"Invalid type {type(value)}")
-
-
-def electric_field_validator(
-    value: numpy.ndarray | Quantity,
-    handler: ValidatorFunctionWrapHandler,
-    info: ValidationInfo,
-) -> numpy.ndarray:
-    if info.mode == "json":
-        raise NotImplementedError()
-
-    assert info.mode == "python"
-
-    if isinstance(value, numpy.ndarray):
-        return value
-    elif isinstance(value, Quantity):
-        return value.m_as("hartree / (e * a0)")
-    else:
-        raise ValueError(f"Invalid type {type(value)}")
+    """
+    return partial(_array_validator, unit=unit)
 
 
 Conformer = Annotated[
     numpy.ndarray[float],
-    WrapValidator(conformer_validator),
+    BeforeValidator(validator_factory(unit="angstrom")),
 ]
 
 ESP = Annotated[
     numpy.ndarray[float],
-    WrapValidator(esp_validator),
+    BeforeValidator(validator_factory(unit="hartree / e")),
 ]
 
 ElectricField = Annotated[
     numpy.ndarray[float],
-    WrapValidator(electric_field_validator),
+    BeforeValidator(validator_factory(unit="hartree / (e * a0)")),
 ]

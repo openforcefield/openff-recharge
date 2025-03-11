@@ -28,7 +28,7 @@ def validator_factory(unit: str) -> Callable:
     return partial(_array_validator, unit=unit)
 
 
-Conformer = Annotated[
+Coordinates = Annotated[
     numpy.ndarray[float],
     BeforeValidator(validator_factory(unit="angstrom")),
 ]

@@ -30,7 +30,7 @@ from openff.recharge.esp.storage.exceptions import IncompatibleDBVersion
 from openff.recharge._annotations import (
     ESP,
     ElectricField,
-    Conformer as Coordinates,
+    Coordinates,
 )
 
 

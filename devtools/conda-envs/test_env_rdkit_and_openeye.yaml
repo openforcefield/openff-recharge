@@ -8,12 +8,12 @@ dependencies:
   - pip
   - click
   - tqdm
-  - numpy =1
+  - numpy
   - scipy
   - jinja2
   - pydantic >=1.10.17,<3
   - openff-utilities
-  - openff-units >=0.2
+  - openff-units >=0.3
   - openff-toolkit-base >=0.14
   - openff-interchange-base >=0.3.19
   - openmm

@@ -22,7 +22,7 @@ dependencies:
   - sqlite
 
     ### Optional dependencies.
-  - openeye-toolkits =2023.2
+  - openeye-toolkits
   - rdkit
 
     # ESP calculations

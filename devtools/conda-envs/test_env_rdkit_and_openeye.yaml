@@ -1,6 +1,5 @@
 name: openff-recharge-test
 channels:
-  - conda-forge/label/libint_dev
   - conda-forge
   - openeye
 dependencies:
@@ -23,11 +22,11 @@ dependencies:
   - sqlite
 
     ### Optional dependencies.
-  - openeye-toolkits =2023.2
+  - openeye-toolkits
   - rdkit
 
     # ESP calculations
-  - psi4 =1.8
+  - psi4 =1.9
 
     # XTB charges
   - xtb-python

@@ -1,6 +1,5 @@
 name: openff-recharge-test-rdkit
 channels:
-  - conda-forge/label/libint_dev
   - conda-forge
 dependencies:
   - python
@@ -25,7 +24,7 @@ dependencies:
   - rdkit
 
     # ESP calculations
-  - psi4 =1.8
+  - psi4 =1.9
 
     # XTB charges
   - xtb-python

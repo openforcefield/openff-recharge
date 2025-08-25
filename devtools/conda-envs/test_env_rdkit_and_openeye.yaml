@@ -15,6 +15,7 @@ dependencies:
   - openff-units >=0.3
   - openff-toolkit-base >=0.14
   - openff-interchange-base >=0.3.19
+  - openff-nagl-models
   - openmm
 
     # ESP storage

@@ -16,6 +16,7 @@ dependencies:
   - openff-utilities >=0.1.5
   - openff-units
   - openff-toolkit-base >=0.10.2
+  - openff-nagl-models
 
     # ESP storage
   - sqlalchemy

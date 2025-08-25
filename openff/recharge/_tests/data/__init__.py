@@ -2,7 +2,7 @@ import os.path
 
 import numpy
 
-from importlib_resources import files
+from importlib.resources import files
 
 UNIT_CONNOLLY_SPHERE = numpy.genfromtxt(
     files(

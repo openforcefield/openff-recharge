@@ -25,7 +25,7 @@ dependencies:
   - rdkit
 
     # ESP calculations
-  - psi4 =1.9
+  - psi4 =1.10
 
     # XTB charges
   - xtb-python

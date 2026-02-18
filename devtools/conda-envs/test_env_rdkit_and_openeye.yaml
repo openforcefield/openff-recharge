@@ -41,6 +41,9 @@ dependencies:
   # Optimization
   - pytorch
 
+  # Shim
+  - xmltodict !=1.0.3
+
     # Testing
   - pytest
   - pytest-cov

@@ -21,7 +21,6 @@ jobs:
         os:
           - "ubuntu-latest"
         python-version:
-          - "3.11"
           - "3.12"
         toolkits:
           - "rdkit_and_openeye"

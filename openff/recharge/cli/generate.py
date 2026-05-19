@@ -55,17 +55,13 @@ def _compute_esp(
                 grid_coordinates,
                 esp,
                 electric_field,
-            ) = Psi4ESPGenerator.generate(
-                molecule, conformer, settings, minimize=minimize_conformer
-            )
+            ) = Psi4ESPGenerator.generate(molecule, conformer, settings, minimize=minimize_conformer)
         except Psi4Error:
             _logger.exception(f"Psi4 failed to run for conformer {index} of {smiles}.")
             continue
 
         esp_records.append(
-            MoleculeESPRecord.from_molecule(
-                molecule, conformer, grid_coordinates, esp, electric_field, settings
-            )
+            MoleculeESPRecord.from_molecule(molecule, conformer, grid_coordinates, esp, electric_field, settings)
         )
 
     _logger.info(f"Finished processing {smiles}")

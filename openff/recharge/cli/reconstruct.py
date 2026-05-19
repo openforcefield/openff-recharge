@@ -2,9 +2,9 @@ import json
 import logging
 import os
 import pwd
+from concurrent.futures import ProcessPoolExecutor, as_completed
 from datetime import datetime
 from multiprocessing import get_context
-from concurrent.futures import ProcessPoolExecutor, as_completed
 from typing import TYPE_CHECKING
 
 import click
@@ -52,9 +52,7 @@ def _process_result(
     )
 
 
-@click.command(
-    help="Compute the ESP from a set of wave-functions stored in a QCFractal instance."
-)
+@click.command(help="Compute the ESP from a set of wave-functions stored in a QCFractal instance.")
 @click.option(
     "--record-ids",
     "record_ids_path",
@@ -66,8 +64,7 @@ def _process_result(
     "--grid-settings",
     "grid_settings_path",
     type=click.Path(exists=True, dir_okay=False),
-    help="The path to the JSON serialized settings which define the grid to reconstruct "
-    "the ESP / electric field on.",
+    help="The path to the JSON serialized settings which define the grid to reconstruct the ESP / electric field on.",
 )
 @click.option(
     "--n-procs",
@@ -116,18 +113,10 @@ def reconstruct(
         },
     )
 
-    with ProcessPoolExecutor(
-        max_workers=n_processors, mp_context=get_context("spawn")
-    ) as pool:
-
-        futures = [
-            pool.submit(_process_result, qc_result, grid_settings=grid_settings)
-            for qc_result in qc_results
-        ]
+    with ProcessPoolExecutor(max_workers=n_processors, mp_context=get_context("spawn")) as pool:
+        futures = [pool.submit(_process_result, qc_result, grid_settings=grid_settings) for qc_result in qc_results]
         # to avoid simultaneous writing to the db, wait for each calculation
         # to finish then write
-        for future in tqdm(
-            as_completed(futures), total=len(futures), desc="Calculating ESP"
-        ):
+        for future in tqdm(as_completed(futures), total=len(futures), desc="Calculating ESP"):
             esp_record = future.result()
             esp_store.store(esp_record)

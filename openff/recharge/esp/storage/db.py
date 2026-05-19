@@ -13,7 +13,7 @@ from sqlalchemy import (
     String,
     UniqueConstraint,
 )
-from sqlalchemy.orm import Query, Session, relationship, declarative_base
+from sqlalchemy.orm import Query, Session, declarative_base, relationship
 
 from openff.recharge.esp import ESPSettings, PCMSettings
 from openff.recharge.grids import GridSettingsType, LatticeGridSettings, MSKGridSettings
@@ -28,7 +28,7 @@ _DB_FLOAT_PRECISION = 100000.0
 
 
 def _float_to_db_int(value: float) -> int:
-    return int(math.floor(value * _DB_FLOAT_PRECISION))
+    return math.floor(value * _DB_FLOAT_PRECISION)
 
 
 def _db_int_to_float(value: int) -> float:
@@ -174,9 +174,7 @@ class DBGridSettings(_UniqueMixin, DBBase):
             )
         elif db_instance.type == "msk":
             # noinspection PyTypeChecker
-            return MSKGridSettings(
-                type=db_instance.type, density=_db_int_to_float(db_instance.msk_density)
-            )
+            return MSKGridSettings(type=db_instance.type, density=_db_int_to_float(db_instance.msk_density))
         else:
             raise NotImplementedError()
 
@@ -254,9 +252,7 @@ class DBESPSettings(_UniqueMixin, DBBase):
 
     @classmethod
     def _hash(cls, instance: ESPSettings) -> int:
-        return hash(
-            (instance.basis, instance.method, instance.psi4_dft_grid_settings.value)
-        )
+        return hash((instance.basis, instance.method, instance.psi4_dft_grid_settings.value))
 
     @classmethod
     def _query(cls, db: Session, instance: ESPSettings) -> Query:
@@ -264,19 +260,14 @@ class DBESPSettings(_UniqueMixin, DBBase):
             db.query(DBESPSettings)
             .filter(DBESPSettings.basis == instance.basis)
             .filter(DBESPSettings.method == instance.method)
-            .filter(
-                DBESPSettings.psi4_dft_grid_settings
-                == instance.psi4_dft_grid_settings.value
-            )
+            .filter(DBESPSettings.psi4_dft_grid_settings == instance.psi4_dft_grid_settings.value)
         )
 
     @classmethod
     def _instance_to_db(cls, instance: ESPSettings) -> "DBESPSettings":
         return DBESPSettings(
-            **instance.dict(
-                exclude={"grid_settings", "pcm_settings", "psi4_dft_grid_settings"}
-            ),
-            psi4_dft_grid_settings=instance.psi4_dft_grid_settings.value
+            **instance.dict(exclude={"grid_settings", "pcm_settings", "psi4_dft_grid_settings"}),
+            psi4_dft_grid_settings=instance.psi4_dft_grid_settings.value,
         )
 
 
@@ -338,9 +329,5 @@ class DBInformation(DBBase):
 
     version = Column(Integer, primary_key=True)
 
-    general_provenance = relationship(
-        "DBGeneralProvenance", cascade="all, delete-orphan"
-    )
-    software_provenance = relationship(
-        "DBSoftwareProvenance", cascade="all, delete-orphan"
-    )
+    general_provenance = relationship("DBGeneralProvenance", cascade="all, delete-orphan")
+    software_provenance = relationship("DBSoftwareProvenance", cascade="all, delete-orphan")

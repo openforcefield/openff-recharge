@@ -21,18 +21,12 @@ from openff.recharge.optimize import ESPObjective
 def main():
     # Calculate the ESP of chloromethane using Psi4.
     molecule = Molecule.from_smiles("CCl")
-    conformer = ConformerGenerator.generate(
-        molecule, ConformerSettings(max_conformers=1)
-    )[0]
-    esp_settings = ESPSettings(
-        method="hf", basis="6-31G*", grid_settings=LatticeGridSettings(spacing=0.7)
-    )
+    conformer = ConformerGenerator.generate(molecule, ConformerSettings(max_conformers=1))[0]
+    esp_settings = ESPSettings(method="hf", basis="6-31G*", grid_settings=LatticeGridSettings(spacing=0.7))
     conformer, grid, esp, electric_field = Psi4ESPGenerator.generate(
         molecule=molecule, conformer=conformer, settings=esp_settings, minimize=True
     )
-    esp_record = MoleculeESPRecord.from_molecule(
-        molecule, conformer, grid, esp, electric_field, esp_settings
-    )
+    esp_record = MoleculeESPRecord.from_molecule(molecule, conformer, grid, esp, electric_field, esp_settings)
 
     # Define the parameters to be trained.
     bcc_collection = BCCCollection(
@@ -65,9 +59,7 @@ def main():
         ("[#17:1]-[#6:2]", "BondCharge", "EP", "distance")
     ]
 
-    n_charge_parameters = len(bcc_parameters_to_train) + len(
-        vsite_charge_parameter_keys
-    )
+    n_charge_parameters = len(bcc_parameters_to_train) + len(vsite_charge_parameter_keys)
     n_coord_parameters = len(vsite_coordinate_parameter_keys)
 
     objective_terms_generator = ESPObjective.compute_objective_terms(

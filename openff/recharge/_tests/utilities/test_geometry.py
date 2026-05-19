@@ -19,9 +19,7 @@ def test_compute_inverse_distance_matrix(tensor_type):
     points_a = tensor_type([[0.0, 1.0], [2.0, 3.0]])
     points_b = tensor_type([[0.0, 2.0], [4.0, 6.0], [6.0, 8.0]])
 
-    expected_values = tensor_type(
-        [[1.0000000, 0.1561738, 0.1084652], [0.4472136, 0.2773501, 0.1561738]]
-    )
+    expected_values = tensor_type([[1.0000000, 0.1561738, 0.1084652], [0.4472136, 0.2773501, 0.1561738]])
 
     inverse_distances = compute_inverse_distance_matrix(points_a, points_b)
     assert inverse_distances.shape == expected_values.shape

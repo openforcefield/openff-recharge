@@ -62,9 +62,7 @@ def test_cdist(tensor_type):
 
     output_tensor = to_numpy(output_tensor)
 
-    expected_tensor = numpy.array(
-        [[numpy.sqrt(x * x + y * y) for y in [2.0, 3.0, 4.0]] for x in [3.0, 4.0]]
-    )
+    expected_tensor = numpy.array([[numpy.sqrt(x * x + y * y) for y in [2.0, 3.0, 4.0]] for x in [3.0, 4.0]])
 
     assert output_tensor.shape == expected_tensor.shape
     assert numpy.allclose(output_tensor, expected_tensor)
@@ -80,9 +78,7 @@ def test_inverse_cdist(tensor_type):
 
     output_tensor = to_numpy(output_tensor)
 
-    expected_tensor = numpy.array(
-        [[1.0 / numpy.sqrt(x * x + y * y) for y in [2.0, 3.0, 4.0]] for x in [3.0, 4.0]]
-    )
+    expected_tensor = numpy.array([[1.0 / numpy.sqrt(x * x + y * y) for y in [2.0, 3.0, 4.0]] for x in [3.0, 4.0]])
 
     assert output_tensor.shape == expected_tensor.shape
     assert numpy.allclose(output_tensor, expected_tensor)

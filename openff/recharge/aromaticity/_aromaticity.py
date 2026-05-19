@@ -69,9 +69,7 @@ class AromaticityModel:
                 is_bond_aromatic[(index_a, index_b)] = True
 
     @classmethod
-    def _assign_am1bcc(
-        cls, molecule: "Molecule"
-    ) -> tuple[dict[int, bool], dict[tuple[int, int], bool]]:
+    def _assign_am1bcc(cls, molecule: "Molecule") -> tuple[dict[int, bool], dict[tuple[int, int], bool]]:
         """Applies aromaticity flags based upon the aromaticity model
         outlined in the original AM1BCC publications _[1].
 
@@ -89,9 +87,7 @@ class AromaticityModel:
         from openff.toolkit.topology.topology import ValenceDict
 
         is_atom_aromatic = {i: False for i in range(molecule.n_atoms)}
-        is_bond_aromatic = ValenceDict(
-            {(bond.atom1_index, bond.atom2_index): False for bond in molecule.bonds}
-        )
+        is_bond_aromatic = ValenceDict({(bond.atom1_index, bond.atom2_index): False for bond in molecule.bonds})
 
         is_bond_in_ring = find_ring_bonds(molecule)
 
@@ -117,13 +113,9 @@ class AromaticityModel:
             unique=True,
             kekulize=True,
         )
-        case_1_atoms = {
-            match for matches in case_1_matches for match in matches.values()
-        }
+        case_1_atoms = {match for matches in case_1_matches for match in matches.values()}
 
-        cls._set_aromatic(
-            case_1_matches, is_bond_in_ring, is_atom_aromatic, is_bond_aromatic
-        )
+        cls._set_aromatic(case_1_matches, is_bond_in_ring, is_atom_aromatic, is_bond_aromatic)
 
         # Track the ar6 assignments as there is no atom attribute to
         # safely determine if an atom is in a six member ring when
@@ -157,19 +149,14 @@ class AromaticityModel:
             case_2_matches = [
                 case_2_match
                 for case_2_match in case_2_matches
-                if case_2_match[4] in ar6_assignments
-                and case_2_match[5] in ar6_assignments
+                if case_2_match[4] in ar6_assignments and case_2_match[5] in ar6_assignments
             ]
 
             previous_case_2_atoms = case_2_atoms
-            case_2_atoms = {
-                match for matches in case_2_matches for match in matches.values()
-            }
+            case_2_atoms = {match for matches in case_2_matches for match in matches.values()}
 
             ar6_assignments.update(case_2_atoms)
-            cls._set_aromatic(
-                case_2_matches, is_bond_in_ring, is_atom_aromatic, is_bond_aromatic
-            )
+            cls._set_aromatic(case_2_matches, is_bond_in_ring, is_atom_aromatic, is_bond_aromatic)
 
         # Case 3)
         case_3_smirks = (
@@ -205,15 +192,11 @@ class AromaticityModel:
             ]
 
             previous_case_3_atoms = case_3_atoms
-            case_3_atoms = {
-                match for matches in case_3_matches for match in matches.values()
-            }
+            case_3_atoms = {match for matches in case_3_matches for match in matches.values()}
 
             ar6_assignments.update(case_3_atoms)
 
-            cls._set_aromatic(
-                case_3_matches, is_bond_in_ring, is_atom_aromatic, is_bond_aromatic
-            )
+            cls._set_aromatic(case_3_matches, is_bond_in_ring, is_atom_aromatic, is_bond_aromatic)
 
         # Case 4)
         case_4_smirks = (
@@ -234,13 +217,9 @@ class AromaticityModel:
             unique=True,
             kekulize=True,
         )
-        case_4_atoms = {
-            match for matches in case_4_matches for match in matches.values()
-        }
+        case_4_atoms = {match for matches in case_4_matches for match in matches.values()}
 
-        cls._set_aromatic(
-            case_4_matches, is_bond_in_ring, is_atom_aromatic, is_bond_aromatic
-        )
+        cls._set_aromatic(case_4_matches, is_bond_in_ring, is_atom_aromatic, is_bond_aromatic)
 
         # Case 5)
         case_5_smirks = (
@@ -269,13 +248,10 @@ class AromaticityModel:
         case_5_matches = [
             matches
             for matches in case_5_matches
-            if matches[1] not in ar_6_ar_7_matches
-            and matches[2] not in ar_6_ar_7_matches
+            if matches[1] not in ar_6_ar_7_matches and matches[2] not in ar_6_ar_7_matches
         ]
 
-        cls._set_aromatic(
-            case_5_matches, is_bond_in_ring, is_atom_aromatic, is_bond_aromatic
-        )
+        cls._set_aromatic(case_5_matches, is_bond_in_ring, is_atom_aromatic, is_bond_aromatic)
 
         return is_atom_aromatic, is_bond_aromatic
 

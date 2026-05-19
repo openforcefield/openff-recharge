@@ -35,9 +35,7 @@ def smiles_to_molecule(smiles: str, guess_stereochemistry: bool = False) -> "Mol
 
         molecule = Molecule.from_smiles(smiles, allow_undefined_stereo=True)
 
-        stereoisomers = molecule.enumerate_stereoisomers(
-            undefined_only=True, max_isomers=1
-        )
+        stereoisomers = molecule.enumerate_stereoisomers(undefined_only=True, max_isomers=1)
 
         if len(stereoisomers) > 0:
             # We would ideally raise an exception here if the number of stereoisomers
@@ -58,9 +56,7 @@ def find_ring_bonds(molecule: "Molecule") -> dict[tuple[int, int], bool]:
     }
 
     for bond in molecule.bonds:
-        indices = cast(
-            tuple[int, int], tuple(sorted((bond.atom1_index, bond.atom2_index)))
-        )
+        indices = cast(tuple[int, int], tuple(sorted((bond.atom1_index, bond.atom2_index))))
 
         if indices in is_in_ring:
             continue

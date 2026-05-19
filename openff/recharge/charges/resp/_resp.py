@@ -86,10 +86,7 @@ def molecule_to_resp_library_charge(
     atom_symmetries = get_atom_symmetries(molecule)
     max_symmetry_group = max(atom_symmetries) + 1
 
-    methyl_carbons = [
-        index
-        for index, in molecule.chemical_environment_matches("[#6X4H3,#6H4,#6X4H2:1]")
-    ]
+    methyl_carbons = [index for (index,) in molecule.chemical_environment_matches("[#6X4H3,#6H4,#6X4H2:1]")]
     methyl_hydrogens = [
         atom.molecule_atom_index
         for index in methyl_carbons
@@ -97,14 +94,10 @@ def molecule_to_resp_library_charge(
         if atom.atomic_number == 1
     ]
     other_heavy_atoms = [
-        i
-        for i, atom in enumerate(molecule.atoms)
-        if atom.atomic_number != 1 and i not in methyl_carbons
+        i for i, atom in enumerate(molecule.atoms) if atom.atomic_number != 1 and i not in methyl_carbons
     ]
     other_hydrogen_atoms = [
-        i
-        for i, atom in enumerate(molecule.atoms)
-        if atom.atomic_number == 1 and i not in methyl_hydrogens
+        i for i, atom in enumerate(molecule.atoms) if atom.atomic_number == 1 and i not in methyl_hydrogens
     ]
 
     atoms_not_to_equivalize = (
@@ -127,18 +120,10 @@ def molecule_to_resp_library_charge(
         smiles=tagged_smiles,
         value=_generate_dummy_values(tagged_smiles),
         provenance={
-            "methyl-carbon-indices": sorted(
-                {atom_indices[i] - 1 for i in methyl_carbons}
-            ),
-            "methyl-hydrogen-indices": sorted(
-                {atom_indices[i] - 1 for i in methyl_hydrogens}
-            ),
-            "other-heavy-indices": sorted(
-                {atom_indices[i] - 1 for i in other_heavy_atoms}
-            ),
-            "other-hydrogen-indices": sorted(
-                {atom_indices[i] - 1 for i in other_hydrogen_atoms}
-            ),
+            "methyl-carbon-indices": sorted({atom_indices[i] - 1 for i in methyl_carbons}),
+            "methyl-hydrogen-indices": sorted({atom_indices[i] - 1 for i in methyl_hydrogens}),
+            "other-heavy-indices": sorted({atom_indices[i] - 1 for i in other_heavy_atoms}),
+            "other-hydrogen-indices": sorted({atom_indices[i] - 1 for i in other_hydrogen_atoms}),
         },
     )
 
@@ -280,11 +265,7 @@ def generate_resp_systems_of_equations(
         + ([] if equivalize_between_other_heavy_atoms else other_heavy_atoms)
         + ([] if equivalize_between_other_hydrogen_atoms else other_hydrogen_atoms)
     )
-    charges_not_to_equivalize = [
-        charges_to_train.index(i)
-        for i in charges_not_to_equivalize
-        if i in charges_to_train
-    ]
+    charges_not_to_equivalize = [charges_to_train.index(i) for i in charges_not_to_equivalize if i in charges_to_train]
 
     n_dummy_charges = (len(objective_terms) - 1) * len(charges_not_to_equivalize)
 
@@ -310,11 +291,9 @@ def generate_resp_systems_of_equations(
             new_order = [*old_order]
 
             for i, charge_index in enumerate(charges_not_to_equivalize):
-                new_order[
-                    design_matrix.shape[1]
-                    + (conformer_index - 1) * len(charges_not_to_equivalize)
-                    + i
-                ] = charge_index
+                new_order[design_matrix.shape[1] + (conformer_index - 1) * len(charges_not_to_equivalize) + i] = (
+                    charge_index
+                )
 
             padded_design_matrix[:, old_order] = padded_design_matrix[:, new_order]
             padded_design_matrix[:, charges_not_to_equivalize] = 0.0
@@ -327,9 +306,7 @@ def generate_resp_systems_of_equations(
     combined_term = ESPObjectiveTerm.combine(*objective_terms)
 
     restraint_indices = [
-        charges_to_train.index(i)
-        for i in (methyl_carbons + other_heavy_atoms)
-        if i in charges_to_train
+        charges_to_train.index(i) for i in (methyl_carbons + other_heavy_atoms) if i in charges_to_train
     ]
     charge_array_to_value = {i: index for i, index in enumerate(charges_to_train)}
 
@@ -358,9 +335,7 @@ def _canonicalize_smiles(smiles: str) -> str:
 
     with warnings.catch_warnings():
         warnings.simplefilter("ignore", AtomMappingWarning)
-        return Molecule.from_smiles(smiles, allow_undefined_stereo=True).to_smiles(
-            mapped=False
-        )
+        return Molecule.from_smiles(smiles, allow_undefined_stereo=True).to_smiles(mapped=False)
 
 
 def generate_resp_charge_parameter(
@@ -401,16 +376,10 @@ def generate_resp_charge_parameter(
 
     solver = IterativeSolver() if solver is None else solver
 
-    unique_smiles = {
-        _canonicalize_smiles(record.tagged_smiles) for record in qc_data_records
-    }
-    assert (
-        len(unique_smiles) == 1
-    ), "all QC records must be generated for the same molecule"
+    unique_smiles = {_canonicalize_smiles(record.tagged_smiles) for record in qc_data_records}
+    assert len(unique_smiles) == 1, "all QC records must be generated for the same molecule"
 
-    molecule = Molecule.from_smiles(
-        next(iter(unique_smiles)), allow_undefined_stereo=True
-    )
+    molecule = Molecule.from_smiles(next(iter(unique_smiles)), allow_undefined_stereo=True)
 
     b = 0.1
 
@@ -463,9 +432,7 @@ def generate_resp_charge_parameter(
         len(qc_data_records),
     )
 
-    resp_parameter_1.value = (
-        resp_charges_1[: len(resp_parameter_1.value)].flatten().tolist()
-    )
+    resp_parameter_1.value = resp_charges_1[: len(resp_parameter_1.value)].flatten().tolist()
 
     ###################################################################################
     #                                       STAGE 2                                   #

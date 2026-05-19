@@ -1,5 +1,6 @@
 import numpy
 import pytest
+from openff.toolkit._tests.utils import requires_openeye
 
 from openff.recharge.charges.bcc import (
     BCCCollection,
@@ -12,7 +13,6 @@ from openff.recharge.charges.exceptions import ChargeAssignmentError
 from openff.recharge.charges.qc import QCChargeGenerator, QCChargeSettings
 from openff.recharge.conformers import ConformerGenerator, ConformerSettings
 from openff.recharge.utilities.molecule import smiles_to_molecule
-from openff.toolkit._tests.utils import requires_openeye
 
 
 def test_load_original_am1_bcc():
@@ -30,9 +30,9 @@ def test_to_smirnoff():
 
     pytest.importorskip("openff.toolkit")
 
+    from openff.interchange.smirnoff._nonbonded import SMIRNOFFElectrostaticsCollection
     from openff.toolkit import Molecule
     from openff.toolkit.typing.engines.smirnoff.parameters import ElectrostaticsHandler
-    from openff.interchange.smirnoff._nonbonded import SMIRNOFFElectrostaticsCollection
 
     bcc_handler = original_am1bcc_corrections().to_smirnoff()
     assert bcc_handler is not None
@@ -56,9 +56,9 @@ def test_to_smirnoff():
         ConformerSettings(method="omega", sampling_mode="sparse", max_conformers=1),
     )
 
-    expected_charges = QCChargeGenerator.generate(
-        molecule, conformers, QCChargeSettings()
-    ) + BCCGenerator.generate(smiles_to_molecule("C"), original_am1bcc_corrections())
+    expected_charges = QCChargeGenerator.generate(molecule, conformers, QCChargeSettings()) + BCCGenerator.generate(
+        smiles_to_molecule("C"), original_am1bcc_corrections()
+    )
     numpy.allclose(numpy.round(expected_charges[:, 0], 3), numpy.round(off_charges, 3))
 
 
@@ -77,12 +77,8 @@ def test_from_smirnoff():
 
     # noinspection PyTypeChecker
     parameter_handler = ChargeIncrementModelHandler(version="0.3")
-    parameter_handler.add_parameter(
-        {"smirks": "[#6:1]-[#6:2]", "charge_increment": [-bcc_value, bcc_value]}
-    )
-    parameter_handler.add_parameter(
-        {"smirks": "[#1:1]-[#1:2]", "charge_increment": [bcc_value]}
-    )
+    parameter_handler.add_parameter({"smirks": "[#6:1]-[#6:2]", "charge_increment": [-bcc_value, bcc_value]})
+    parameter_handler.add_parameter({"smirks": "[#1:1]-[#1:2]", "charge_increment": [bcc_value]})
 
     bcc_collection = BCCCollection.from_smirnoff(parameter_handler)
     assert len(bcc_collection.parameters) == 2
@@ -101,9 +97,7 @@ def test_vectorize_collection():
         ]
     )
 
-    parameter_vector = bcc_collection.vectorize(
-        smirks=["[#9:1]-[#1:2]", "[#35:1]-[#1:2]"]
-    )
+    parameter_vector = bcc_collection.vectorize(smirks=["[#9:1]-[#1:2]", "[#35:1]-[#1:2]"])
 
     assert parameter_vector.shape == (2, 1)
     assert numpy.allclose(parameter_vector, numpy.array([[1.0], [3.0]]))
@@ -136,9 +130,7 @@ def test_applied_corrections():
         ]
     )
 
-    applied_corrections = BCCGenerator.applied_corrections(
-        smiles_to_molecule("C"), bcc_collection=bcc_collection
-    )
+    applied_corrections = BCCGenerator.applied_corrections(smiles_to_molecule("C"), bcc_collection=bcc_collection)
 
     assert len(applied_corrections) == 1
     assert applied_corrections[0] == bcc_collection.parameters[1]
@@ -166,15 +158,11 @@ def test_applied_corrections_order():
 
 
 def test_apply_assignment():
-    settings = BCCCollection(
-        parameters=[BCCParameter(smirks="[#1:1]-[#1:2]", value=0.0, provenance={})]
-    )
+    settings = BCCCollection(parameters=[BCCParameter(smirks="[#1:1]-[#1:2]", value=0.0, provenance={})])
     assignment_matrix = numpy.array([[1], [1]])
 
     # Test with a valid set of BCCs
-    charge_corrections = BCCGenerator.apply_assignment_matrix(
-        assignment_matrix, settings
-    )
+    charge_corrections = BCCGenerator.apply_assignment_matrix(assignment_matrix, settings)
 
     assert charge_corrections.shape == (2, 1)
     assert numpy.allclose(charge_corrections, 0.0)
@@ -203,9 +191,7 @@ def test_am1_bcc_missing_parameters():
     with pytest.raises(ChargeAssignmentError) as error_info:
         BCCGenerator.generate(molecule, BCCCollection(parameters=[]))
 
-    assert "could not be assigned a bond charge correction atom type" in str(
-        error_info.value
-    )
+    assert "could not be assigned a bond charge correction atom type" in str(error_info.value)
 
 
 def test_generate():

@@ -5,6 +5,8 @@ from multiprocessing.pool import Pool
 
 import numpy
 import pytest
+from openff.toolkit._tests.utils import requires_openeye
+from openff.utilities import temporary_cd
 
 from openff.recharge.cli.generate import _compute_esp
 from openff.recharge.cli.generate import generate as generate_cli
@@ -14,8 +16,6 @@ from openff.recharge.esp.exceptions import Psi4Error
 from openff.recharge.esp.psi4 import Psi4ESPGenerator
 from openff.recharge.esp.storage import MoleculeESPStore
 from openff.recharge.grids import LatticeGridSettings
-from openff.toolkit._tests.utils import requires_openeye
-from openff.utilities import temporary_cd
 
 
 @requires_openeye
@@ -46,9 +46,7 @@ def test_generate(runner, monkeypatch):
             json.dump(["C"], file)
 
         with open("esp-settings.json", "w") as file:
-            file.write(
-                ESPSettings(grid_settings=LatticeGridSettings(spacing=1.0)).json()
-            )
+            file.write(ESPSettings(grid_settings=LatticeGridSettings(spacing=1.0)).json())
 
         with open("conformer-settings.json", "w") as file:
             file.write(ConformerSettings(method="omega", sampling_mode="sparse").json())

@@ -1,15 +1,15 @@
 """Generate partial charges for molecules from a collection of library parameters."""
 
+import warnings
 from collections import defaultdict
 from typing import TYPE_CHECKING, Any
-import warnings
 
 import numpy
+from openff.toolkit.utils.exceptions import AtomMappingWarning
 from openff.units import unit
 from openff.utilities import requires_package
-from openff.toolkit.utils.exceptions import AtomMappingWarning
-from openff.recharge._pydantic import BaseModel, Field, constr, validator
 
+from openff.recharge._pydantic import BaseModel, Field, constr, validator
 from openff.recharge.charges.exceptions import ChargeAssignmentError
 
 if TYPE_CHECKING:
@@ -31,9 +31,7 @@ class LibraryChargeParameter(BaseModel):
     )
     value: list[float] = Field(..., description="The values [e] of the charges.")
 
-    provenance: dict[str, Any] | None = Field(
-        None, description="Provenance information about this parameter."
-    )
+    provenance: dict[str, Any] | None = Field(None, description="Provenance information about this parameter.")
 
     @validator("smiles")
     def _validate_smiles(cls, value):
@@ -50,9 +48,9 @@ class LibraryChargeParameter(BaseModel):
         assert atom_map is not None, "SMILES pattern does not contain index map"
 
         assert len(atom_map) == molecule.n_atoms, "not all atoms contain a map index"
-        assert {*atom_map.values()} == {
-            i + 1 for i in range(len({*atom_map.values()}))
-        }, "map indices must start from 1 and be continuous"
+        assert {*atom_map.values()} == {i + 1 for i in range(len({*atom_map.values()}))}, (
+            "map indices must start from 1 and be continuous"
+        )
 
         return value
 
@@ -68,23 +66,18 @@ class LibraryChargeParameter(BaseModel):
 
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", category=AtomMappingWarning)
-            molecule = Molecule.from_smiles(
-                values["smiles"], allow_undefined_stereo=True
-            )
+            molecule = Molecule.from_smiles(values["smiles"], allow_undefined_stereo=True)
 
         n_expected = len({*molecule.properties["atom_map"].values()})
 
-        assert n_expected == len(value), (
-            f"expected {n_expected} charges, " f"found {len(value)}"
-        )
+        assert n_expected == len(value), f"expected {n_expected} charges, found {len(value)}"
 
         total_charge = molecule.total_charge.m_as(unit.elementary_charge)
 
         sum_charge = sum(value[i - 1] for i in molecule.properties["atom_map"].values())
 
         assert numpy.isclose(total_charge, sum_charge), (
-            f"sum of values {sum_charge} does not match "
-            f"expected charge {total_charge}"
+            f"sum of values {sum_charge} does not match expected charge {total_charge}"
         )
 
         return value
@@ -104,12 +97,8 @@ class LibraryChargeParameter(BaseModel):
 
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", category=AtomMappingWarning)
-            self_molecule = Molecule.from_smiles(
-                self.smiles, allow_undefined_stereo=True
-            )
-            other_molecule = Molecule.from_smiles(
-                other.smiles, allow_undefined_stereo=True
-            )
+            self_molecule = Molecule.from_smiles(self.smiles, allow_undefined_stereo=True)
+            other_molecule = Molecule.from_smiles(other.smiles, allow_undefined_stereo=True)
 
         are_isomorphic, self_to_other_atom_map = Molecule.are_isomorphic(
             self_molecule,
@@ -121,12 +110,10 @@ class LibraryChargeParameter(BaseModel):
         assert are_isomorphic, "parameters are incompatible"
 
         applied_other_values = {
-            i: other.value[other_molecule.properties["atom_map"][i] - 1]
-            for i in range(other_molecule.n_atoms)
+            i: other.value[other_molecule.properties["atom_map"][i] - 1] for i in range(other_molecule.n_atoms)
         }
         applied_self_values = {
-            i: applied_other_values[self_to_other_atom_map[i]]
-            for i in range(other_molecule.n_atoms)
+            i: applied_other_values[self_to_other_atom_map[i]] for i in range(other_molecule.n_atoms)
         }
 
         self_values = defaultdict(list)
@@ -134,9 +121,7 @@ class LibraryChargeParameter(BaseModel):
         for atom_index, charge_index in self_molecule.properties["atom_map"].items():
             self_values[charge_index - 1].append(applied_self_values[atom_index])
 
-        self.value = [
-            float(numpy.mean(self_values[i])) for i in range(len(self_values))
-        ]
+        self.value = [float(numpy.mean(self_values[i])) for i in range(len(self_values))]
 
     def generate_constraint_matrix(
         self, trainable_indices: list[int] | None = None
@@ -160,17 +145,11 @@ class LibraryChargeParameter(BaseModel):
         """
         from openff.toolkit import Molecule
 
-        trainable_indices = (
-            trainable_indices
-            if trainable_indices is not None
-            else list(range(len(self.value)))
-        )
+        trainable_indices = trainable_indices if trainable_indices is not None else list(range(len(self.value)))
 
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", category=AtomMappingWarning)
-            molecule: Molecule = Molecule.from_smiles(
-                self.smiles, allow_undefined_stereo=True
-            )
+            molecule: Molecule = Molecule.from_smiles(self.smiles, allow_undefined_stereo=True)
 
         total_charge = molecule.total_charge.m_as(unit.elementary_charge)
 
@@ -179,9 +158,7 @@ class LibraryChargeParameter(BaseModel):
         for _atom_index, map_index in molecule.properties["atom_map"].items():
             constraint_matrix[0, map_index - 1] += 1
 
-        for i, (value, n_times) in enumerate(
-            zip(self.value, constraint_matrix.flatten())
-        ):
+        for i, (value, n_times) in enumerate(zip(self.value, constraint_matrix.flatten())):
             if i in trainable_indices:
                 continue
 
@@ -193,9 +170,7 @@ class LibraryChargeParameter(BaseModel):
 class LibraryChargeCollection(BaseModel):
     """A library of charges sets that can be applied to molecules."""
 
-    parameters: list[LibraryChargeParameter] = Field(
-        ..., description="The library charges to apply."
-    )
+    parameters: list[LibraryChargeParameter] = Field(..., description="The library charges to apply.")
 
     def to_smirnoff(self) -> "LibraryChargeHandler":
         """Converts this collection of library charge parameters to
@@ -224,9 +199,7 @@ class LibraryChargeCollection(BaseModel):
 
     @classmethod
     @requires_package("openff.toolkit")
-    def from_smirnoff(
-        cls, parameter_handler: "LibraryChargeHandler"
-    ) -> "LibraryChargeCollection":
+    def from_smirnoff(cls, parameter_handler: "LibraryChargeHandler") -> "LibraryChargeCollection":
         """Attempts to convert a SMIRNOFF library charge parameter handler
         to a library charge parameter collection.
 
@@ -243,10 +216,7 @@ class LibraryChargeCollection(BaseModel):
             parameters=[
                 LibraryChargeParameter(
                     smiles=off_parameter.smirks,
-                    value=[
-                        charge.m_as(unit.elementary_charge)
-                        for charge in off_parameter.charge
-                    ],
+                    value=[charge.m_as(unit.elementary_charge) for charge in off_parameter.charge],
                 )
                 for off_parameter in reversed(parameter_handler.parameters)
             ]
@@ -277,9 +247,7 @@ class LibraryChargeCollection(BaseModel):
             for parameter in self.parameters
             for i in range(len(parameter.value))
         }
-        return numpy.array(
-            [[parameters[(smiles, i)]] for smiles, indices in keys for i in indices]
-        )
+        return numpy.array([[parameters[(smiles, i)]] for smiles, indices in keys for i in indices])
 
 
 class LibraryChargeGenerator:
@@ -295,9 +263,7 @@ class LibraryChargeGenerator:
         charge_collection: LibraryChargeCollection,
     ):
         """Ensure that an assignment matrix yields sensible charges on a molecule."""
-        total_charge = cls.apply_assignment_matrix(
-            assignment_matrix, charge_collection
-        ).sum()
+        total_charge = cls.apply_assignment_matrix(assignment_matrix, charge_collection).sum()
         expected_charge = molecule.total_charge.m_as(unit.elementary_charge)
 
         if not numpy.isclose(total_charge, expected_charge):
@@ -337,44 +303,32 @@ class LibraryChargeGenerator:
 
         charge_index = 0
 
-        n_total_charges = sum(
-            len(parameter.value) for parameter in charge_collection.parameters
-        )
+        n_total_charges = sum(len(parameter.value) for parameter in charge_collection.parameters)
 
         assignment_matrix = numpy.zeros((molecule.n_atoms, n_total_charges))
 
         for parameter in charge_collection.parameters:
             with warnings.catch_warnings():
                 warnings.simplefilter("ignore", category=AtomMappingWarning)
-                smiles_molecule: Molecule = Molecule.from_smiles(
-                    parameter.smiles, allow_undefined_stereo=True
-                )
+                smiles_molecule: Molecule = Molecule.from_smiles(parameter.smiles, allow_undefined_stereo=True)
 
-            are_isomorphic, atom_map = Molecule.are_isomorphic(
-                molecule, smiles_molecule, return_atom_map=True
-            )
+            are_isomorphic, atom_map = Molecule.are_isomorphic(molecule, smiles_molecule, return_atom_map=True)
 
             if not are_isomorphic:
                 charge_index += len(parameter.value)
                 continue
 
             value_map = {
-                i: smiles_molecule.properties["atom_map"][atom_map[i]] - 1
-                for i in range(smiles_molecule.n_atoms)
+                i: smiles_molecule.properties["atom_map"][atom_map[i]] - 1 for i in range(smiles_molecule.n_atoms)
             }
 
             for i in range(molecule.n_atoms):
                 assignment_matrix[i, charge_index + value_map[i]] = 1
 
-            cls._validate_assignment_matrix(
-                molecule, assignment_matrix, charge_collection
-            )
+            cls._validate_assignment_matrix(molecule, assignment_matrix, charge_collection)
             return assignment_matrix
 
-        raise ChargeAssignmentError(
-            f"Atoms {list(range(molecule.n_atoms))} could not be assigned a library "
-            f"charge."
-        )
+        raise ChargeAssignmentError(f"Atoms {list(range(molecule.n_atoms))} could not be assigned a library charge.")
 
     @classmethod
     def apply_assignment_matrix(
@@ -400,11 +354,7 @@ class LibraryChargeGenerator:
         """
 
         all_values = numpy.array(
-            [
-                [charge]
-                for parameter in charge_collection.parameters
-                for charge in parameter.value
-            ]
+            [[charge] for parameter in charge_collection.parameters for charge in parameter.value]
         )
 
         return assignment_matrix @ all_values

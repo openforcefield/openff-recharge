@@ -2,13 +2,13 @@
 
 import abc
 from collections import defaultdict
-from typing import TYPE_CHECKING, Literal, Union, overload
+from typing import TYPE_CHECKING, Literal, overload
 
 import numpy
-from openff.units import unit, Quantity
+from openff.units import Quantity, unit
 from openff.utilities import requires_package
-from openff.recharge._pydantic import BaseModel, Field, constr, validator
 
+from openff.recharge._pydantic import BaseModel, Field, constr, validator
 from openff.recharge.aromaticity import AromaticityModels
 from openff.recharge.charges.exceptions import ChargeAssignmentError
 
@@ -18,17 +18,15 @@ if TYPE_CHECKING:
     except ImportError:
         torch = None
 
+    from openff.interchange.smirnoff._virtual_sites import SMIRNOFFVirtualSiteCollection
     from openff.toolkit import Molecule
     from openff.toolkit.typing.engines.smirnoff import VirtualSiteHandler
-    from openff.interchange.smirnoff._virtual_sites import SMIRNOFFVirtualSiteCollection
 
 ExclusionPolicy = Literal["none", "parents"]
 
 VirtualSiteKey = tuple[str, str, str]
 VirtualSiteChargeKey = tuple[str, str, str, int]
-VirtualSiteGeometryKey = tuple[
-    str, str, str, Literal["distance", "in_plane_angle", "out_of_plane_angle"]
-]
+VirtualSiteGeometryKey = tuple[str, str, str, Literal["distance", "in_plane_angle", "out_of_plane_angle"]]
 
 _DEGREES_TO_RADIANS = numpy.pi / 180.0
 
@@ -40,12 +38,9 @@ class _VirtualSiteParameter(BaseModel, abc.ABC):
 
     smirks: constr(min_length=1) = Field(
         ...,
-        description="A SMIRKS pattern that encodes the chemical environment that "
-        "this parameter should be applied to.",
+        description="A SMIRKS pattern that encodes the chemical environment that this parameter should be applied to.",
     )
-    name: str | None = Field(
-        None, description="An optional name associated with this virtual site."
-    )
+    name: str | None = Field(None, description="An optional name associated with this virtual site.")
 
     distance: float = Field(
         ...,
@@ -57,13 +52,10 @@ class _VirtualSiteParameter(BaseModel, abc.ABC):
         "to each tagged atom that forms the basis for the virtual site.",
     )
 
-    sigma: float = Field(
-        ..., description="The LJ sigma parameter [A] associated with the virtual site."
-    )
+    sigma: float = Field(..., description="The LJ sigma parameter [A] associated with the virtual site.")
     epsilon: float = Field(
         ...,
-        description="The LJ espilon [kJ / mol] parameter associated with the virtual "
-        "site.",
+        description="The LJ espilon [kJ / mol] parameter associated with the virtual site.",
     )
 
     match: Literal["once", "all-permutations"] = Field(..., description="...")
@@ -103,13 +95,11 @@ class MonovalentLonePairParameter(_VirtualSiteParameter):
 
     in_plane_angle: float = Field(
         ...,
-        description="The angle [deg] to move the virtual site in the plane defined "
-        "by the tagged atoms by.",
+        description="The angle [deg] to move the virtual site in the plane defined by the tagged atoms by.",
     )
     out_of_plane_angle: float = Field(
         ...,
-        description="The angle [deg] to move the virtual site out of the plane "
-        "defined by the tagged atoms by.",
+        description="The angle [deg] to move the virtual site out of the plane defined by the tagged atoms by.",
     )
 
     @classmethod
@@ -119,9 +109,7 @@ class MonovalentLonePairParameter(_VirtualSiteParameter):
     @property
     def local_frame_coordinates(self) -> numpy.ndarray:
         # distance, theta, phi
-        return numpy.array(
-            [[self.distance, self.in_plane_angle, self.out_of_plane_angle]]
-        )
+        return numpy.array([[self.distance, self.in_plane_angle, self.out_of_plane_angle]])
 
 
 class DivalentLonePairParameter(_VirtualSiteParameter):
@@ -129,8 +117,7 @@ class DivalentLonePairParameter(_VirtualSiteParameter):
 
     out_of_plane_angle: float = Field(
         ...,
-        description="The angle [deg] to move the virtual site out of the plane "
-        "defined by the tagged atoms by.",
+        description="The angle [deg] to move the virtual site out of the plane defined by the tagged atoms by.",
     )
 
     @classmethod
@@ -162,12 +149,9 @@ class TrivalentLonePairParameter(_VirtualSiteParameter):
         return numpy.array([[self.distance, 180.0, 0.0]])
 
 
-VirtualSiteParameterType = Union[
-    BondChargeSiteParameter,
-    MonovalentLonePairParameter,
-    DivalentLonePairParameter,
-    TrivalentLonePairParameter,
-]
+VirtualSiteParameterType = (
+    BondChargeSiteParameter | MonovalentLonePairParameter | DivalentLonePairParameter | TrivalentLonePairParameter
+)
 
 
 class VirtualSiteCollection(BaseModel):
@@ -200,9 +184,7 @@ class VirtualSiteCollection(BaseModel):
         from openff.toolkit.typing.engines.smirnoff import VirtualSiteHandler
 
         # noinspection PyTypeChecker
-        parameter_handler = VirtualSiteHandler(
-            version="0.3", exclusion_policy=self.exclusion_policy
-        )
+        parameter_handler = VirtualSiteHandler(version="0.3", exclusion_policy=self.exclusion_policy)
 
         for parameter in reversed(self.parameters):
             parameter_kwargs = dict(
@@ -210,27 +192,18 @@ class VirtualSiteCollection(BaseModel):
                 type=parameter.type,
                 name=parameter.name,
                 distance=parameter.distance * unit.angstrom,
-                charge_increment=[
-                    charge * unit.elementary_charge
-                    for charge in parameter.charge_increments
-                ],
+                charge_increment=[charge * unit.elementary_charge for charge in parameter.charge_increments],
                 sigma=parameter.sigma * unit.angstrom,
                 epsilon=parameter.epsilon * unit.kilojoules_per_mole,
                 match=parameter.match.replace("-", "_").lower(),
             )
 
             if parameter.type == "MonovalentLonePair":
-                parameter_kwargs["outOfPlaneAngle"] = (
-                    parameter.out_of_plane_angle * unit.degrees
-                )
-                parameter_kwargs["inPlaneAngle"] = (
-                    parameter.in_plane_angle * unit.degrees
-                )
+                parameter_kwargs["outOfPlaneAngle"] = parameter.out_of_plane_angle * unit.degrees
+                parameter_kwargs["inPlaneAngle"] = parameter.in_plane_angle * unit.degrees
 
             elif parameter.type == "DivalentLonePair":
-                parameter_kwargs["outOfPlaneAngle"] = (
-                    parameter.out_of_plane_angle * unit.degrees
-                )
+                parameter_kwargs["outOfPlaneAngle"] = parameter.out_of_plane_angle * unit.degrees
 
             parameter_handler.add_parameter(parameter_kwargs=parameter_kwargs)
 
@@ -259,9 +232,7 @@ class VirtualSiteCollection(BaseModel):
             The converted virtual site collection.
         """
 
-        assert (
-            aromaticity_model == AromaticityModels.MDL
-        ), "only MDL aromaticity model is supported"
+        assert aromaticity_model == AromaticityModels.MDL, "only MDL aromaticity model is supported"
 
         parameters = []
 
@@ -271,8 +242,7 @@ class VirtualSiteCollection(BaseModel):
                 name=smirnoff_parameter.name,
                 distance=smirnoff_parameter.distance.m_as(unit.angstrom),
                 charge_increments=tuple(
-                    charge.m_as(unit.elementary_charge)
-                    for charge in smirnoff_parameter.charge_increment
+                    charge.m_as(unit.elementary_charge) for charge in smirnoff_parameter.charge_increment
                 ),
                 sigma=smirnoff_parameter.sigma.m_as(unit.angstrom),
                 epsilon=smirnoff_parameter.epsilon.m_as(unit.kilojoules_per_mole),
@@ -285,18 +255,14 @@ class VirtualSiteCollection(BaseModel):
             elif smirnoff_parameter.type == "MonovalentLonePair":
                 parameter = MonovalentLonePairParameter(
                     **base_kwargs,
-                    out_of_plane_angle=smirnoff_parameter.outOfPlaneAngle.m_as(
-                        unit.degrees
-                    ),
+                    out_of_plane_angle=smirnoff_parameter.outOfPlaneAngle.m_as(unit.degrees),
                     in_plane_angle=smirnoff_parameter.inPlaneAngle.m_as(unit.degrees),
                 )
 
             elif smirnoff_parameter.type == "DivalentLonePair":
                 parameter = DivalentLonePairParameter(
                     **base_kwargs,
-                    out_of_plane_angle=smirnoff_parameter.outOfPlaneAngle.m_as(
-                        unit.degrees
-                    ),
+                    out_of_plane_angle=smirnoff_parameter.outOfPlaneAngle.m_as(unit.degrees),
                 )
 
             elif smirnoff_parameter.type == "TrivalentLonePair":
@@ -313,9 +279,7 @@ class VirtualSiteCollection(BaseModel):
             exclusion_policy=parameter_handler.exclusion_policy.lower(),
         )
 
-    def vectorize_coordinates(
-        self, parameter_keys: list[VirtualSiteGeometryKey]
-    ) -> numpy.ndarray:
+    def vectorize_coordinates(self, parameter_keys: list[VirtualSiteGeometryKey]) -> numpy.ndarray:
         """Returns a flat vector of the local frame coordinate values associated with a
         specified set of 'keys'.
 
@@ -334,8 +298,7 @@ class VirtualSiteCollection(BaseModel):
         """
 
         parameters_by_key = {
-            (parameter.smirks, parameter.type, parameter.name): parameter
-            for parameter in self.parameters
+            (parameter.smirks, parameter.type, parameter.name): parameter for parameter in self.parameters
         }
 
         parameter_values = numpy.array(
@@ -347,9 +310,7 @@ class VirtualSiteCollection(BaseModel):
 
         return parameter_values
 
-    def vectorize_charge_increments(
-        self, parameter_keys: list[VirtualSiteChargeKey]
-    ) -> numpy.ndarray:
+    def vectorize_charge_increments(self, parameter_keys: list[VirtualSiteChargeKey]) -> numpy.ndarray:
         """Returns a flat vector of the charge increment values associated with a
         specified set of 'keys'.
 
@@ -366,17 +327,12 @@ class VirtualSiteCollection(BaseModel):
         """
 
         parameters_by_key = {
-            (parameter.smirks, parameter.type, parameter.name): parameter
-            for parameter in self.parameters
+            (parameter.smirks, parameter.type, parameter.name): parameter for parameter in self.parameters
         }
 
         return numpy.array(
             [
-                [
-                    parameters_by_key[tuple(parameter_key)].charge_increments[
-                        charge_index
-                    ]
-                ]
+                [parameters_by_key[tuple(parameter_key)].charge_increments[charge_index]]
                 for *parameter_key, charge_index in parameter_keys
             ]
         )
@@ -439,9 +395,7 @@ class VirtualSiteGenerator:
             for i, charge_increment in enumerate(parameter.charge_increments):
                 charge_values.append(charge_increment)
 
-                charge_keys.append(
-                    (parameter.smirks, parameter.type, parameter.name, i)
-                )
+                charge_keys.append((parameter.smirks, parameter.type, parameter.name, i))
 
         return numpy.array(charge_values), charge_keys
 
@@ -463,8 +417,7 @@ class VirtualSiteGenerator:
 
         if non_zero_assignments.any():
             raise ChargeAssignmentError(
-                "An internal error occurred. The v-site charge increments alter the "
-                "total charge of the molecule"
+                "An internal error occurred. The v-site charge increments alter the total charge of the molecule"
             )
 
     @classmethod
@@ -491,9 +444,7 @@ class VirtualSiteGenerator:
             where ...
         """
 
-        smirnoff_vsite_collection = cls._create_virtual_site_collection(
-            molecule, vsite_collection
-        )
+        smirnoff_vsite_collection = cls._create_virtual_site_collection(molecule, vsite_collection)
 
         _, all_vsite_keys = cls._build_charge_increment_array(vsite_collection)
 
@@ -572,13 +523,9 @@ class VirtualSiteGenerator:
             applied to the molecule.
         """
 
-        assignment_matrix = cls.build_charge_assignment_matrix(
-            molecule, vsite_collection
-        )
+        assignment_matrix = cls.build_charge_assignment_matrix(molecule, vsite_collection)
 
-        generated_corrections = cls.apply_charge_assignment_matrix(
-            assignment_matrix, vsite_collection
-        )
+        generated_corrections = cls.apply_charge_assignment_matrix(assignment_matrix, vsite_collection)
 
         return generated_corrections
 
@@ -586,9 +533,7 @@ class VirtualSiteGenerator:
     def build_local_coordinate_frames(
         cls,
         conformer: numpy.ndarray,
-        assigned_parameters: list[
-            tuple[VirtualSiteParameterType, list[tuple[int, ...]]]
-        ],
+        assigned_parameters: list[tuple[VirtualSiteParameterType, list[tuple[int, ...]]]],
     ) -> numpy.ndarray:
         """Builds an orthonormal coordinate frame for each virtual particle
         based on the type of virtual site and the coordinates of the parent atoms.
@@ -627,16 +572,12 @@ class VirtualSiteGenerator:
         ):
             parent_coordinates = conformer[orientation, :]
 
-            weighted_coordinates = (
-                vsite_parameter.local_frame_weights() @ parent_coordinates
-            )
+            weighted_coordinates = vsite_parameter.local_frame_weights() @ parent_coordinates
 
             origin = weighted_coordinates[0, :]
 
             xy_plane = weighted_coordinates[1:, :]
-            xy_plane_norm = xy_plane / numpy.sqrt(
-                (xy_plane * xy_plane).sum(-1)
-            ).reshape(-1, 1)
+            xy_plane_norm = xy_plane / numpy.sqrt((xy_plane * xy_plane).sum(-1)).reshape(-1, 1)
 
             x_hat = xy_plane_norm[0, :]
             z_hat = numpy.cross(x_hat, xy_plane[1, :])
@@ -757,14 +698,11 @@ class VirtualSiteGenerator:
         conformer = conformer.to(unit.angstrom).m
 
         vsite_parameters_by_key = {
-            (parameter.smirks, parameter.type, parameter.name): parameter
-            for parameter in vsite_collection.parameters
+            (parameter.smirks, parameter.type, parameter.name): parameter for parameter in vsite_collection.parameters
         }
 
         # Extract the values of the assigned parameters.
-        smirnoff_vsite_collection = cls._create_virtual_site_collection(
-            molecule, vsite_collection
-        )
+        smirnoff_vsite_collection = cls._create_virtual_site_collection(molecule, vsite_collection)
         assigned_parameters = defaultdict(list)
 
         for vsite_key, potential_key in smirnoff_vsite_collection.key_map.items():
@@ -786,9 +724,7 @@ class VirtualSiteGenerator:
         )
 
         # Construct the global cartesian coordinates of the v-sites.
-        local_coordinate_frames = cls.build_local_coordinate_frames(
-            conformer, assigned_parameters
-        )
+        local_coordinate_frames = cls.build_local_coordinate_frames(conformer, assigned_parameters)
         vsite_positions = VirtualSiteGenerator.convert_local_coordinates(
             local_frame_coordinates, local_coordinate_frames, backend="numpy"
         )

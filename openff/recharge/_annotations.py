@@ -1,8 +1,9 @@
-from typing import Annotated
 from collections.abc import Callable
-from openff.toolkit import Quantity
-import numpy
 from functools import partial
+from typing import Annotated
+
+import numpy
+from openff.toolkit import Quantity
 from pydantic import BeforeValidator
 
 

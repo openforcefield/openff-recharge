@@ -4,13 +4,13 @@ from importlib.resources import files
 
 import numpy
 import pytest
+from openff.toolkit._tests.utils import requires_openeye
 
 from openff.recharge.cli.reconstruct import reconstruct as reconstruct_cli
 from openff.recharge.esp import ESPSettings
 from openff.recharge.esp.storage import MoleculeESPRecord, MoleculeESPStore
-from openff.recharge.grids import LatticeGridSettings, GridSettingsType
+from openff.recharge.grids import GridSettingsType, LatticeGridSettings
 from openff.recharge.utilities.molecule import smiles_to_molecule
-from openff.toolkit._tests.utils import requires_openeye
 
 
 # mock a data retreival from qc_archive, keep as minimal as possible.
@@ -37,8 +37,7 @@ class MockBaseRecord:
 
 def load_mock_qc_result():
     with open(
-        files("openff.recharge")
-        / os.path.join("_tests", "data", "qc_results", "mock_qc_result.json"),
+        files("openff.recharge") / os.path.join("_tests", "data", "qc_results", "mock_qc_result.json"),
     ) as file:
         mock_qc_result_data = json.load(file)
         return MockBaseRecord(mock_qc_result_data)
@@ -74,9 +73,7 @@ def test_reconstruct(runner, monkeypatch):
         "openff.recharge.cli.reconstruct._retrieve_result_records",
         mock_retrieve_result_records,
     )
-    monkeypatch.setattr(
-        "openff.recharge.cli.reconstruct._process_result", mock_process_result
-    )
+    monkeypatch.setattr("openff.recharge.cli.reconstruct._process_result", mock_process_result)
 
     # Create a mock set of inputs.
     with open("record-ids.json", "w") as file:

@@ -23,14 +23,10 @@ def test_am1_bcc_aromaticity_simple(smiles):
 
     molecule = smiles_to_molecule(smiles)
 
-    ring_bonds = {
-        pair for pair, is_in_ring in find_ring_bonds(molecule).items() if is_in_ring
-    }
+    ring_bonds = {pair for pair, is_in_ring in find_ring_bonds(molecule).items() if is_in_ring}
     ring_atoms = {index for pair in ring_bonds for index in pair}
 
-    is_atom_aromatic, is_bond_aromatic = AromaticityModel.apply(
-        molecule, AromaticityModels.AM1BCC
-    )
+    is_atom_aromatic, is_bond_aromatic = AromaticityModel.apply(molecule, AromaticityModels.AM1BCC)
 
     assert all(is_atom_aromatic[index] for index in ring_atoms)
     assert all(is_bond_aromatic[pair] for pair in ring_bonds)
@@ -42,9 +38,7 @@ def test_am1_bcc_aromaticity_ring_size():
 
     molecule = smiles_to_molecule("C1CC2=CC=CC3=C2C1=CC=C3")
 
-    is_atom_aromatic, is_bond_aromatic = AromaticityModel.apply(
-        molecule, AromaticityModels.AM1BCC
-    )
+    is_atom_aromatic, _is_bond_aromatic = AromaticityModel.apply(molecule, AromaticityModels.AM1BCC)
 
     assert [not is_atom_aromatic[index] for index in range(2)]
     assert [is_atom_aromatic[index] for index in range(2, 12)]
@@ -57,9 +51,7 @@ def test_am1_bcc_aromaticity_ring_size():
 def test_aromaticity_models(aromaticity_model):
     molecule = smiles_to_molecule("C")
 
-    is_atom_aromatic, is_bond_aromatic = AromaticityModel.apply(
-        molecule, aromaticity_model
-    )
+    is_atom_aromatic, is_bond_aromatic = AromaticityModel.apply(molecule, aromaticity_model)
 
     assert not any(is_atom_aromatic.values())
     assert not any(is_bond_aromatic.values())

@@ -1,11 +1,11 @@
 import functools
 import itertools
-from typing import TYPE_CHECKING, Literal, Union
+from typing import TYPE_CHECKING, Literal
 
 import numpy
-from openff.units import unit, Quantity
-from openff.recharge._pydantic import BaseModel, Field
+from openff.units import Quantity, unit
 
+from openff.recharge._pydantic import BaseModel, Field
 from openff.recharge.utilities.pydantic import wrapped_float_validator
 from openff.recharge.utilities.toolkits import VdWRadiiType, compute_vdw_radii
 
@@ -23,9 +23,7 @@ class LatticeGridSettings(BaseModel):
 
     type: Literal["fcc"] = Field("fcc", description="The type of grid to generate.")
 
-    spacing: PositiveFloat = Field(
-        0.5, description="The grid spacing in units of angstroms."
-    )
+    spacing: PositiveFloat = Field(0.5, description="The grid spacing in units of angstroms.")
 
     inner_vdw_scale: PositiveFloat = Field(
         1.4,
@@ -51,9 +49,7 @@ class MSKGridSettings(BaseModel):
 
     type: Literal["msk"] = "msk"
 
-    density: PositiveFloat = Field(
-        1.0, description="The density [/Angstrom^2] of the MSK grid."
-    )
+    density: PositiveFloat = Field(1.0, description="The density [/Angstrom^2] of the MSK grid.")
 
     @property
     def density_quantity(self) -> Quantity:
@@ -63,7 +59,7 @@ class MSKGridSettings(BaseModel):
 
 
 GridSettings = LatticeGridSettings  # For backwards compatability.
-GridSettingsType = Union[LatticeGridSettings, MSKGridSettings]
+GridSettingsType = LatticeGridSettings | MSKGridSettings
 
 
 class GridGenerator:
@@ -99,9 +95,7 @@ class GridGenerator:
         sin_phi_per_latitude = numpy.sin(phi_per_latitude)
         cos_phi_per_latitude = numpy.cos(phi_per_latitude)
 
-        n_longitudinal_per_latitude = numpy.maximum(
-            (n_equatorial * sin_phi_per_latitude).astype(int), 1
-        )
+        n_longitudinal_per_latitude = numpy.maximum((n_equatorial * sin_phi_per_latitude).astype(int), 1)
 
         sin_phi = numpy.repeat(sin_phi_per_latitude, n_longitudinal_per_latitude)
         cos_phi = numpy.repeat(cos_phi_per_latitude, n_longitudinal_per_latitude)
@@ -144,8 +138,7 @@ class GridGenerator:
 
         for scale in [1.4, 1.6, 1.8, 2.0]:
             atom_spheres = [
-                coordinate
-                + cls._generate_connolly_sphere(radius.item() * scale, settings.density)
+                coordinate + cls._generate_connolly_sphere(radius.item() * scale, settings.density)
                 for radius, coordinate in zip(radii, conformer)
             ]
             shell = numpy.vstack(atom_spheres)
@@ -163,11 +156,7 @@ class GridGenerator:
                 exclusion_mask[atom_index, offset : offset + len(atom_sphere)] = True
                 offset += len(atom_sphere)
 
-            shells.append(
-                cls._cull_points(
-                    conformer, shell, radii * scale, exclusion_mask=exclusion_mask
-                )
-            )
+            shells.append(cls._cull_points(conformer, shell, radii * scale, exclusion_mask=exclusion_mask))
 
         return numpy.vstack(shells)
 
@@ -204,35 +193,25 @@ class GridGenerator:
 
         lattice_constant = 2.0 * settings.spacing / numpy.sqrt(2.0)
 
-        n_cells = tuple(
-            int(n)
-            for n in numpy.ceil((maximum_bounds - minimum_bounds) / lattice_constant)
-        )
+        n_cells = tuple(int(n) for n in numpy.ceil((maximum_bounds - minimum_bounds) / lattice_constant))
 
         # Compute the coordinates of the grid.
         coordinates = []
 
-        for x, y, z in itertools.product(
-            *(range(0, n * 2 + 1) for n in n_cells), repeat=1
-        ):
+        for x, y, z in itertools.product(*(range(0, n * 2 + 1) for n in n_cells), repeat=1):
             a = x % 2
             b = y % 2
             c = z % 2
 
             is_grid_point = (
-                (not a and not b and not c)
-                or (a and b and not c)
-                or (not a and b and c)
-                or (a and not b and c)
+                (not a and not b and not c) or (a and b and not c) or (not a and b and c) or (a and not b and c)
             )
 
             if not is_grid_point:
                 continue
 
             coordinate = (
-                numpy.array([[x - n_cells[0], y - n_cells[1], z - n_cells[2]]])
-                * 0.5
-                * lattice_constant
+                numpy.array([[x - n_cells[0], y - n_cells[1], z - n_cells[2]]]) * 0.5 * lattice_constant
                 + conformer_center
             )
 
@@ -263,15 +242,11 @@ class GridGenerator:
         distances = cdist(conformer, grid)
         exclusion_mask = False if exclusion_mask is None else exclusion_mask
 
-        is_within_shell = numpy.any(
-            (distances < inner_radii) & (~exclusion_mask), axis=0
-        )
+        is_within_shell = numpy.any((distances < inner_radii) & (~exclusion_mask), axis=0)
         is_outside_shell = False
 
         if outer_radii is not None:
-            is_outside_shell = numpy.all(
-                (distances > outer_radii) & (~exclusion_mask), axis=0
-            )
+            is_outside_shell = numpy.all((distances > outer_radii) & (~exclusion_mask), axis=0)
 
         discard_point = numpy.logical_or(is_within_shell, is_outside_shell)
 

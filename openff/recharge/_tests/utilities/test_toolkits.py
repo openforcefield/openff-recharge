@@ -1,6 +1,10 @@
 import numpy
 import pytest
 from openff.toolkit import Molecule
+from openff.toolkit._tests.utils import (
+    requires_openeye,
+    requires_rdkit,
+)
 from openff.units import unit
 
 from openff.recharge.utilities.toolkits import (
@@ -17,10 +21,6 @@ from openff.recharge.utilities.toolkits import (
     get_atom_symmetries,
     match_smirks,
     molecule_to_tagged_smiles,
-)
-from openff.toolkit._tests.utils import (
-    requires_openeye,
-    requires_rdkit,
 )
 
 
@@ -121,27 +121,18 @@ def test_match_smirks(
     molecule = Molecule.from_mapped_smiles(smiles)
 
     is_atom_aromatic = (
-        {i: atom.is_aromatic for i, atom in enumerate(molecule.atoms)}
-        if not is_atom_aromatic
-        else is_atom_aromatic
+        {i: atom.is_aromatic for i, atom in enumerate(molecule.atoms)} if not is_atom_aromatic else is_atom_aromatic
     )
     is_bond_aromatic = (
-        {
-            (bond.atom1_index, bond.atom2_index): bond.is_aromatic
-            for bond in molecule.bonds
-        }
+        {(bond.atom1_index, bond.atom2_index): bond.is_aromatic for bond in molecule.bonds}
         if not is_bond_aromatic
         else is_bond_aromatic
     )
 
-    matches = match_function(
-        smirks, molecule, is_atom_aromatic, is_bond_aromatic, unique
-    )
+    matches = match_function(smirks, molecule, is_atom_aromatic, is_bond_aromatic, unique)
 
     assert len(matches) == len(expected_matches)
-    assert {tuple(match[i] for i in range(len(match))) for match in matches} == {
-        *expected_matches
-    }
+    assert {tuple(match[i] for i in range(len(match))) for match in matches} == {*expected_matches}
 
 
 def test_match_smirks_invalid():
@@ -281,12 +272,8 @@ def test_compute_vdw_radii(mapped_smiles, expected_radii):
         ),
     ],
 )
-def test_apply_mdl_aromaticity_model(
-    apply_function, smiles, expected_is_atom_aromatic, expected_is_bond_aromatic
-):
-    is_atom_aromatic, is_bond_aromatic = apply_function(
-        Molecule.from_mapped_smiles(smiles)
-    )
+def test_apply_mdl_aromaticity_model(apply_function, smiles, expected_is_atom_aromatic, expected_is_bond_aromatic):
+    is_atom_aromatic, is_bond_aromatic = apply_function(Molecule.from_mapped_smiles(smiles))
 
     assert is_atom_aromatic == expected_is_atom_aromatic
     assert is_bond_aromatic == expected_is_bond_aromatic
@@ -359,12 +346,8 @@ def test_apply_mdl_aromaticity_model(
         ),
     ],
 )
-def test_apply_oe_mdl_aromaticity_model(
-    smiles, expected_is_atom_aromatic, expected_is_bond_aromatic
-):
-    is_atom_aromatic, is_bond_aromatic = _oe_apply_mdl_aromaticity_model(
-        Molecule.from_mapped_smiles(smiles)
-    )
+def test_apply_oe_mdl_aromaticity_model(smiles, expected_is_atom_aromatic, expected_is_bond_aromatic):
+    is_atom_aromatic, is_bond_aromatic = _oe_apply_mdl_aromaticity_model(Molecule.from_mapped_smiles(smiles))
 
     assert is_atom_aromatic == expected_is_atom_aromatic
     assert is_bond_aromatic == expected_is_bond_aromatic

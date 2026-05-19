@@ -6,10 +6,10 @@ import re
 from typing import TYPE_CHECKING
 
 import numpy
-from openff.units import unit, Quantity
+from openff.units import Quantity, unit
 from openff.utilities import requires_package
-from openff.recharge._pydantic import ValidationError
 
+from openff.recharge._pydantic import ValidationError
 from openff.recharge.esp import ESPSettings, PCMSettings
 from openff.recharge.esp.storage import MoleculeESPRecord
 from openff.recharge.grids import GridGenerator, GridSettingsType
@@ -123,10 +123,7 @@ def reconstruct_density(
     }
 
     spherical_maps = {
-        L: numpy.array(
-            list(range(L * 2 - 1, 0, -2)) + [0] + list(range(2, L * 2 + 1, 2))
-        )
-        for L in angular_momenta
+        L: numpy.array([*list(range(L * 2 - 1, 0, -2)), 0, *list(range(2, L * 2 + 1, 2))]) for L in angular_momenta
     }
 
     # Build a flat index that we can transform the AO quantities
@@ -199,9 +196,7 @@ def compute_esp(
     psi4_calculator = psi4.core.ESPPropCalc(psi4_wavefunction)
     psi4_grid = psi4.core.Matrix.from_array(grid.to(unit.angstrom).m)
 
-    esp = numpy.array(
-        psi4_calculator.compute_esp_over_grid_in_memory(psi4_grid)
-    ).reshape(-1, 1)
+    esp = numpy.array(psi4_calculator.compute_esp_over_grid_in_memory(psi4_grid)).reshape(-1, 1)
 
     field = None
 
@@ -260,9 +255,7 @@ def from_qcportal_results(
 
     # Convert the OE molecule to a QC molecule and extract the conformer of
     # interest.
-    molecule = Molecule.from_qcschema(
-        qc_molecule.dict(encoding="json"), allow_undefined_stereo=True
-    )
+    molecule = Molecule.from_qcschema(qc_molecule.dict(encoding="json"), allow_undefined_stereo=True)
 
     conformers = extract_conformers(molecule)
     assert len(conformers) == 1
@@ -279,15 +272,11 @@ def from_qcportal_results(
         basis=qc_result.specification.basis,
         method=qc_result.specification.method,
         grid_settings=grid_settings,
-        pcm_settings=(
-            None if not enable_pcm else _parse_pcm_input(qc_keyword_set["pcm__input"])
-        ),
+        pcm_settings=(None if not enable_pcm else _parse_pcm_input(qc_keyword_set["pcm__input"])),
     )
 
     # Reconstruct the ESP and field from the density.
-    esp, electric_field = compute_esp(
-        qc_molecule, density, esp_settings, grid, compute_field
-    )
+    esp, electric_field = compute_esp(qc_molecule, density, esp_settings, grid, compute_field)
 
     return MoleculeESPRecord.from_molecule(
         molecule,

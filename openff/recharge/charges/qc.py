@@ -4,13 +4,13 @@ import copy
 from typing import TYPE_CHECKING, Literal, cast
 
 import numpy
-from openff.units import unit, Quantity
+from openff.units import Quantity, unit
 from openff.units.elements import SYMBOLS
-from openff.recharge._pydantic import BaseModel, Field
+from openff.utilities.utilities import requires_oe_module
 
+from openff.recharge._pydantic import BaseModel, Field
 from openff.recharge.charges.exceptions import ChargeAssignmentError
 from openff.recharge.utilities.toolkits import get_atom_symmetries
-from openff.utilities.utilities import requires_oe_module
 
 if TYPE_CHECKING:
     from openff.toolkit import Molecule
@@ -23,19 +23,15 @@ class QCChargeSettings(BaseModel):
     quantum chemical calculations.
     """
 
-    theory: QCChargeTheory = Field(
-        "am1", description="The level of theory to use when computing the charges."
-    )
+    theory: QCChargeTheory = Field("am1", description="The level of theory to use when computing the charges.")
 
     symmetrize: bool = Field(
         True,
-        description="Whether the partial charges should be made equal for bond-"
-        "topology equivalent atoms.",
+        description="Whether the partial charges should be made equal for bond-topology equivalent atoms.",
     )
     optimize: bool = Field(
         True,
-        description="Whether to optimize the input conformer during the charge"
-        "calculation.",
+        description="Whether to optimize the input conformer during the chargecalculation.",
     )
 
 
@@ -44,9 +40,7 @@ class QCChargeGenerator:
     from a quantum chemical calculation."""
 
     @classmethod
-    def _symmetrize_charges(
-        cls, molecule: "Molecule", charges: numpy.ndarray
-    ) -> numpy.ndarray:
+    def _symmetrize_charges(cls, molecule: "Molecule", charges: numpy.ndarray) -> numpy.ndarray:
         """Sets the charge on each atom to be the average value computed across all
         charges on atoms with the same topological symmetry group.
         """
@@ -58,10 +52,7 @@ class QCChargeGenerator:
         for group, charge in zip(symmetry_groups, charges):
             charges_by_group[group].append(charge)
 
-        average_charges = {
-            group: float(numpy.mean(charges_by_group[group]))
-            for group in charges_by_group
-        }
+        average_charges = {group: float(numpy.mean(charges_by_group[group])) for group in charges_by_group}
 
         return numpy.array([[average_charges[group]] for group in symmetry_groups])
 
@@ -69,18 +60,13 @@ class QCChargeGenerator:
     def _check_connectivity(cls, molecule: "Molecule", conformer: Quantity):
         from qcelemental.molutil import guess_connectivity
 
-        expected_connectivity = {
-            tuple(sorted([bond.atom1_index, bond.atom2_index]))
-            for bond in molecule.bonds
-        }
+        expected_connectivity = {tuple(sorted([bond.atom1_index, bond.atom2_index])) for bond in molecule.bonds}
 
         symbols = numpy.array([SYMBOLS[atom.atomic_number] for atom in molecule.atoms])
 
         actual_connectivity = {
             tuple(sorted(connection))
-            for connection in guess_connectivity(
-                symbols, conformer.m_as(unit.bohr), threshold=1.2
-            )
+            for connection in guess_connectivity(symbols, conformer.m_as(unit.bohr), threshold=1.2)
         }
 
         if actual_connectivity == expected_connectivity:
@@ -120,9 +106,7 @@ class QCChargeGenerator:
                 input_specification=QCInputSpecification(
                     model=Model(method=settings.theory),
                 ),
-                protocols=OptimizationProtocols(
-                    trajectory=TrajectoryProtocolEnum.final
-                ),
+                protocols=OptimizationProtocols(trajectory=TrajectoryProtocolEnum.final),
                 keywords={"program": "xtb"},
             )
             optimization_results: OptimizationResult = cast(
@@ -130,9 +114,7 @@ class QCChargeGenerator:
                 compute_procedure(optimization_schema, "geometric", raise_error=True),
             )
 
-            cls._check_connectivity(
-                molecule, optimization_results.final_molecule.geometry * unit.bohr
-            )
+            cls._check_connectivity(molecule, optimization_results.final_molecule.geometry * unit.bohr)
 
             results = optimization_results.trajectory[-1]
         else:
@@ -144,9 +126,7 @@ class QCChargeGenerator:
 
             results = cast(AtomicResult, compute(input_schema, "xtb", raise_error=True))
 
-        charges = numpy.array(results.extras["xtb"]["mulliken_charges"]).reshape(
-            (-1, 1)
-        )
+        charges = numpy.array(results.extras["xtb"]["mulliken_charges"]).reshape((-1, 1))
 
         if settings.symmetrize:
             charges = cls._symmetrize_charges(molecule, charges)
@@ -171,27 +151,18 @@ class QCChargeGenerator:
         if settings.theory == "am1":
             assert oequacpac.OEAssignCharges(
                 oe_molecule,
-                oequacpac.OEAM1Charges(
-                    optimize=settings.optimize, symmetrize=settings.symmetrize
-                ),
+                oequacpac.OEAM1Charges(optimize=settings.optimize, symmetrize=settings.symmetrize),
             ), f"QUACPAC failed to generate {settings.theory} charges"
         elif settings.theory == "am1bcc":
             assert oequacpac.OEAssignCharges(
                 oe_molecule,
-                oequacpac.OEAM1BCCCharges(
-                    optimize=settings.optimize, symmetrize=settings.symmetrize
-                ),
+                oequacpac.OEAM1BCCCharges(optimize=settings.optimize, symmetrize=settings.symmetrize),
             ), f"QUACPAC failed to generate {settings.theory} charges"
         else:
             raise NotImplementedError()
 
         atoms = {atom.GetIdx(): atom for atom in oe_molecule.GetAtoms()}
-        return numpy.array(
-            [
-                [atoms[index].GetPartialCharge()]
-                for index in range(oe_molecule.NumAtoms())
-            ]
-        )
+        return numpy.array([[atoms[index].GetPartialCharge()] for index in range(oe_molecule.NumAtoms())])
 
     @classmethod
     def _generate_am1_charges(
@@ -204,19 +175,13 @@ class QCChargeGenerator:
             charge_method = "am1-mulliken"
         elif settings.theory == "am1bcc" and settings.optimize and settings.symmetrize:
             charge_method = "am1bcc"
-        elif (
-            settings.theory == "am1bcc"
-            and not settings.optimize
-            and not settings.symmetrize
-        ):
+        elif settings.theory == "am1bcc" and not settings.optimize and not settings.symmetrize:
             charge_method = "am1bccnosymspt"
         else:
             charge_method = None
 
         if charge_method:
-            molecule.assign_partial_charges(
-                charge_method, use_conformers=[conformer * unit.angstrom]
-            )
+            molecule.assign_partial_charges(charge_method, use_conformers=[conformer * unit.angstrom])
             return molecule.partial_charges.m_as(unit.elementary_charge)
 
         return cls._generate_omega_charges(molecule, conformer, settings)
@@ -259,15 +224,9 @@ class QCChargeGenerator:
             conformer = conformer[: molecule.n_atoms]
 
             if settings.theory in {"am1", "am1bcc"}:
-                conformer_charges.append(
-                    cls._generate_am1_charges(
-                        molecule, conformer.m_as(unit.angstrom), settings
-                    )
-                )
+                conformer_charges.append(cls._generate_am1_charges(molecule, conformer.m_as(unit.angstrom), settings))
             elif settings.theory.lower().endswith("xtb"):
-                conformer_charges.append(
-                    cls._generate_xtb_charges(molecule, conformer, settings)
-                )
+                conformer_charges.append(cls._generate_xtb_charges(molecule, conformer, settings))
             else:
                 raise NotImplementedError()
 

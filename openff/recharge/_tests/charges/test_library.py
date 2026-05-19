@@ -1,16 +1,15 @@
 import numpy
+import pytest
 from openff.units import unit
 
-import pytest
 from openff.recharge._pydantic import ValidationError
-
+from openff.recharge._tests import does_not_raise
 from openff.recharge.charges.exceptions import ChargeAssignmentError
 from openff.recharge.charges.library import (
     LibraryChargeCollection,
     LibraryChargeGenerator,
     LibraryChargeParameter,
 )
-from openff.recharge._tests import does_not_raise
 
 
 @pytest.fixture()
@@ -31,16 +30,12 @@ class TestLibraryChargeParameter:
             (
                 "C",
                 [0.0] * 5,
-                pytest.raises(
-                    ValidationError, match="SMILES pattern does not contain index map"
-                ),
+                pytest.raises(ValidationError, match="SMILES pattern does not contain index map"),
             ),
             (
                 "[Cl:1][H]",
                 [0.0] * 2,
-                pytest.raises(
-                    ValidationError, match="not all atoms contain a map index"
-                ),
+                pytest.raises(ValidationError, match="not all atoms contain a map index"),
             ),
             (
                 "[Cl:1][H:3]",
@@ -84,7 +79,7 @@ class TestLibraryChargeParameter:
                 [0.0, -0.1],
                 pytest.raises(
                     ValidationError,
-                    match="sum of values -0.1 does not match expected charge -1.0",
+                    match=r"sum of values -0.1 does not match expected charge -1.0",
                 ),
             ),
         ],
@@ -95,9 +90,7 @@ class TestLibraryChargeParameter:
             assert parameter.value == value
 
     def test_copy_value_from_other(self):
-        parameter_a = LibraryChargeParameter(
-            smiles="[H:1][O:2][H:3]", value=[0.09, -0.2, 0.11]
-        )
+        parameter_a = LibraryChargeParameter(smiles="[H:1][O:2][H:3]", value=[0.09, -0.2, 0.11])
 
         parameter_b = LibraryChargeParameter(smiles="[H:2][O:1][H:2]", value=[0.0, 0.0])
         parameter_b.copy_value_from_other(parameter_a)
@@ -133,21 +126,15 @@ class TestLibraryChargeParameter:
                 numpy.array([[-0.1]]),
             ),
             (
-                LibraryChargeParameter(
-                    smiles="[C:1]([H:2])([H:2])([H:2])([H:2])", value=[0.2, -0.05]
-                ),
+                LibraryChargeParameter(smiles="[C:1]([H:2])([H:2])([H:2])([H:2])", value=[0.2, -0.05]),
                 None,
                 numpy.array([[1, 4]]),
                 numpy.array([[0.0]]),
             ),
         ],
     )
-    def test_generate_constraint_matrix(
-        self, parameter, trainable_indices, expected_matrix, expected_values
-    ):
-        constraint_matrix, constraint_values = parameter.generate_constraint_matrix(
-            trainable_indices
-        )
+    def test_generate_constraint_matrix(self, parameter, trainable_indices, expected_matrix, expected_values):
+        constraint_matrix, constraint_values = parameter.generate_constraint_matrix(trainable_indices)
 
         assert expected_matrix.shape == constraint_matrix.shape
         assert numpy.allclose(expected_matrix, constraint_matrix)
@@ -166,19 +153,13 @@ class TestLibraryChargeCollection:
 
         assert charge_handler.parameters[0].smirks == "[H:1][O:2][H:3]"
         assert numpy.allclose(
-            [
-                charge.m_as(unit.elementary_charge)
-                for charge in charge_handler.parameters[0].charge
-            ],
+            [charge.m_as(unit.elementary_charge) for charge in charge_handler.parameters[0].charge],
             [0.3, 0.4, -0.7],
         )
 
         assert charge_handler.parameters[-1].smirks == "[Cl:1][Cl:2]"
         assert numpy.allclose(
-            [
-                charge.m_as(unit.elementary_charge)
-                for charge in charge_handler.parameters[-1].charge
-            ],
+            [charge.m_as(unit.elementary_charge) for charge in charge_handler.parameters[-1].charge],
             [-0.1, 0.1],
         )
 
@@ -264,18 +245,14 @@ class TestLibraryChargeGenerator:
             ),
         ],
     )
-    def test_build_assignment_matrix(
-        self, mock_charge_collection, smiles, expected_value
-    ):
+    def test_build_assignment_matrix(self, mock_charge_collection, smiles, expected_value):
         pytest.importorskip("openff.toolkit")
 
         from openff.toolkit import Molecule
 
         molecule = Molecule.from_mapped_smiles(smiles)
 
-        assignment_matrix = LibraryChargeGenerator.build_assignment_matrix(
-            molecule, mock_charge_collection
-        )
+        assignment_matrix = LibraryChargeGenerator.build_assignment_matrix(molecule, mock_charge_collection)
 
         assert expected_value.shape == assignment_matrix.shape
         assert numpy.allclose(expected_value, assignment_matrix)
@@ -294,9 +271,7 @@ class TestLibraryChargeGenerator:
             ]
         )
 
-        assignment_matrix = LibraryChargeGenerator.build_assignment_matrix(
-            molecule, charge_collection
-        )
+        assignment_matrix = LibraryChargeGenerator.build_assignment_matrix(molecule, charge_collection)
 
         assert assignment_matrix.shape == (6, 4)
         assert numpy.allclose(
@@ -328,9 +303,7 @@ class TestLibraryChargeGenerator:
 
         molecule = Molecule.from_mapped_smiles(smiles)
 
-        actual_charges = LibraryChargeGenerator.generate(
-            molecule, mock_charge_collection
-        )
+        actual_charges = LibraryChargeGenerator.generate(molecule, mock_charge_collection)
 
         assert expected_value.shape == actual_charges.shape
         assert numpy.allclose(expected_value, actual_charges)

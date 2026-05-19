@@ -42,24 +42,16 @@ class TestRESPNonLinearSolver:
 
         loss_func = functools.partial(RESPNonLinearSolver.loss, **kwargs)
 
-        jacobian = RESPNonLinearSolver.jacobian(
-            beta=numpy.array([[3.0], [-3.0]]), **kwargs
-        )
+        jacobian = RESPNonLinearSolver.jacobian(beta=numpy.array([[3.0], [-3.0]]), **kwargs)
         assert jacobian.shape == (2,)
 
         h = 0.0001
 
         expected_jacobian = numpy.array(
             [
-                (
-                    loss_func(numpy.array([[3.0 + h], [-3.0]]))
-                    - loss_func(numpy.array([[3.0 - h], [-3.0]]))
-                )
+                (loss_func(numpy.array([[3.0 + h], [-3.0]])) - loss_func(numpy.array([[3.0 - h], [-3.0]])))
                 / (h * 2.0),
-                (
-                    loss_func(numpy.array([[3.0], [-3.0 + h]]))
-                    - loss_func(numpy.array([[3.0], [-3.0 - h]]))
-                )
+                (loss_func(numpy.array([[3.0], [-3.0 + h]])) - loss_func(numpy.array([[3.0], [-3.0 - h]])))
                 / (h * 2.0),
             ]
         )
@@ -90,9 +82,7 @@ class TestRESPNonLinearSolver:
 
 class TestIterativeSolver:
     def test_solve(self, monkeypatch):
-        monkeypatch.setattr(
-            IterativeSolver, "initial_guess", lambda *_: numpy.array([-3.5, 3.5])
-        )
+        monkeypatch.setattr(IterativeSolver, "initial_guess", lambda *_: numpy.array([-3.5, 3.5]))
 
         charges = IterativeSolver().solve(
             design_matrix=numpy.array([[1.0 / 3.0, 2.0 / 3.0], [3.0 / 3.0, 5.0 / 3.0]]),
@@ -111,9 +101,7 @@ class TestIterativeSolver:
 
 class TestSciPySolver:
     def test_solve(self, monkeypatch):
-        monkeypatch.setattr(
-            SciPySolver, "initial_guess", lambda *_: numpy.array([-3.5, 3.5])
-        )
+        monkeypatch.setattr(SciPySolver, "initial_guess", lambda *_: numpy.array([-3.5, 3.5]))
 
         charges = SciPySolver().solve(
             design_matrix=numpy.array([[1.0 / 3.0, 2.0 / 3.0], [3.0 / 3.0, 5.0 / 3.0]]),
@@ -132,9 +120,7 @@ class TestSciPySolver:
     def test_solve_error(self):
         with pytest.raises(RESPSolverError, match="SciPy solver with method=SLSQP"):
             SciPySolver(method="SLSQP").solve(
-                design_matrix=numpy.array(
-                    [[1.0 / 3.0, 2.0 / 3.0], [3.0 / 3.0, 5.0 / 3.0]]
-                ),
+                design_matrix=numpy.array([[1.0 / 3.0, 2.0 / 3.0], [3.0 / 3.0, 5.0 / 3.0]]),
                 reference_values=numpy.array([[-1.0], [-2.0]]),
                 constraint_matrix=numpy.array([[1.0, 1.0], [1.0, 1.0]]),
                 constraint_values=numpy.array([[0.0], [1.0]]),

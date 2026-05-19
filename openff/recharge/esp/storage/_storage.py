@@ -2,17 +2,22 @@
 calculated electrostatic potentials in unified data collections.
 """
 
-import warnings
 import functools
+import warnings
 from collections import defaultdict
-from contextlib import contextmanager
-from typing import ContextManager
+from contextlib import AbstractContextManager, contextmanager
 
-from openff.toolkit import Quantity, Molecule
-from openff.recharge._pydantic import BaseModel, Field, ConfigDict
+from openff.toolkit import Molecule, Quantity
+from openff.toolkit.utils.exceptions import AtomMappingWarning
 from sqlalchemy import create_engine, event
 from sqlalchemy.orm import Session, sessionmaker
-from openff.toolkit.utils.exceptions import AtomMappingWarning
+
+from openff.recharge._annotations import (
+    ESP,
+    Coordinates,
+    ElectricField,
+)
+from openff.recharge._pydantic import BaseModel, ConfigDict, Field
 from openff.recharge.esp import ESPSettings
 from openff.recharge.esp.storage.db import (
     DB_VERSION,
@@ -27,11 +32,6 @@ from openff.recharge.esp.storage.db import (
     DBSoftwareProvenance,
 )
 from openff.recharge.esp.storage.exceptions import IncompatibleDBVersion
-from openff.recharge._annotations import (
-    ESP,
-    ElectricField,
-    Coordinates,
-)
 
 
 class MoleculeESPRecord(BaseModel):
@@ -51,14 +51,12 @@ class MoleculeESPRecord(BaseModel):
 
     conformer: Coordinates = Field(
         ...,
-        description="The coordinates [Angstrom] of this conformer with "
-        "shape=(n_atoms, 3).",
+        description="The coordinates [Angstrom] of this conformer with shape=(n_atoms, 3).",
     )
 
     grid_coordinates: Coordinates = Field(
         ...,
-        description="The grid coordinates [Angstrom] which the ESP was calculated on "
-        "with shape=(n_grid_points, 3).",
+        description="The grid coordinates [Angstrom] which the ESP was calculated on with shape=(n_grid_points, 3).",
     )
     esp: ESP = Field(
         ...,
@@ -71,9 +69,7 @@ class MoleculeESPRecord(BaseModel):
         "the grid coordinates with shape=(n_grid_points, 3).",
     )
 
-    esp_settings: ESPSettings = Field(
-        ..., description="The settings used to generate the ESP stored in this record."
-    )
+    esp_settings: ESPSettings = Field(..., description="The settings used to generate the ESP stored in this record.")
 
     @property
     def conformer_quantity(self) -> Quantity:
@@ -127,9 +123,7 @@ class MoleculeESPRecord(BaseModel):
             The created record.
         """
 
-        tagged_smiles = molecule.to_smiles(
-            isomeric=True, explicit_hydrogens=True, mapped=True
-        )
+        tagged_smiles = molecule.to_smiles(isomeric=True, explicit_hydrogens=True, mapped=True)
 
         return MoleculeESPRecord(
             tagged_smiles=tagged_smiles,
@@ -161,20 +155,14 @@ class MoleculeESPStore:
         with self._get_session() as db:
             db_info = db.query(DBInformation).first()
 
-            return {
-                provenance.key: provenance.value
-                for provenance in db_info.general_provenance
-            }
+            return {provenance.key: provenance.value for provenance in db_info.general_provenance}
 
     @property
     def software_provenance(self) -> dict[str, str]:
         with self._get_session() as db:
             db_info = db.query(DBInformation).first()
 
-            return {
-                provenance.key: provenance.value
-                for provenance in db_info.software_provenance
-            }
+            return {provenance.key: provenance.value for provenance in db_info.software_provenance}
 
     def __init__(
         self,
@@ -200,20 +188,12 @@ class MoleculeESPStore:
             @event.listens_for(self._engine, "connect")
             def set_sqlite_pragma(dbapi_connection, connection_record):
                 cursor = dbapi_connection.cursor()
-                cursor.execute(
-                    f"PRAGMA cache_size = -{cache_size}"
-                )  # 20000 pages (~20MB), adjust based on your needs
-                cursor.execute(
-                    "PRAGMA synchronous = OFF"
-                )  # Improves speed but less safe
-                cursor.execute(
-                    "PRAGMA journal_mode = MEMORY"
-                )  # Use in-memory journaling
+                cursor.execute(f"PRAGMA cache_size = -{cache_size}")  # 20000 pages (~20MB), adjust based on your needs
+                cursor.execute("PRAGMA synchronous = OFF")  # Improves speed but less safe
+                cursor.execute("PRAGMA journal_mode = MEMORY")  # Use in-memory journaling
                 cursor.close()
 
-        self._session_maker = sessionmaker(
-            autocommit=False, autoflush=False, bind=self._engine
-        )
+        self._session_maker = sessionmaker(autocommit=False, autoflush=False, bind=self._engine)
 
         # Validate the DB version if present, or add one if not.
         with self._get_session() as db:
@@ -247,16 +227,14 @@ class MoleculeESPStore:
         with self._get_session() as db:
             db_info: DBInformation = db.query(DBInformation).first()
             db_info.general_provenance = [
-                DBGeneralProvenance(key=key, value=value)
-                for key, value in general_provenance.items()
+                DBGeneralProvenance(key=key, value=value) for key, value in general_provenance.items()
             ]
             db_info.software_provenance = [
-                DBSoftwareProvenance(key=key, value=value)
-                for key, value in software_provenance.items()
+                DBSoftwareProvenance(key=key, value=value) for key, value in software_provenance.items()
             ]
 
     @contextmanager
-    def _get_session(self) -> ContextManager[Session]:
+    def _get_session(self) -> AbstractContextManager[Session]:
         session = self._session_maker()
 
         try:
@@ -269,9 +247,7 @@ class MoleculeESPStore:
             session.close()
 
     @classmethod
-    def _db_records_to_model(
-        cls, db_records: list[DBMoleculeRecord]
-    ) -> list[MoleculeESPRecord]:
+    def _db_records_to_model(cls, db_records: list[DBMoleculeRecord]) -> list[MoleculeESPRecord]:
         """Maps a set of database records into their corresponding
         data models.
 
@@ -295,9 +271,7 @@ class MoleculeESPStore:
                 esp_settings=ESPSettings(
                     basis=db_conformer.esp_settings.basis,
                     method=db_conformer.esp_settings.method,
-                    grid_settings=DBGridSettings.db_to_instance(
-                        db_conformer.grid_settings
-                    ),
+                    grid_settings=DBGridSettings.db_to_instance(db_conformer.grid_settings),
                     pcm_settings=(
                         None
                         if not db_conformer.pcm_settings
@@ -310,9 +284,7 @@ class MoleculeESPStore:
         ]
 
     @classmethod
-    def _store_smiles_records(
-        cls, db: Session, smiles: str, records: list[MoleculeESPRecord]
-    ) -> DBMoleculeRecord:
+    def _store_smiles_records(cls, db: Session, smiles: str, records: list[MoleculeESPRecord]) -> DBMoleculeRecord:
         """Stores a set of records which all store information for the same
         molecule.
 
@@ -326,9 +298,7 @@ class MoleculeESPStore:
             The records to store.
         """
 
-        existing_db_molecule = (
-            db.query(DBMoleculeRecord).filter(DBMoleculeRecord.smiles == smiles).first()
-        )
+        existing_db_molecule = db.query(DBMoleculeRecord).filter(DBMoleculeRecord.smiles == smiles).first()
 
         if existing_db_molecule is not None:
             db_record = existing_db_molecule
@@ -344,9 +314,7 @@ class MoleculeESPStore:
                 grid=record.grid_coordinates,
                 esp=record.esp,
                 field=record.electric_field,
-                grid_settings=DBGridSettings.unique(
-                    db, record.esp_settings.grid_settings
-                ),
+                grid_settings=DBGridSettings.unique(db, record.esp_settings.grid_settings),
                 pcm_settings=(
                     None
                     if not record.esp_settings.pcm_settings
@@ -381,9 +349,9 @@ class MoleculeESPStore:
 
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", category=AtomMappingWarning)
-            smiles = Molecule.from_smiles(
-                tagged_smiles, allow_undefined_stereo=True
-            ).to_smiles(isomeric=False, explicit_hydrogens=False, mapped=False)
+            smiles = Molecule.from_smiles(tagged_smiles, allow_undefined_stereo=True).to_smiles(
+                isomeric=False, explicit_hydrogens=False, mapped=False
+            )
 
         return smiles
 
@@ -436,9 +404,7 @@ class MoleculeESPStore:
                 db_records = db_records.join(DBConformerRecord)
 
                 if basis is not None or method is not None:
-                    db_records = db_records.join(
-                        DBESPSettings, DBConformerRecord.esp_settings
-                    )
+                    db_records = db_records.join(DBESPSettings, DBConformerRecord.esp_settings)
 
                     if basis is not None:
                         db_records = db_records.filter(DBESPSettings.basis == basis)
@@ -447,26 +413,18 @@ class MoleculeESPStore:
 
                 if implicit_solvent is not None:
                     if implicit_solvent:
-                        db_records = db_records.filter(
-                            DBConformerRecord.pcm_settings_id.isnot(None)
-                        )
+                        db_records = db_records.filter(DBConformerRecord.pcm_settings_id.isnot(None))
                     else:
-                        db_records = db_records.filter(
-                            DBConformerRecord.pcm_settings_id.is_(None)
-                        )
+                        db_records = db_records.filter(DBConformerRecord.pcm_settings_id.is_(None))
 
             db_records = db_records.all()
 
             records = self._db_records_to_model(db_records)
 
             if basis:
-                records = [
-                    record for record in records if record.esp_settings.basis == basis
-                ]
+                records = [record for record in records if record.esp_settings.basis == basis]
             if method:
-                records = [
-                    record for record in records if record.esp_settings.method == method
-                ]
+                records = [record for record in records if record.esp_settings.method == method]
 
             return records
 

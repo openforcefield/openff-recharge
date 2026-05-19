@@ -66,10 +66,10 @@ def _process_result(
     "--grid-settings",
     "grid_settings_path",
     type=click.Path(exists=True, dir_okay=False),
-    help=(
-        "The path to the JSON serialized settings which define the grid to reconstruct "
-        "the ESP / electric field on.",
-    ),
+    help="""
+    The path to the JSON serialized settings which define the grid to
+    reconstruct the ESP / electric field on.
+    """,
 )
 @click.option(
     "--n-procs",

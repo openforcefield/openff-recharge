@@ -15,9 +15,13 @@ from openff.recharge.utilities.molecule import extract_conformers
 
 
 def main():
-    qc_data_settings = ESPSettings(method="hf", basis="6-31G*", grid_settings=MSKGridSettings())
+    qc_data_settings = ESPSettings(
+        method="hf", basis="6-31G*", grid_settings=MSKGridSettings()
+    )
 
-    molecule: Molecule = Molecule.from_mapped_smiles("[C:1]([H:5])([H:6])([H:8])[C:2]([H:7])([H:9])[O:3][H:4]")
+    molecule: Molecule = Molecule.from_mapped_smiles(
+        "[C:1]([H:5])([H:6])([H:8])[C:2]([H:7])([H:9])[O:3][H:4]"
+    )
     molecule.generate_conformers(n_conformers=1)
 
     [input_conformer] = extract_conformers(molecule)
@@ -26,15 +30,19 @@ def main():
         molecule, input_conformer, qc_data_settings, minimize=True
     )
 
-    qc_data_record = MoleculeESPRecord.from_molecule(molecule, conformer, grid, esp, None, qc_data_settings)
+    qc_data_record = MoleculeESPRecord.from_molecule(
+        molecule, conformer, grid, esp, None, qc_data_settings
+    )
 
     resp_solver = IterativeSolver()
-    # While by default the iterative approach to finding the set of charges that minimize
-    # the RESP loss function as described in the original papers is used, others such as
-    # an experimental one that calls out to SciPy are available, e.g.
+    # While by default the iterative approach to finding the set of charges that
+    # minimize the RESP loss function as described in the original papers is used,
+    # others such as an experimental one that calls out to SciPy are available, e.g.
     # resp_solver = SciPySolver(method="SLSQP")
 
-    resp_charge_parameter = generate_resp_charge_parameter([qc_data_record], resp_solver)
+    resp_charge_parameter = generate_resp_charge_parameter(
+        [qc_data_record], resp_solver
+    )
     resp_charges = LibraryChargeGenerator.generate(
         molecule, LibraryChargeCollection(parameters=[resp_charge_parameter])
     )

@@ -37,7 +37,8 @@ class MockBaseRecord:
 
 def load_mock_qc_result():
     with open(
-        files("openff.recharge") / os.path.join("_tests", "data", "qc_results", "mock_qc_result.json"),
+        files("openff.recharge")
+        / os.path.join("_tests", "data", "qc_results", "mock_qc_result.json"),
     ) as file:
         mock_qc_result_data = json.load(file)
         return MockBaseRecord(mock_qc_result_data)
@@ -73,7 +74,9 @@ def test_reconstruct(runner, monkeypatch):
         "openff.recharge.cli.reconstruct._retrieve_result_records",
         mock_retrieve_result_records,
     )
-    monkeypatch.setattr("openff.recharge.cli.reconstruct._process_result", mock_process_result)
+    monkeypatch.setattr(
+        "openff.recharge.cli.reconstruct._process_result", mock_process_result
+    )
 
     # Create a mock set of inputs.
     with open("record-ids.json", "w") as file:

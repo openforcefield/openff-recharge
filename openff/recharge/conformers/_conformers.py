@@ -28,7 +28,9 @@ class ConformerSettings(BaseModel):
         "dense", description="The mode in which to generate the conformers."
     )
 
-    max_conformers: int | None = Field(5, description="The maximum number of conformers to generate.")
+    max_conformers: int | None = Field(
+        5, description="The maximum number of conformers to generate."
+    )
 
 
 class ConformerGenerator:

@@ -36,7 +36,7 @@ packages.find.include = [ "openff.*" ]
 fallback_version = "0.0.0"
 
 [tool.ruff]
-line-length = 119
+line-length = 88
 namespace-packages = [ "openff/recharge/" ]
 lint.select = [ "E", "F", "I", "UP", "W" ]
 lint.per-file-ignores."plugins/*" = [ "INP001" ]

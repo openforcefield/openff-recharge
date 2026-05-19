@@ -91,7 +91,7 @@ class ObjectiveTerm(abc.ABC):
             partial charge on each virtual site as the sum of one or more charges from
             the a vector of virtual site charge parameters [e], i.e
 
-            ``vsite_charges = vsite_charge_assignment_matrix @ v_site_charge_parameters``
+            ``vsite_charges = vsite_charge_assignment_matrix @ vsite_charge_parameters``
         vsite_fixed_charges
             A vector with shape=(n_vsites, 1) of the partial charges assigned to each
             virtual site that will remain fixed during an optimization.
@@ -168,10 +168,14 @@ class ObjectiveTerm(abc.ABC):
 
         self.atom_charge_design_matrix = converter(self.atom_charge_design_matrix)
 
-        self.vsite_charge_assignment_matrix = converter(self.vsite_charge_assignment_matrix)
+        self.vsite_charge_assignment_matrix = converter(
+            self.vsite_charge_assignment_matrix
+        )
         self.vsite_fixed_charges = converter(self.vsite_fixed_charges)
 
-        self.vsite_coord_assignment_matrix = converter(self.vsite_coord_assignment_matrix)
+        self.vsite_coord_assignment_matrix = converter(
+            self.vsite_coord_assignment_matrix
+        )
         self.vsite_fixed_coords = converter(self.vsite_fixed_coords)
 
         self.vsite_local_coordinate_frame = converter(self.vsite_local_coordinate_frame)
@@ -204,13 +208,23 @@ class ObjectiveTerm(abc.ABC):
             raise RuntimeError("Several of the terms have already been combined")
 
         return_value = cls(
-            atom_charge_design_matrix=concatenate(*(term.atom_charge_design_matrix for term in terms)),
+            atom_charge_design_matrix=concatenate(
+                *(term.atom_charge_design_matrix for term in terms)
+            ),
             #
-            vsite_charge_assignment_matrix=concatenate(*(term.vsite_charge_assignment_matrix for term in terms)),
-            vsite_fixed_charges=concatenate(*(term.vsite_fixed_charges for term in terms)),
+            vsite_charge_assignment_matrix=concatenate(
+                *(term.vsite_charge_assignment_matrix for term in terms)
+            ),
+            vsite_fixed_charges=concatenate(
+                *(term.vsite_fixed_charges for term in terms)
+            ),
             #
-            vsite_coord_assignment_matrix=concatenate(*(term.vsite_coord_assignment_matrix for term in terms)),
-            vsite_fixed_coords=concatenate(*(term.vsite_fixed_coords for term in terms)),
+            vsite_coord_assignment_matrix=concatenate(
+                *(term.vsite_coord_assignment_matrix for term in terms)
+            ),
+            vsite_fixed_coords=concatenate(
+                *(term.vsite_fixed_coords for term in terms)
+            ),
             #
             vsite_local_coordinate_frame=concatenate(
                 *(term.vsite_local_coordinate_frame for term in terms), dimension=1
@@ -266,9 +280,13 @@ class ObjectiveTerm(abc.ABC):
             with the same units and shape as ``reference_values``.
         """
 
-        if self.vsite_local_coordinate_frame is None and vsite_coordinate_parameters is not None:
+        if (
+            self.vsite_local_coordinate_frame is None
+            and vsite_coordinate_parameters is not None
+        ):
             raise RuntimeError(
-                "Virtual site parameters were provided but this term was not set-up tohandle such particles."
+                "Virtual site parameters were provided but this term was not set-up to "
+                "handle such particles."
             )
 
         if self._objective()._flatten_charges():
@@ -279,7 +297,10 @@ class ObjectiveTerm(abc.ABC):
         else:
             atom_contribution = 0.0
 
-        if self.vsite_local_coordinate_frame is not None and self.vsite_local_coordinate_frame.shape[1] > 0:
+        if (
+            self.vsite_local_coordinate_frame is not None
+            and self.vsite_local_coordinate_frame.shape[1] > 0
+        ):
             trainable_coordinates = append_zero(vsite_coordinate_parameters.flatten())[
                 self.vsite_coord_assignment_matrix
             ]
@@ -289,21 +310,29 @@ class ObjectiveTerm(abc.ABC):
             vsite_coordinates = VirtualSiteGenerator.convert_local_coordinates(
                 vsite_local_coordinates,
                 self.vsite_local_coordinate_frame,
-                backend=("numpy" if isinstance(vsite_local_coordinates, numpy.ndarray) else "torch"),
+                backend=(
+                    "numpy"
+                    if isinstance(vsite_local_coordinates, numpy.ndarray)
+                    else "torch"
+                ),
             )
 
             n_vsite_charges = self.vsite_charge_assignment_matrix.shape[1]
 
             vsite_charges = (
-                self.vsite_charge_assignment_matrix @ charge_parameters[-n_vsite_charges:] + self.vsite_fixed_charges
+                self.vsite_charge_assignment_matrix
+                @ charge_parameters[-n_vsite_charges:]
+                + self.vsite_fixed_charges
             )
 
             if self._objective()._flatten_charges():
                 vsite_charges = vsite_charges.flatten()
 
             if self._grid_batches is None or len(self._grid_batches) <= 1:
-                design_matrix_precursor = self._objective()._compute_design_matrix_precursor(
-                    self.grid_coordinates, vsite_coordinates
+                design_matrix_precursor = (
+                    self._objective()._compute_design_matrix_precursor(
+                        self.grid_coordinates, vsite_coordinates
+                    )
                 )
 
                 vsite_contribution = design_matrix_precursor @ vsite_charges
@@ -321,7 +350,9 @@ class ObjectiveTerm(abc.ABC):
                                 :,
                             ],
                         )
-                        @ vsite_charges[self._grid_batches[i][1] : self._grid_batches[i + 1][1]]
+                        @ vsite_charges[
+                            self._grid_batches[i][1] : self._grid_batches[i + 1][1]
+                        ]
                         for i in range(len(self._grid_batches) - 1)
                     )
                 )
@@ -363,7 +394,9 @@ class ObjectiveTerm(abc.ABC):
             The L2 loss function.
         """
 
-        delta = self.reference_values - self.predict(charge_parameters, vsite_coordinate_parameters)
+        delta = self.reference_values - self.predict(
+            charge_parameters, vsite_coordinate_parameters
+        )
 
         return (delta * delta).sum()
 
@@ -389,7 +422,9 @@ class Objective(abc.ABC):
 
     @classmethod
     @abc.abstractmethod
-    def _compute_design_matrix_precursor(cls, grid_coordinates: numpy.ndarray, conformer: numpy.ndarray):
+    def _compute_design_matrix_precursor(
+        cls, grid_coordinates: numpy.ndarray, conformer: numpy.ndarray
+    ):
         """Computes the design matrix precursor which, when combined with the BCC
         assignment matrix, yields the full design matrix.
 
@@ -422,20 +457,36 @@ class Objective(abc.ABC):
         charge_collection: LibraryChargeCollection,
         charge_parameter_keys: list[tuple[str, tuple[int, ...]]],
     ) -> tuple[numpy.ndarray, numpy.ndarray]:
-        assignment_matrix = LibraryChargeGenerator.build_assignment_matrix(molecule, charge_collection)
+        assignment_matrix = LibraryChargeGenerator.build_assignment_matrix(
+            molecule, charge_collection
+        )
 
         flat_collection_keys = [
-            (parameter.smiles, i) for parameter in charge_collection.parameters for i in range(len(parameter.value))
+            (parameter.smiles, i)
+            for parameter in charge_collection.parameters
+            for i in range(len(parameter.value))
         ]
-        flat_collection_values = [charge for parameter in charge_collection.parameters for charge in parameter.value]
+        flat_collection_values = [
+            charge
+            for parameter in charge_collection.parameters
+            for charge in parameter.value
+        ]
 
         trainable_parameter_indices = [
-            flat_collection_keys.index((smirks, i)) for smirks, indices in charge_parameter_keys for i in indices
+            flat_collection_keys.index((smirks, i))
+            for smirks, indices in charge_parameter_keys
+            for i in indices
         ]
-        fixed_parameter_indices = [i for i in range(len(flat_collection_keys)) if i not in trainable_parameter_indices]
+        fixed_parameter_indices = [
+            i
+            for i in range(len(flat_collection_keys))
+            if i not in trainable_parameter_indices
+        ]
 
         fixed_assignment_matrix = assignment_matrix[:, fixed_parameter_indices]
-        fixed_charge_values = numpy.array([[flat_collection_values[index]] for index in fixed_parameter_indices])
+        fixed_charge_values = numpy.array(
+            [[flat_collection_values[index]] for index in fixed_parameter_indices]
+        )
 
         fixed_charges = fixed_assignment_matrix @ fixed_charge_values
 
@@ -450,17 +501,30 @@ class Objective(abc.ABC):
         bcc_collection: BCCCollection,
         bcc_parameter_keys: list[str],
     ) -> tuple[numpy.ndarray, numpy.ndarray]:
-        flat_collection_keys = [parameter.smirks for parameter in bcc_collection.parameters]
-
-        trainable_parameter_indices = [flat_collection_keys.index(key) for key in bcc_parameter_keys]
-        fixed_parameter_indices = [
-            i for i in range(len(bcc_collection.parameters)) if i not in trainable_parameter_indices
+        flat_collection_keys = [
+            parameter.smirks for parameter in bcc_collection.parameters
         ]
 
-        assignment_matrix = BCCGenerator.build_assignment_matrix(molecule, bcc_collection)
+        trainable_parameter_indices = [
+            flat_collection_keys.index(key) for key in bcc_parameter_keys
+        ]
+        fixed_parameter_indices = [
+            i
+            for i in range(len(bcc_collection.parameters))
+            if i not in trainable_parameter_indices
+        ]
+
+        assignment_matrix = BCCGenerator.build_assignment_matrix(
+            molecule, bcc_collection
+        )
 
         fixed_assignment_matrix = assignment_matrix[:, fixed_parameter_indices]
-        fixed_bcc_values = numpy.array([[bcc_collection.parameters[index].value] for index in fixed_parameter_indices])
+        fixed_bcc_values = numpy.array(
+            [
+                [bcc_collection.parameters[index].value]
+                for index in fixed_parameter_indices
+            ]
+        )
 
         fixed_charges = fixed_assignment_matrix @ fixed_bcc_values
 
@@ -477,10 +541,15 @@ class Objective(abc.ABC):
         vsite_coordinate_parameter_keys: list[VirtualSiteGeometryKey],
     ) -> tuple[numpy.ndarray, numpy.ndarray, numpy.ndarray]:
         parameters_by_key = {
-            (parameter.smirks, parameter.type, parameter.name): parameter for parameter in vsite_collection.parameters
+            (parameter.smirks, parameter.type, parameter.name): parameter
+            for parameter in vsite_collection.parameters
         }
 
-        smirnoff_vsite_collection = VirtualSiteGenerator._create_virtual_site_collection(molecule, vsite_collection)
+        smirnoff_vsite_collection = (
+            VirtualSiteGenerator._create_virtual_site_collection(
+                molecule, vsite_collection
+            )
+        )
 
         if len(smirnoff_vsite_collection.key_map) == 0:
             return (
@@ -498,7 +567,9 @@ class Objective(abc.ABC):
             parameter_key = (smirks, vsite_key.type, vsite_key.name)
             parameter = parameters_by_key[parameter_key]
 
-            assigned_parameters[parameter_key].append(vsite_key.orientation_atom_indices)
+            assigned_parameters[parameter_key].append(
+                vsite_key.orientation_atom_indices
+            )
 
             local_parameters = []
             local_indices = []
@@ -518,7 +589,9 @@ class Objective(abc.ABC):
             for parameter_key, orientations in assigned_parameters.items()
         ]
 
-        local_coordinate_frame = VirtualSiteGenerator.build_local_coordinate_frames(conformer, assigned_parameters)
+        local_coordinate_frame = VirtualSiteGenerator.build_local_coordinate_frames(
+            conformer, assigned_parameters
+        )
 
         # noinspection PyTypeChecker
         return (
@@ -540,16 +613,28 @@ class Objective(abc.ABC):
             for i in range(len(parameter.charge_increments))
         ]
         flat_collection_values = [
-            charge for parameter in vsite_collection.parameters for charge in parameter.charge_increments
+            charge
+            for parameter in vsite_collection.parameters
+            for charge in parameter.charge_increments
         ]
 
-        trainable_parameter_indices = [flat_collection_keys.index(key) for key in vsite_charge_parameter_keys]
-        fixed_parameter_indices = [i for i in range(len(flat_collection_keys)) if i not in trainable_parameter_indices]
+        trainable_parameter_indices = [
+            flat_collection_keys.index(key) for key in vsite_charge_parameter_keys
+        ]
+        fixed_parameter_indices = [
+            i
+            for i in range(len(flat_collection_keys))
+            if i not in trainable_parameter_indices
+        ]
 
-        assignment_matrix = VirtualSiteGenerator.build_charge_assignment_matrix(molecule, vsite_collection)
+        assignment_matrix = VirtualSiteGenerator.build_charge_assignment_matrix(
+            molecule, vsite_collection
+        )
 
         fixed_assignment_matrix = assignment_matrix[:, fixed_parameter_indices]
-        fixed_charge_values = numpy.array([[flat_collection_values[index]] for index in fixed_parameter_indices])
+        fixed_charge_values = numpy.array(
+            [[flat_collection_values[index]] for index in fixed_parameter_indices]
+        )
         fixed_charges = fixed_assignment_matrix @ fixed_charge_values
 
         trainable_assignment_matrix = assignment_matrix[:, trainable_parameter_indices]
@@ -570,8 +655,11 @@ class Objective(abc.ABC):
     ) -> Generator[ObjectiveTerm, None, None]:
         """Pre-calculates the terms that contribute to the total objective function.
 
-        This function assumes that the array (/tensor) of values to train will have shape
-        (n_charge_parameter_keys + n_bcc_parameter_keys + vsite_charge_parameter_keys, 1)
+        This function assumes that the array (/tensor) of values to train will have
+        shape (
+          n_charge_parameter_keys + n_bcc_parameter_keys + vsite_charge_parameter_keys,
+          1,
+        )
         with the values in the array corresponding to the values pointed to by the keys
         starting with library charge values (if any), followed by BCCs (if any) and
         finally any v-site charge increments (if any). See the ``vectorize`` method of
@@ -598,8 +686,8 @@ class Objective(abc.ABC):
             A list of tuples of the form ``(smiles, (idx_0, ...))`` that define those
             parameters in the ``charge_collection`` that should be trained.
 
-            Here ``idx_i`` is an index into the ``value`` field of the parameter uniquely
-            identified by the ``smiles`` key.
+            Here ``idx_i`` is an index into the ``value`` field of the parameter
+            uniquely identified by the ``smiles`` key.
 
             This argument can only be used when the ``charge_collection`` is a library
             charge collection.
@@ -652,7 +740,9 @@ class Objective(abc.ABC):
         from openff.toolkit import Molecule
 
         for esp_record in esp_records:
-            molecule: Molecule = Molecule.from_mapped_smiles(esp_record.tagged_smiles, allow_undefined_stereo=True)
+            molecule: Molecule = Molecule.from_mapped_smiles(
+                esp_record.tagged_smiles, allow_undefined_stereo=True
+            )
             ordered_conformer = esp_record.conformer
 
             fixed_atom_charges = numpy.zeros((molecule.n_atoms, 1))
@@ -676,7 +766,9 @@ class Objective(abc.ABC):
             if charge_collection is None:
                 pass
             elif isinstance(charge_collection, QCChargeSettings):
-                assert charge_parameter_keys is None, "charges generated using `QCChargeSettings` cannot be trained"
+                assert charge_parameter_keys is None, (
+                    "charges generated using `QCChargeSettings` cannot be trained"
+                )
 
                 fixed_atom_charges += QCChargeGenerator.generate(
                     molecule, [ordered_conformer * unit.angstrom], charge_collection
@@ -694,7 +786,9 @@ class Objective(abc.ABC):
 
                 fixed_atom_charges += library_fixed_charges
 
-                atom_charge_design_matrices.append(design_matrix_precursor @ library_assignment_matrix)
+                atom_charge_design_matrices.append(
+                    design_matrix_precursor @ library_assignment_matrix
+                )
             else:
                 raise NotImplementedError()
 
@@ -702,17 +796,23 @@ class Objective(abc.ABC):
                 (
                     bcc_assignment_matrix,
                     bcc_fixed_charges,
-                ) = cls._compute_bcc_charge_terms(molecule, bcc_collection, bcc_parameter_keys)
+                ) = cls._compute_bcc_charge_terms(
+                    molecule, bcc_collection, bcc_parameter_keys
+                )
 
                 fixed_atom_charges += bcc_fixed_charges
 
-                atom_charge_design_matrices.append(design_matrix_precursor @ bcc_assignment_matrix)
+                atom_charge_design_matrices.append(
+                    design_matrix_precursor @ bcc_assignment_matrix
+                )
 
             if vsite_collection is not None:
                 (
                     vsite_charge_assignment_matrix,
                     vsite_fixed_charges,
-                ) = cls._compute_vsite_charge_terms(molecule, vsite_collection, vsite_charge_parameter_keys)
+                ) = cls._compute_vsite_charge_terms(
+                    molecule, vsite_collection, vsite_charge_parameter_keys
+                )
                 (
                     vsite_coord_assignment_matrix,
                     vsite_fixed_coords,
@@ -727,10 +827,16 @@ class Objective(abc.ABC):
                 fixed_atom_charges += vsite_fixed_charges[: molecule.n_atoms]
                 vsite_fixed_charges = vsite_fixed_charges[molecule.n_atoms :]
 
-                atom_charge_assignment_matrix = vsite_charge_assignment_matrix[: molecule.n_atoms]
-                atom_charge_design_matrices.append(design_matrix_precursor @ atom_charge_assignment_matrix)
+                atom_charge_assignment_matrix = vsite_charge_assignment_matrix[
+                    : molecule.n_atoms
+                ]
+                atom_charge_design_matrices.append(
+                    design_matrix_precursor @ atom_charge_assignment_matrix
+                )
 
-                vsite_charge_assignment_matrix = vsite_charge_assignment_matrix[molecule.n_atoms :]
+                vsite_charge_assignment_matrix = vsite_charge_assignment_matrix[
+                    molecule.n_atoms :
+                ]
 
                 grid_coordinates = esp_record.grid_coordinates
 
@@ -743,7 +849,10 @@ class Objective(abc.ABC):
             if cls._flatten_charges():
                 fixed_atom_charges = fixed_atom_charges.flatten()
 
-            reference_values = cls._electrostatic_property(esp_record) - design_matrix_precursor @ fixed_atom_charges
+            reference_values = (
+                cls._electrostatic_property(esp_record)
+                - design_matrix_precursor @ fixed_atom_charges
+            )
 
             yield cls._objective_term()(
                 atom_charge_design_matrix,
@@ -785,13 +894,19 @@ class ESPObjective(Objective):
         return False
 
     @classmethod
-    def _compute_design_matrix_precursor(cls, grid_coordinates: numpy.ndarray, conformer: numpy.ndarray):
+    def _compute_design_matrix_precursor(
+        cls, grid_coordinates: numpy.ndarray, conformer: numpy.ndarray
+    ):
         # Pre-compute the inverse distance between each atom in the molecule
         # and each grid point.
-        inverse_distance_matrix = compute_inverse_distance_matrix(grid_coordinates, conformer)
+        inverse_distance_matrix = compute_inverse_distance_matrix(
+            grid_coordinates, conformer
+        )
         # Care must be taken to ensure that length units are converted from [Angstrom]
         # to [Bohr].
-        inverse_distance_matrix = unit.convert(inverse_distance_matrix, unit.angstrom**-1, unit.bohr**-1)
+        inverse_distance_matrix = unit.convert(
+            inverse_distance_matrix, unit.angstrom**-1, unit.bohr**-1
+        )
 
         return inverse_distance_matrix
 
@@ -828,7 +943,9 @@ class ElectricFieldObjective(Objective):
         return True
 
     @classmethod
-    def _compute_design_matrix_precursor(cls, grid_coordinates: numpy.ndarray, conformer: numpy.ndarray):
+    def _compute_design_matrix_precursor(
+        cls, grid_coordinates: numpy.ndarray, conformer: numpy.ndarray
+    ):
         vector_field = compute_vector_field(
             unit.convert(conformer, unit.angstrom, unit.bohr),
             unit.convert(grid_coordinates, unit.angstrom, unit.bohr),

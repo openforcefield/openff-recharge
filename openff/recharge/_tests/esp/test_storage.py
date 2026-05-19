@@ -25,14 +25,20 @@ class TestMoleculeESPRecord:
             conformer=numpy.array([[0.0, 5.0, 0.0]]) * unit.nanometers,
             grid_coordinates=numpy.array([[0.0, 6.0, 0.0]]) * unit.nanometers,
             esp=numpy.array([[4.0]]) * unit.hartree / unit.e,
-            electric_field=numpy.array([[1.0, 2.0, 3.0]]) * unit.hartree / (unit.bohr * unit.e),
+            electric_field=numpy.array([[1.0, 2.0, 3.0]])
+            * unit.hartree
+            / (unit.bohr * unit.e),
         )
 
     def test_validate_quantity(self, mock_record):
         assert numpy.allclose(mock_record.conformer, numpy.array([[0.0, 50.0, 0.0]]))
-        assert numpy.allclose(mock_record.grid_coordinates, numpy.array([[0.0, 60.0, 0.0]]))
+        assert numpy.allclose(
+            mock_record.grid_coordinates, numpy.array([[0.0, 60.0, 0.0]])
+        )
         assert numpy.allclose(mock_record.esp, numpy.array([[4.0]]))
-        assert numpy.allclose(mock_record.electric_field, numpy.array([[1.0, 2.0, 3.0]]))
+        assert numpy.allclose(
+            mock_record.electric_field, numpy.array([[1.0, 2.0, 3.0]])
+        )
 
     def test_conformer_quantity(self, mock_record):
         assert numpy.allclose(
@@ -47,7 +53,9 @@ class TestMoleculeESPRecord:
         )
 
     def test_esp_quantity(self, mock_record):
-        assert numpy.allclose(mock_record.esp_quantity, numpy.array([[4.0]]) * unit.hartree / unit.e)
+        assert numpy.allclose(
+            mock_record.esp_quantity, numpy.array([[4.0]]) * unit.hartree / unit.e
+        )
 
     def test_electric_field_quantity(self, mock_record):
         assert numpy.allclose(
@@ -115,7 +123,9 @@ def test_record_from_molecule():
     esp = numpy.array([[2.0]])
     electric_field = numpy.array([[2.0, 3.0, 4.0]])
 
-    esp_settings = ESPSettings(pcm_settings=PCMSettings(), grid_settings=LatticeGridSettings())
+    esp_settings = ESPSettings(
+        pcm_settings=PCMSettings(), grid_settings=LatticeGridSettings()
+    )
 
     record = MoleculeESPRecord.from_molecule(
         molecule=molecule,
@@ -140,7 +150,10 @@ def test_record_from_molecule():
 
 
 def test_tagged_to_canonical_smiles():
-    assert MoleculeESPStore._tagged_to_canonical_smiles("[H:2][C:1]([H:3])([H:4])[H:5]") == "C"
+    assert (
+        MoleculeESPStore._tagged_to_canonical_smiles("[H:2][C:1]([H:3])([H:4])[H:5]")
+        == "C"
+    )
 
 
 def test_store(tmp_path):
@@ -163,7 +176,9 @@ def test_store(tmp_path):
             grid_coordinates=numpy.array([[0.0, 0.0, 0.0]]),
             esp=numpy.array([[0.0]]),
             electric_field=numpy.array([[0.0, 0.0, 0.0]]),
-            esp_settings=ESPSettings(pcm_settings=PCMSettings(), grid_settings=LatticeGridSettings()),
+            esp_settings=ESPSettings(
+                pcm_settings=PCMSettings(), grid_settings=LatticeGridSettings()
+            ),
         ),
     )
 
@@ -278,9 +293,15 @@ def test_lattice_grid_settings_round_trip():
 
     assert original_grid_settings.type == recreated_grid_settings.type
 
-    assert numpy.isclose(original_grid_settings.spacing, recreated_grid_settings.spacing)
-    assert numpy.isclose(original_grid_settings.inner_vdw_scale, recreated_grid_settings.inner_vdw_scale)
-    assert numpy.isclose(original_grid_settings.outer_vdw_scale, recreated_grid_settings.outer_vdw_scale)
+    assert numpy.isclose(
+        original_grid_settings.spacing, recreated_grid_settings.spacing
+    )
+    assert numpy.isclose(
+        original_grid_settings.inner_vdw_scale, recreated_grid_settings.inner_vdw_scale
+    )
+    assert numpy.isclose(
+        original_grid_settings.outer_vdw_scale, recreated_grid_settings.outer_vdw_scale
+    )
 
 
 def test_msk_grid_settings_round_trip():
@@ -294,7 +315,9 @@ def test_msk_grid_settings_round_trip():
 
     assert original_grid_settings.type == recreated_grid_settings.type
 
-    assert numpy.isclose(original_grid_settings.density, recreated_grid_settings.density)
+    assert numpy.isclose(
+        original_grid_settings.density, recreated_grid_settings.density
+    )
 
 
 def test_pcm_settings_round_trip():
@@ -312,7 +335,9 @@ def test_pcm_settings_round_trip():
     assert original_pcm_settings.radii_model == recreated_pcm_settings.radii_model
     assert original_pcm_settings.radii_scaling == recreated_pcm_settings.radii_scaling
 
-    assert numpy.isclose(original_pcm_settings.cavity_area, recreated_pcm_settings.cavity_area)
+    assert numpy.isclose(
+        original_pcm_settings.cavity_area, recreated_pcm_settings.cavity_area
+    )
 
 
 def test_retrieve(tmp_path):

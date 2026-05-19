@@ -9,7 +9,9 @@ from openff.recharge.grids import LatticeGridSettings
 from openff.recharge.utilities.molecule import smiles_to_molecule
 
 
-@pytest.mark.skip(reason="Need to rewrite using a molecule that the toolkit will parse.")
+@pytest.mark.skip(
+    reason="Need to rewrite using a molecule that the toolkit will parse."
+)
 @pytest.mark.parametrize(
     "compute_esp, compute_field, expected_properties",
     [
@@ -31,7 +33,9 @@ def test_generate_input_base(compute_esp, compute_field, expected_properties):
     molecule = smiles_to_molecule("[Cl-]")
     conformer = numpy.array([[0.0, 0.0, 0.0]]) * unit.angstrom
 
-    input_contents = Psi4ESPGenerator._generate_input(molecule, conformer, settings, False, compute_esp, compute_field)
+    input_contents = Psi4ESPGenerator._generate_input(
+        molecule, conformer, settings, False, compute_esp, compute_field
+    )
 
     expected_output = "\n".join(
         [
@@ -59,7 +63,9 @@ def test_generate_input_base(compute_esp, compute_field, expected_properties):
     molecule = smiles_to_molecule("[B]")
     conformer = numpy.array([[0.0, 0.0, 0.0]]) * unit.angstrom
 
-    input_contents = Psi4ESPGenerator._generate_input(molecule, conformer, settings, True, compute_esp, compute_field)
+    input_contents = Psi4ESPGenerator._generate_input(
+        molecule, conformer, settings, True, compute_esp, compute_field
+    )
 
     expected_output = "\n".join(
         [
@@ -110,19 +116,25 @@ def test_generate_input_base(compute_esp, compute_field, expected_properties):
         ),
     ],
 )
-def test_generate_input_dft_settings(dft_grid_settings: DFTGridSettings, expected_grid_settings: list[str]):
+def test_generate_input_dft_settings(
+    dft_grid_settings: DFTGridSettings, expected_grid_settings: list[str]
+):
     """Test that the correct input is generated from the
     jinja template."""
     pytest.importorskip("psi4")
 
     # Define the settings to use.
-    settings = ESPSettings(psi4_dft_grid_settings=dft_grid_settings, grid_settings=LatticeGridSettings())
+    settings = ESPSettings(
+        psi4_dft_grid_settings=dft_grid_settings, grid_settings=LatticeGridSettings()
+    )
 
     # Create a closed shell molecule.
     molecule = smiles_to_molecule("[Cl-]")
     conformer = numpy.array([[0.0, 0.0, 0.0]]) * unit.angstrom
 
-    input_contents = Psi4ESPGenerator._generate_input(molecule, conformer, settings, False, True, True)
+    input_contents = Psi4ESPGenerator._generate_input(
+        molecule, conformer, settings, False, True, True
+    )
 
     expected_output = "\n".join(
         [
@@ -140,7 +152,7 @@ def test_generate_input_dft_settings(dft_grid_settings: DFTGridSettings, expecte
             *expected_grid_settings,
             "}",
             "",
-            "E,wfn = prop('hf', properties = ['GRID_ESP', 'GRID_FIELD'], return_wfn=True)",
+            "E,wfn = prop('hf', properties = ['GRID_ESP', 'GRID_FIELD'], return_wfn=True)",  # noqa: E501
             "mol.save_xyz_file('final-geometry.xyz',1)",
         ]
     )
@@ -154,13 +166,17 @@ def test_generate_input_pcm():
     pytest.importorskip("psi4")
 
     # Define the settings to use.
-    settings = ESPSettings(pcm_settings=PCMSettings(), grid_settings=LatticeGridSettings())
+    settings = ESPSettings(
+        pcm_settings=PCMSettings(), grid_settings=LatticeGridSettings()
+    )
 
     # Create a closed shell molecule.
     molecule = smiles_to_molecule("[Cl-]")
     conformer = numpy.array([[0.1, 0.0, 0.0]]) * unit.nanometer
 
-    input_contents = Psi4ESPGenerator._generate_input(molecule, conformer, settings, False, True, True)
+    input_contents = Psi4ESPGenerator._generate_input(
+        molecule, conformer, settings, False, True, True
+    )
 
     expected_output = "\n".join(
         [
@@ -195,7 +211,7 @@ def test_generate_input_pcm():
             "  }",
             "}",
             "",
-            "E,wfn = prop('hf', properties = ['GRID_ESP', 'GRID_FIELD'], return_wfn=True)",
+            "E,wfn = prop('hf', properties = ['GRID_ESP', 'GRID_FIELD'], return_wfn=True)",  # noqa: E501
             "mol.save_xyz_file('final-geometry.xyz',1)",
         ]
     )
@@ -209,7 +225,9 @@ def test_generate_input_pcm_memory():
     pytest.importorskip("psi4")
 
     # Define the settings to use.
-    settings = ESPSettings(pcm_settings=PCMSettings(), grid_settings=LatticeGridSettings())
+    settings = ESPSettings(
+        pcm_settings=PCMSettings(), grid_settings=LatticeGridSettings()
+    )
 
     # Create a closed shell molecule.
     molecule = smiles_to_molecule("[Cl-]")
@@ -252,7 +270,7 @@ def test_generate_input_pcm_memory():
             "  }",
             "}",
             "",
-            "E,wfn = prop('hf', properties = ['GRID_ESP', 'GRID_FIELD'], return_wfn=True)",
+            "E,wfn = prop('hf', properties = ['GRID_ESP', 'GRID_FIELD'], return_wfn=True)",  # noqa: E501
             "mol.save_xyz_file('final-geometry.xyz',1)",
         ]
     )

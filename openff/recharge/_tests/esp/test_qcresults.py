@@ -17,7 +17,9 @@ from openff.recharge.grids import LatticeGridSettings
 def test_from_qcportal_results(with_field, public_client):
     pytest.importorskip("psi4")
 
-    qc_result: qcportal.singlepoint.SinglepointRecord = next(iter(public_client.query_records(record_id="32651863")))
+    qc_result: qcportal.singlepoint.SinglepointRecord = next(
+        iter(public_client.query_records(record_id="32651863"))
+    )
 
     esp_record = from_qcportal_results(
         qc_result=qc_result,
@@ -40,7 +42,9 @@ def test_from_qcportal_results(with_field, public_client):
 def test_from_qcportal_results_with_pcm(with_field, public_client):
     pytest.importorskip("psi4")
 
-    qc_result: qcportal.singlepoint.SinglepointRecord = next(iter(public_client.query_records(record_id="32652103")))
+    qc_result: qcportal.singlepoint.SinglepointRecord = next(
+        iter(public_client.query_records(record_id="32652103"))
+    )
 
     esp_record = from_qcportal_results(
         qc_result=qc_result,

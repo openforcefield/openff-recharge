@@ -88,7 +88,9 @@ def hcl_parameters() -> tuple[BCCCollection, VirtualSiteCollection]:
         ]
     ),
 )
-def test_term_to_backend(input_type: Callable, output_type: type, backend: Literal["numpy", "torch"]):
+def test_term_to_backend(
+    input_type: Callable, output_type: type, backend: Literal["numpy", "torch"]
+):
     objective_term = ESPObjectiveTerm(
         atom_charge_design_matrix=input_type([[1.0, 2.0]]),
         vsite_charge_assignment_matrix=input_type([[1], [-1]]),
@@ -127,8 +129,14 @@ def test_term_to_backend(input_type: Callable, output_type: type, backend: Liter
         ),
         (
             ElectricFieldObjectiveTerm,
-            numpy.array([[[+0.0, -4.0 / 125.0], [+3.0 / 27.0, +3.0 / 125.0], [+0.0, +0.0]]]),
-            ((1.0 - 2.0 * (0.0 - -4.0 / 125.0)) ** 2 + (1.0 - 2.0 * (3.0 / 27.0 - 3.0 / 125.0)) ** 2 + 1.0),
+            numpy.array(
+                [[[+0.0, -4.0 / 125.0], [+3.0 / 27.0, +3.0 / 125.0], [+0.0, +0.0]]]
+            ),
+            (
+                (1.0 - 2.0 * (0.0 - -4.0 / 125.0)) ** 2
+                + (1.0 - 2.0 * (3.0 / 27.0 - 3.0 / 125.0)) ** 2
+                + 1.0
+            ),
         ),
     ],
 )
@@ -139,7 +147,9 @@ def test_term_loss_atom_charge_only(
     expected_loss: numpy.ndarray,
     backend: Literal["numpy", "torch"],
 ):
-    charge_values = numpy.array([[2.0]]) if backend == "numpy" else torch.tensor([[2.0]])
+    charge_values = (
+        numpy.array([[2.0]]) if backend == "numpy" else torch.tensor([[2.0]])
+    )
 
     term = term_class(
         atom_charge_design_matrix=design_matrix_precursor @ numpy.array([[1], [-1]]),
@@ -182,9 +192,13 @@ def test_term_evaluate_vsite_only(
     expected_loss: numpy.ndarray,
     backend: Literal["numpy", "torch"],
 ):
-    charge_values = numpy.array([[2.0]]) if backend == "numpy" else torch.tensor([[2.0]])
+    charge_values = (
+        numpy.array([[2.0]]) if backend == "numpy" else torch.tensor([[2.0]])
+    )
     coordinate_values = (
-        numpy.array([[4.0 * BOHR_TO_ANGSTROM]]) if backend == "numpy" else torch.tensor([[4.0 * BOHR_TO_ANGSTROM]])
+        numpy.array([[4.0 * BOHR_TO_ANGSTROM]])
+        if backend == "numpy"
+        else torch.tensor([[4.0 * BOHR_TO_ANGSTROM]])
     )
 
     term = term_class(
@@ -231,22 +245,32 @@ def test_term_evaluate_vsite_only(
             numpy.array([[[0.0, -4.0 / 125.0], [3.0 / 27.0, 3.0 / 125.0], [0.0, 0.0]]]),
             (
                 (1.0 - (2.5 * 0.0 + -2.0 * -4.0 / 125.0 + -0.5 * 4.0 / 125.0)) ** 2
-                + (1.0 - (2.5 * 3.0 / 27.0 + -2.0 * 3.0 / 125.0 + -0.5 * 3.0 / 125.0)) ** 2
+                + (1.0 - (2.5 * 3.0 / 27.0 + -2.0 * 3.0 / 125.0 + -0.5 * 3.0 / 125.0))
+                ** 2
                 + 1.0
             ),
         ),
     ],
 )
 @pytest.mark.parametrize("backend", backends)
-def test_term_evaluate_atom_charge_and_vsite(term_class, design_matrix_precursor, expected_loss, backend):
-    charge_values = numpy.array([[2.0], [0.5]]) if backend == "numpy" else torch.tensor([[2.0], [0.5]])
+def test_term_evaluate_atom_charge_and_vsite(
+    term_class, design_matrix_precursor, expected_loss, backend
+):
+    charge_values = (
+        numpy.array([[2.0], [0.5]])
+        if backend == "numpy"
+        else torch.tensor([[2.0], [0.5]])
+    )
 
     coordinate_values = (
-        numpy.array([[-4.0 * BOHR_TO_ANGSTROM]]) if backend == "numpy" else torch.tensor([[-4.0 * BOHR_TO_ANGSTROM]])
+        numpy.array([[-4.0 * BOHR_TO_ANGSTROM]])
+        if backend == "numpy"
+        else torch.tensor([[-4.0 * BOHR_TO_ANGSTROM]])
     )
 
     term = term_class(
-        atom_charge_design_matrix=design_matrix_precursor @ numpy.array([[1, 1], [-1, 0]]),
+        atom_charge_design_matrix=design_matrix_precursor
+        @ numpy.array([[1, 1], [-1, 0]]),
         vsite_charge_assignment_matrix=numpy.array([[-1.0]]),
         vsite_fixed_charges=numpy.array([[0.0]]),
         vsite_coord_assignment_matrix=numpy.array([[0, -1, -1]]),
@@ -291,13 +315,19 @@ def test_combine_terms(objective_class, backend, hcl_parameters):
         bcc_parameter_keys=["[#17:1]-[#1:2]"],
         vsite_collection=vsite_collection,
         vsite_charge_parameter_keys=[("[#17:1]-[#1:2]", "BondCharge", "EP", 0)],
-        vsite_coordinate_parameter_keys=[("[#17:1]-[#1:2]", "BondCharge", "EP", "distance")],
+        vsite_coordinate_parameter_keys=[
+            ("[#17:1]-[#1:2]", "BondCharge", "EP", "distance")
+        ],
     )
     objective_terms = [*objective_terms_generator]
 
     # Define a dummy set of parameters
-    charge_values = numpy.random.random((2, 1)) if backend == "numpy" else torch.rand((2, 1))
-    coordinate_values = numpy.random.random((1, 1)) if backend == "numpy" else torch.rand((1, 1))
+    charge_values = (
+        numpy.random.random((2, 1)) if backend == "numpy" else torch.rand((2, 1))
+    )
+    coordinate_values = (
+        numpy.random.random((1, 1)) if backend == "numpy" else torch.rand((1, 1))
+    )
 
     # Compute the total loss by summation.
     summed_loss = numpy.zeros(1) if backend == "numpy" else torch.zeros(1)
@@ -310,7 +340,7 @@ def test_combine_terms(objective_class, backend, hcl_parameters):
     combined_term = objective_class._objective_term().combine(*objective_terms)
     combined_loss = combined_term.loss(charge_values, coordinate_values)
 
-    # Cast to scalar since some auto-conversion is deprecated, and different API with torch
+    # Cast to scalar since some auto-conversion is deprecated, different API with torch
     if backend == "numpy":
         summed_loss = summed_loss.item(0)
         combined_loss = combined_loss.item(0)
@@ -326,7 +356,9 @@ def test_compute_library_charge_terms():
 
     library_charge_collection = LibraryChargeCollection(
         parameters=[
-            LibraryChargeParameter(smiles="[#1:1][#6:2]#[#6:3][#9:4]", value=[-0.05, 0.05, 0.05, -0.05]),
+            LibraryChargeParameter(
+                smiles="[#1:1][#6:2]#[#6:3][#9:4]", value=[-0.05, 0.05, 0.05, -0.05]
+            ),
             LibraryChargeParameter(smiles="[#1:1][#17:2]", value=[0.02, -0.02]),
         ]
     )
@@ -366,7 +398,9 @@ def test_compute_bcc_charge_terms():
     )
 
     assert assignment_matrix.shape == (4, 2)
-    assert numpy.allclose(assignment_matrix, numpy.array([[0, -1], [0, 1], [-1, 0], [1, 0]]))
+    assert numpy.allclose(
+        assignment_matrix, numpy.array([[0, -1], [0, 1], [-1, 0], [1, 0]])
+    )
 
     assert fixed_charges.shape == (4, 1)
     assert numpy.allclose(fixed_charges, numpy.array([[0], [2], [-2], [0]]))
@@ -414,7 +448,9 @@ def test_compute_vsite_charge_terms():
     )
 
     assert fixed_charges.shape == (6, 1)
-    assert numpy.allclose(fixed_charges, numpy.array([[1.0], [-2.0], [0.0], [0.0], [2.0], [-1.0]]))
+    assert numpy.allclose(
+        fixed_charges, numpy.array([[1.0], [-2.0], [0.0], [0.0], [2.0], [-1.0]])
+    )
 
 
 def test_compute_vsite_coord_terms():
@@ -476,7 +512,9 @@ def test_compute_vsite_coord_terms():
     )
 
     assert fixed_coords.shape == (2, 3)
-    assert numpy.allclose(fixed_coords, numpy.array([[1.0, 175.0, 0.0], [0.0, 180.0, 0.0]])) or numpy.allclose(
+    assert numpy.allclose(
+        fixed_coords, numpy.array([[1.0, 175.0, 0.0], [0.0, 180.0, 0.0]])
+    ) or numpy.allclose(
         fixed_coords, numpy.array([[0.0, 180.0, 0.0], [1.0, 175.0, 0.0]])
     )
 
@@ -493,7 +531,9 @@ def test_compute_esp_objective_terms(hcl_esp_record, hcl_parameters):
         bcc_parameter_keys=["[#17:1]-[#1:2]"],
         vsite_collection=vsite_collection,
         vsite_charge_parameter_keys=[("[#17:1]-[#1:2]", "BondCharge", "EP", 0)],
-        vsite_coordinate_parameter_keys=[("[#17:1]-[#1:2]", "BondCharge", "EP", "distance")],
+        vsite_coordinate_parameter_keys=[
+            ("[#17:1]-[#1:2]", "BondCharge", "EP", "distance")
+        ],
     )
     objective_terms = [*objective_terms_generator]
 
@@ -506,8 +546,12 @@ def test_compute_esp_objective_terms(hcl_esp_record, hcl_parameters):
             [1.0 / 5.0 - 1.0 / numpy.sqrt(3.0 * 3.0 + 8.0 * 8.0), 1.0 / 5.0],
         ]
     )
-    assert objective_term.atom_charge_design_matrix.shape == expected_design_matrix.shape
-    assert numpy.allclose(objective_term.atom_charge_design_matrix, expected_design_matrix)
+    assert (
+        objective_term.atom_charge_design_matrix.shape == expected_design_matrix.shape
+    )
+    assert numpy.allclose(
+        objective_term.atom_charge_design_matrix, expected_design_matrix
+    )
 
     assert objective_term.vsite_charge_assignment_matrix.shape == (1, 1)
     assert numpy.isclose(objective_term.vsite_charge_assignment_matrix, -1)
@@ -516,20 +560,30 @@ def test_compute_esp_objective_terms(hcl_esp_record, hcl_parameters):
     assert numpy.isclose(objective_term.vsite_fixed_charges, -0.1)
 
     assert objective_term.vsite_coord_assignment_matrix.shape == (1, 3)
-    assert numpy.allclose(objective_term.vsite_coord_assignment_matrix, numpy.array([[0, -1, -1]]))
+    assert numpy.allclose(
+        objective_term.vsite_coord_assignment_matrix, numpy.array([[0, -1, -1]])
+    )
 
     assert objective_term.vsite_fixed_coords.shape == (1, 3)
-    assert numpy.allclose(objective_term.vsite_fixed_coords, numpy.array([[0.0, 180.0, 0.0]]))
+    assert numpy.allclose(
+        objective_term.vsite_fixed_coords, numpy.array([[0.0, 180.0, 0.0]])
+    )
 
     assert objective_term.vsite_local_coordinate_frame.shape == (4, 1, 3)
 
-    assert hcl_esp_record.grid_coordinates.shape == objective_term.grid_coordinates.shape
-    assert numpy.allclose(hcl_esp_record.grid_coordinates, objective_term.grid_coordinates)
+    assert (
+        hcl_esp_record.grid_coordinates.shape == objective_term.grid_coordinates.shape
+    )
+    assert numpy.allclose(
+        hcl_esp_record.grid_coordinates, objective_term.grid_coordinates
+    )
 
     assert objective_term.reference_values.shape == (2, 1)
     assert numpy.allclose(
         objective_term.reference_values,
-        numpy.array([[2.0 - (0.1 / 3.0)], [2.0 - (0.1 / numpy.sqrt(3.0 * 3.0 + 8.0 * 8.0))]]),
+        numpy.array(
+            [[2.0 - (0.1 / 3.0)], [2.0 - (0.1 / numpy.sqrt(3.0 * 3.0 + 8.0 * 8.0))]]
+        ),
     )
 
 
@@ -558,7 +612,9 @@ def test_compute_esp_objective_terms_no_v_site(hcl_esp_record, hcl_parameters):
         bcc_parameter_keys=["[#17:1]-[#1:2]"],
         vsite_collection=vsite_collection,
         vsite_charge_parameter_keys=[("[#35:1]-[#1:2]", "BondCharge", "EP", 0)],
-        vsite_coordinate_parameter_keys=[("[#35:1]-[#1:2]", "BondCharge", "EP", "distance")],
+        vsite_coordinate_parameter_keys=[
+            ("[#35:1]-[#1:2]", "BondCharge", "EP", "distance")
+        ],
     )
     objective_terms = [*objective_terms_generator]
 
@@ -576,7 +632,9 @@ def test_compute_esp_objective_terms_no_v_site(hcl_esp_record, hcl_parameters):
     charge_parameters = numpy.vstack(
         [
             bcc_charge_parameters,
-            vsite_collection.vectorize_charge_increments([("[#35:1]-[#1:2]", "BondCharge", "EP", 0)]),
+            vsite_collection.vectorize_charge_increments(
+                [("[#35:1]-[#1:2]", "BondCharge", "EP", 0)]
+            ),
         ]
     )
     coordinate_parameters = vsite_collection.vectorize_coordinates(
@@ -608,7 +666,9 @@ def test_compute_field_objective_terms(hcl_esp_record, hcl_parameters):
         bcc_parameter_keys=["[#17:1]-[#1:2]"],
         vsite_collection=vsite_collection,
         vsite_charge_parameter_keys=[("[#17:1]-[#1:2]", "BondCharge", "EP", 0)],
-        vsite_coordinate_parameter_keys=[("[#17:1]-[#1:2]", "BondCharge", "EP", "distance")],
+        vsite_coordinate_parameter_keys=[
+            ("[#17:1]-[#1:2]", "BondCharge", "EP", "distance")
+        ],
     )
     objective_terms = [*objective_terms_generator]
 
@@ -629,8 +689,12 @@ def test_compute_field_objective_terms(hcl_esp_record, hcl_parameters):
         ]
     ) @ numpy.array([[-1, 0], [1, 1]])
 
-    assert objective_term.atom_charge_design_matrix.shape == expected_design_matrix.shape
-    assert numpy.allclose(objective_term.atom_charge_design_matrix, expected_design_matrix)
+    assert (
+        objective_term.atom_charge_design_matrix.shape == expected_design_matrix.shape
+    )
+    assert numpy.allclose(
+        objective_term.atom_charge_design_matrix, expected_design_matrix
+    )
 
     assert objective_term.vsite_charge_assignment_matrix.shape == (1, 1)
     assert numpy.isclose(objective_term.vsite_charge_assignment_matrix, -1)
@@ -639,15 +703,23 @@ def test_compute_field_objective_terms(hcl_esp_record, hcl_parameters):
     assert numpy.isclose(objective_term.vsite_fixed_charges, -0.1)
 
     assert objective_term.vsite_coord_assignment_matrix.shape == (1, 3)
-    assert numpy.allclose(objective_term.vsite_coord_assignment_matrix, numpy.array([[0, -1, -1]]))
+    assert numpy.allclose(
+        objective_term.vsite_coord_assignment_matrix, numpy.array([[0, -1, -1]])
+    )
 
     assert objective_term.vsite_fixed_coords.shape == (1, 3)
-    assert numpy.allclose(objective_term.vsite_fixed_coords, numpy.array([[0.0, 180.0, 0.0]]))
+    assert numpy.allclose(
+        objective_term.vsite_fixed_coords, numpy.array([[0.0, 180.0, 0.0]])
+    )
 
     assert objective_term.vsite_local_coordinate_frame.shape == (4, 1, 3)
 
-    assert hcl_esp_record.grid_coordinates.shape == objective_term.grid_coordinates.shape
-    assert numpy.allclose(hcl_esp_record.grid_coordinates, objective_term.grid_coordinates)
+    assert (
+        hcl_esp_record.grid_coordinates.shape == objective_term.grid_coordinates.shape
+    )
+    assert numpy.allclose(
+        hcl_esp_record.grid_coordinates, objective_term.grid_coordinates
+    )
 
     assert objective_term.reference_values.shape == (2, 3)
     assert numpy.allclose(

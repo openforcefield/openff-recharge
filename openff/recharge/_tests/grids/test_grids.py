@@ -74,7 +74,9 @@ class TestGridGenerator:
         inner_radii = numpy.array([[0.45]])
         outer_radii = numpy.array([[0.55]])
 
-        culled_grid = GridGenerator._cull_points(conformer, grid, inner_radii, outer_radii)
+        culled_grid = GridGenerator._cull_points(
+            conformer, grid, inner_radii, outer_radii
+        )
         assert culled_grid.shape == (1, 3)
         assert numpy.allclose(culled_grid, numpy.array([[0.5, 0.0, 0.0]]))
 
@@ -86,7 +88,9 @@ class TestGridGenerator:
             exclusion_mask=numpy.array([[True, False, False]]),
         )
         assert culled_grid.shape == (2, 3)
-        assert numpy.allclose(culled_grid, numpy.array([[0.0, 0.0, 0.0], [0.5, 0.0, 0.0]]))
+        assert numpy.allclose(
+            culled_grid, numpy.array([[0.0, 0.0, 0.0], [0.5, 0.0, 0.0]])
+        )
 
     def test_generate_fcc_grid(self):
         # Build a simple case monatomic test case.
@@ -111,7 +115,9 @@ class TestGridGenerator:
     def test_generate_msk_grid(self):
         molecule = smiles_to_molecule("O")
 
-        [conformer] = ConformerGenerator.generate(molecule, ConformerSettings(max_conformers=1))
+        [conformer] = ConformerGenerator.generate(
+            molecule, ConformerSettings(max_conformers=1)
+        )
 
         grid = GridGenerator.generate(molecule, conformer, MSKGridSettings())
 

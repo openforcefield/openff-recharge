@@ -79,7 +79,9 @@ class Psi4ESPGenerator(ESPGenerator):
         ]
 
         # Format the jinja template
-        template_path = get_data_file_path(os.path.join("psi4", "input.dat"), "openff.recharge")
+        template_path = get_data_file_path(
+            os.path.join("psi4", "input.dat"), "openff.recharge"
+        )
 
         with open(template_path) as file:
             template = jinja2.Template(file.read())
@@ -173,9 +175,15 @@ class Psi4ESPGenerator(ESPGenerator):
             esp, electric_field = None, None
 
             if compute_esp:
-                esp = numpy.loadtxt("grid_esp.dat").reshape(-1, 1) * unit.hartree / unit.e
+                esp = (
+                    numpy.loadtxt("grid_esp.dat").reshape(-1, 1) * unit.hartree / unit.e
+                )
             if compute_field:
-                electric_field = numpy.loadtxt("grid_field.dat") * unit.hartree / (unit.e * unit.bohr)
+                electric_field = (
+                    numpy.loadtxt("grid_field.dat")
+                    * unit.hartree
+                    / (unit.e * unit.bohr)
+                )
 
             with open("final-geometry.xyz") as file:
                 output_lines = file.read().splitlines(False)
@@ -183,7 +191,10 @@ class Psi4ESPGenerator(ESPGenerator):
             final_coordinates = (
                 numpy.array(
                     [
-                        [float(coordinate) for coordinate in coordinate_line.split()[1:]]
+                        [
+                            float(coordinate)
+                            for coordinate in coordinate_line.split()[1:]
+                        ]
                         for coordinate_line in output_lines[2:]
                         if len(coordinate_line) > 0
                     ]

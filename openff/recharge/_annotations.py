@@ -23,7 +23,8 @@ def validator_factory(unit: str) -> Callable:
     """
     Return a function that converts the input array in given implicit units.
 
-    This is meant to be used as the argument to pydantic.BeforeValidator in an Annotated type.
+    This is meant to be used as the argument to pydantic.BeforeValidator in an
+    Annotated type.
 
     """
     return partial(_array_validator, unit=unit)

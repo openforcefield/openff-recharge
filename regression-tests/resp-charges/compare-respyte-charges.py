@@ -18,7 +18,9 @@ from openff.recharge.grids import MSKGridSettings
 
 
 def main():
-    qc_data_settings = ESPSettings(method="hf", basis="6-31G*", grid_settings=MSKGridSettings())
+    qc_data_settings = ESPSettings(
+        method="hf", basis="6-31G*", grid_settings=MSKGridSettings()
+    )
 
     respyte_outputs = glob(os.path.join("respyte-data", "output-*"))
 
@@ -26,7 +28,9 @@ def main():
         molecule = Molecule.from_file(os.path.join(respyte_output, "mol1_conf1.mol2"))
 
         respyte_charges = numpy.round(
-            numpy.array(molecule.partial_charges.value_in_unit(simtk_unit.elementary_charge)),
+            numpy.array(
+                molecule.partial_charges.value_in_unit(simtk_unit.elementary_charge)
+            ),
             4,
         )
 
@@ -34,12 +38,16 @@ def main():
             molecule,
             numpy.loadtxt(os.path.join(respyte_output, "xyz.txt")) * unit.bohr,
             numpy.loadtxt(os.path.join(respyte_output, "grid.txt")) * unit.bohr,
-            numpy.loadtxt(os.path.join(respyte_output, "esp.txt")).reshape(-1, 1) * unit.hartree / unit.e,
+            numpy.loadtxt(os.path.join(respyte_output, "esp.txt")).reshape(-1, 1)
+            * unit.hartree
+            / unit.e,
             None,
             qc_data_settings,
         )
 
-        resp_charge_parameter = generate_resp_charge_parameter([qc_data_record], IterativeSolver())
+        resp_charge_parameter = generate_resp_charge_parameter(
+            [qc_data_record], IterativeSolver()
+        )
         resp_charges = LibraryChargeGenerator.generate(
             molecule, LibraryChargeCollection(parameters=[resp_charge_parameter])
         )

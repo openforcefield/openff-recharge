@@ -1,4 +1,4 @@
-"""Generate bond charge corrections for molecules from a collection of BCC parameters."""
+"""Generate bond charge corrections (BCCs) for molecules from a collection of BCC."""
 
 import json
 import os
@@ -47,7 +47,9 @@ class BCCCollection(BaseModel):
     """The settings which describes which BCCs should be applied,
     as well as information about how they should be applied."""
 
-    parameters: list[BCCParameter] = Field(..., description="The bond charge corrections to apply.")
+    parameters: list[BCCParameter] = Field(
+        ..., description="The bond charge corrections to apply."
+    )
     aromaticity_model: AromaticityModels = Field(
         AromaticityModels.AM1BCC,
         description="The model to use when assigning aromaticity.",
@@ -129,13 +131,19 @@ class BCCCollection(BaseModel):
             smirks = off_parameter.smirks
 
             if len(off_parameter.charge_increment) not in [1, 2]:
-                raise UnsupportedBCCSmirksError(smirks, len(off_parameter.charge_increment))
+                raise UnsupportedBCCSmirksError(
+                    smirks, len(off_parameter.charge_increment)
+                )
 
-            forward_value = off_parameter.charge_increment[0].m_as(unit.elementary_charge)
+            forward_value = off_parameter.charge_increment[0].m_as(
+                unit.elementary_charge
+            )
             reverse_value = -forward_value
 
             if len(off_parameter.charge_increment) > 1:
-                reverse_value = off_parameter.charge_increment[1].m_as(unit.elementary_charge)
+                reverse_value = off_parameter.charge_increment[1].m_as(
+                    unit.elementary_charge
+                )
 
             if not numpy.isclose(forward_value, -reverse_value):
                 raise UnsupportedBCCValueError(
@@ -144,7 +152,9 @@ class BCCCollection(BaseModel):
                     reverse_value,
                 )
 
-            bcc_parameters.append(BCCParameter(smirks=smirks, value=forward_value, provenance={}))
+            bcc_parameters.append(
+                BCCParameter(smirks=smirks, value=forward_value, provenance={})
+            )
 
         return cls(parameters=bcc_parameters, aromaticity_model=aromaticity_model)
 
@@ -206,14 +216,18 @@ class BCCGenerator:
             unassigned_atom_string = ", ".join(map(str, unassigned_atoms))
 
             raise ChargeAssignmentError(
-                f"Atoms {unassigned_atom_string} could not be assigned a bond charge correction atom type."
+                f"Atoms {unassigned_atom_string} could not be assigned a bond charge "
+                "correction atom type."
             )
 
         # Check for non-zero contributions from charge corrections
         non_zero_assignments = assignment_matrix.sum(axis=0).nonzero()[0]
 
         if len(non_zero_assignments) > 0:
-            correction_smirks = [bcc_collection.parameters[index].smirks for index in non_zero_assignments]
+            correction_smirks = [
+                bcc_collection.parameters[index].smirks
+                for index in non_zero_assignments
+            ]
 
             raise ChargeAssignmentError(
                 f"An internal error occurred. The {correction_smirks} were applied in "
@@ -272,12 +286,18 @@ class BCCGenerator:
             to apply.
         """
 
-        is_atom_aromatic, is_bond_aromatic = AromaticityModel.apply(molecule, bcc_collection.aromaticity_model)
+        is_atom_aromatic, is_bond_aromatic = AromaticityModel.apply(
+            molecule, bcc_collection.aromaticity_model
+        )
 
         bond_charge_corrections = bcc_collection.parameters
 
-        assignment_matrix = numpy.zeros((molecule.n_atoms, len(bond_charge_corrections)))
-        bcc_counts_matrix = numpy.zeros((molecule.n_atoms, len(bond_charge_corrections)))
+        assignment_matrix = numpy.zeros(
+            (molecule.n_atoms, len(bond_charge_corrections))
+        )
+        bcc_counts_matrix = numpy.zeros(
+            (molecule.n_atoms, len(bond_charge_corrections))
+        )
 
         matched_bonds = set()
 
@@ -296,7 +316,10 @@ class BCCGenerator:
                 forward_matched_bond = (matched_indices[0], matched_indices[1])
                 reverse_matched_bond = (matched_indices[1], matched_indices[0])
 
-                if forward_matched_bond in matched_bonds or reverse_matched_bond in matched_bonds:
+                if (
+                    forward_matched_bond in matched_bonds
+                    or reverse_matched_bond in matched_bonds
+                ):
                     continue
 
                 assignment_matrix[matched_indices[0], index] += 1
@@ -309,7 +332,9 @@ class BCCGenerator:
                 matched_bonds.add(reverse_matched_bond)
 
         # Validate the assignments
-        cls._validate_assignment_matrix(molecule, assignment_matrix, bcc_counts_matrix, bcc_collection)
+        cls._validate_assignment_matrix(
+            molecule, assignment_matrix, bcc_counts_matrix, bcc_collection
+        )
 
         return assignment_matrix
 
@@ -338,7 +363,10 @@ class BCCGenerator:
         """
         # Create a vector of the corrections to apply
         correction_values = numpy.array(
-            [[bond_charge_correction.value] for bond_charge_correction in bcc_collection.parameters]
+            [
+                [bond_charge_correction.value]
+                for bond_charge_correction in bcc_collection.parameters
+            ]
         )
 
         # Apply the corrections
@@ -408,7 +436,9 @@ class BCCGenerator:
 
         assignment_matrix = cls.build_assignment_matrix(molecule, bcc_collection)
 
-        generated_corrections = cls.apply_assignment_matrix(assignment_matrix, bcc_collection)
+        generated_corrections = cls.apply_assignment_matrix(
+            assignment_matrix, bcc_collection
+        )
 
         return generated_corrections
 
@@ -424,14 +454,20 @@ def original_am1bcc_corrections() -> BCCCollection:
         Parameterization and validation. Journal of computational chemistry,
         23(16), 1623–1641.
     """
-    bcc_file_path = get_data_file_path(os.path.join("bcc", "original-am1-bcc.json"), "openff.recharge")
+    bcc_file_path = get_data_file_path(
+        os.path.join("bcc", "original-am1-bcc.json"), "openff.recharge"
+    )
 
     with open(bcc_file_path) as file:
         bcc_dictionaries = json.load(file)
 
-    bond_charge_corrections = [BCCParameter(**dictionary) for dictionary in bcc_dictionaries]
+    bond_charge_corrections = [
+        BCCParameter(**dictionary) for dictionary in bcc_dictionaries
+    ]
 
-    return BCCCollection(parameters=bond_charge_corrections, aromaticity_model=AromaticityModels.AM1BCC)
+    return BCCCollection(
+        parameters=bond_charge_corrections, aromaticity_model=AromaticityModels.AM1BCC
+    )
 
 
 def compare_openeye_parity(molecule: "Molecule") -> bool:
@@ -479,8 +515,12 @@ def compare_openeye_parity(molecule: "Molecule") -> bool:
     reference_charge_corrections = reference_charges - am1_charges
 
     # Compute the internal BCCs
-    assignment_matrix = BCCGenerator.build_assignment_matrix(molecule, bond_charge_corrections)
-    charge_corrections = BCCGenerator.apply_assignment_matrix(assignment_matrix, bond_charge_corrections)
+    assignment_matrix = BCCGenerator.build_assignment_matrix(
+        molecule, bond_charge_corrections
+    )
+    charge_corrections = BCCGenerator.apply_assignment_matrix(
+        assignment_matrix, bond_charge_corrections
+    )
 
     implementation_charges = am1_charges + charge_corrections
 

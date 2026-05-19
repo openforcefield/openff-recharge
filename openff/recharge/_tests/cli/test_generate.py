@@ -46,7 +46,9 @@ def test_generate(runner, monkeypatch):
             json.dump(["C"], file)
 
         with open("esp-settings.json", "w") as file:
-            file.write(ESPSettings(grid_settings=LatticeGridSettings(spacing=1.0)).json())
+            file.write(
+                ESPSettings(grid_settings=LatticeGridSettings(spacing=1.0)).json()
+            )
 
         with open("conformer-settings.json", "w") as file:
             file.write(ConformerSettings(method="omega", sampling_mode="sparse").json())

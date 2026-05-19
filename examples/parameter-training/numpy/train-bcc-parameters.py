@@ -17,13 +17,17 @@ def main():
     training_set = ["C", "CC", "CCC", "CCCC"]
 
     # Generate reference QC data for each molecule in the set.
-    qc_data_settings = ESPSettings(method="hf", basis="6-31G*", grid_settings=LatticeGridSettings(spacing=0.7))
+    qc_data_settings = ESPSettings(
+        method="hf", basis="6-31G*", grid_settings=LatticeGridSettings(spacing=0.7)
+    )
     qc_data_records = []
 
     for smiles in tqdm(training_set):
         molecule = Molecule.from_smiles(smiles)
 
-        conformers = ConformerGenerator.generate(molecule, ConformerSettings(max_conformers=5))
+        conformers = ConformerGenerator.generate(
+            molecule, ConformerSettings(max_conformers=5)
+        )
 
         for conformer in tqdm(conformers):
             conformer, grid, esp, electric_field = Psi4ESPGenerator.generate(

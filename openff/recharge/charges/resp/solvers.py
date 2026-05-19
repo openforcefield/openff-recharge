@@ -63,11 +63,18 @@ class RESPNonLinearSolver(abc.ABC):
         delta = design_matrix @ beta - reference_values
         chi_esp_sqr = (delta * delta).sum()
 
-        beta_restrained = constraint_matrix[0, restraint_indices] * beta[restraint_indices]
+        beta_restrained = (
+            constraint_matrix[0, restraint_indices] * beta[restraint_indices]
+        )
         chi_restraint_sqr = (
             n_conformers
             * restraint_a
-            * (numpy.sqrt(beta_restrained * beta_restrained + restraint_b * restraint_b) - restraint_b).sum()
+            * (
+                numpy.sqrt(
+                    beta_restrained * beta_restrained + restraint_b * restraint_b
+                )
+                - restraint_b
+            ).sum()
         )
 
         return chi_esp_sqr + chi_restraint_sqr
@@ -129,7 +136,9 @@ class RESPNonLinearSolver(abc.ABC):
                         else float(
                             constraint_matrix[0, i]
                             * beta[i].item(0)
-                            / numpy.sqrt(beta[i] * beta[i] + restraint_b * restraint_b).item(0)
+                            / numpy.sqrt(
+                                beta[i] * beta[i] + restraint_b * restraint_b
+                            ).item(0)
                         )
                     )
                     for i in range(len(beta))
@@ -184,7 +193,13 @@ class RESPNonLinearSolver(abc.ABC):
             * numpy.eye(design_matrix.shape[1])
             * numpy.array(
                 [
-                    [(constraint_matrix[0, i] * restraint_a if i in restraint_indices else 0.0)]
+                    [
+                        (
+                            constraint_matrix[0, i] * restraint_a
+                            if i in restraint_indices
+                            else 0.0
+                        )
+                    ]
                     for i in range(design_matrix.shape[1])
                 ]
             )
@@ -343,7 +358,9 @@ class IterativeSolver(RESPNonLinearSolver):
             * numpy.array(
                 [
                     float(
-                        constraint_matrix[0, i] * restraint_a / numpy.sqrt(value * value + restraint_b * restraint_b)
+                        constraint_matrix[0, i]
+                        * restraint_a
+                        / numpy.sqrt(value * value + restraint_b * restraint_b)
                         if i in restraint_indices
                         else 0.0
                     )
@@ -411,7 +428,9 @@ class IterativeSolver(RESPNonLinearSolver):
             beta_current = beta_new
             iteration += 1
 
-        raise RESPSolverError("The iterative solver failed to converge after 300 iterations")
+        raise RESPSolverError(
+            "The iterative solver failed to converge after 300 iterations"
+        )
 
 
 class SciPySolver(RESPNonLinearSolver):
@@ -494,6 +513,9 @@ class SciPySolver(RESPNonLinearSolver):
         )
 
         if not output.success:
-            raise RESPSolverError(f"SciPy solver with method={self._method} was unsuccessful: {output.message}")
+            raise RESPSolverError(
+                f"SciPy solver with method={self._method} was unsuccessful: "
+                f"{output.message}"
+            )
 
         return output.x.reshape(-1, 1)

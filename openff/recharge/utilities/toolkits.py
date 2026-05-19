@@ -36,7 +36,10 @@ def _oe_match_smirks(
     oe_molecule = molecule.to_openeye()
 
     oe_atoms = {oe_atom.GetIdx(): oe_atom for oe_atom in oe_molecule.GetAtoms()}
-    oe_bonds = {_bond_key(bond.GetBgnIdx(), bond.GetEndIdx()): bond for bond in oe_molecule.GetBonds()}
+    oe_bonds = {
+        _bond_key(bond.GetBgnIdx(), bond.GetEndIdx()): bond
+        for bond in oe_molecule.GetBonds()
+    }
 
     for index, is_aromatic in is_atom_aromatic.items():
         oe_atoms[index].SetAromatic(is_aromatic)
@@ -80,7 +83,10 @@ def _rd_match_smirks(
         Chem.Kekulize(rd_molecule)
 
     rd_atoms = {rd_atom.GetIdx(): rd_atom for rd_atom in rd_molecule.GetAtoms()}
-    rd_bonds = {_bond_key(bond.GetBeginAtomIdx(), bond.GetEndAtomIdx()): bond for bond in rd_molecule.GetBonds()}
+    rd_bonds = {
+        _bond_key(bond.GetBeginAtomIdx(), bond.GetEndAtomIdx()): bond
+        for bond in rd_molecule.GetBonds()
+    }
 
     for index, is_aromatic in is_atom_aromatic.items():
         rd_atoms[index].SetIsAromatic(is_aromatic)
@@ -92,7 +98,9 @@ def _rd_match_smirks(
 
     max_matches = numpy.iinfo(numpy.uintc).max
 
-    full_matches = rd_molecule.GetSubstructMatches(query, uniquify=unique, maxMatches=max_matches, useChirality=True)
+    full_matches = rd_molecule.GetSubstructMatches(
+        query, uniquify=unique, maxMatches=max_matches, useChirality=True
+    )
 
     matches = [
         {
@@ -140,16 +148,22 @@ def match_smirks(
     """
 
     try:
-        return _oe_match_smirks(smirks, molecule, is_atom_aromatic, is_bond_aromatic, unique, kekulize)
+        return _oe_match_smirks(
+            smirks, molecule, is_atom_aromatic, is_bond_aromatic, unique, kekulize
+        )
     except (
         ModuleNotFoundError,
         MissingOptionalDependencyError,
         ToolkitUnavailableException,
     ):
-        return _rd_match_smirks(smirks, molecule, is_atom_aromatic, is_bond_aromatic, unique, kekulize)
+        return _rd_match_smirks(
+            smirks, molecule, is_atom_aromatic, is_bond_aromatic, unique, kekulize
+        )
 
 
-def compute_vdw_radii(molecule: "Molecule", radii_type: VdWRadiiType = VdWRadiiType.Bondi) -> unit.Quantity:
+def compute_vdw_radii(
+    molecule: "Molecule", radii_type: VdWRadiiType = VdWRadiiType.Bondi
+) -> unit.Quantity:
     """Computes the vdW radii of each atom in a molecule
 
     Parameters
@@ -192,7 +206,9 @@ def compute_vdw_radii(molecule: "Molecule", radii_type: VdWRadiiType = VdWRadiiT
             "K": 2.75,
         }
 
-        return [_BONDI_RADII[SYMBOLS[atom.atomic_number]] for atom in molecule.atoms] * unit.angstrom
+        return [
+            _BONDI_RADII[SYMBOLS[atom.atomic_number]] for atom in molecule.atoms
+        ] * unit.angstrom
     else:
         raise NotImplementedError()
 
@@ -208,8 +224,13 @@ def _oe_apply_mdl_aromaticity_model(
     oechem.OEClearAromaticFlags(oe_molecule)
     oechem.OEAssignAromaticFlags(oe_molecule, oechem.OEAroModel_MDL)
 
-    is_atom_aromatic = {atom.GetIdx(): atom.IsAromatic() for atom in oe_molecule.GetAtoms()}
-    is_bond_aromatic = {(bond.GetBgnIdx(), bond.GetEndIdx()): bond.IsAromatic() for bond in oe_molecule.GetBonds()}
+    is_atom_aromatic = {
+        atom.GetIdx(): atom.IsAromatic() for atom in oe_molecule.GetAtoms()
+    }
+    is_bond_aromatic = {
+        (bond.GetBgnIdx(), bond.GetEndIdx()): bond.IsAromatic()
+        for bond in oe_molecule.GetBonds()
+    }
 
     return is_atom_aromatic, is_bond_aromatic
 
@@ -224,9 +245,12 @@ def _rd_apply_mdl_aromaticity_model(
 
     Chem.SetAromaticity(rd_molecule, Chem.AromaticityModel.AROMATICITY_MDL)
 
-    is_atom_aromatic = {atom.GetIdx(): atom.GetIsAromatic() for atom in rd_molecule.GetAtoms()}
+    is_atom_aromatic = {
+        atom.GetIdx(): atom.GetIsAromatic() for atom in rd_molecule.GetAtoms()
+    }
     is_bond_aromatic = {
-        (bond.GetBeginAtomIdx(), bond.GetEndAtomIdx()): bond.GetIsAromatic() for bond in rd_molecule.GetBonds()
+        (bond.GetBeginAtomIdx(), bond.GetEndAtomIdx()): bond.GetIsAromatic()
+        for bond in rd_molecule.GetBonds()
     }
 
     return is_atom_aromatic, is_bond_aromatic
@@ -266,7 +290,9 @@ def _oe_get_atom_symmetries(molecule: "Molecule") -> list[int]:
     oe_mol = molecule.to_openeye()
     oechem.OEPerceiveSymmetry(oe_mol)
 
-    symmetry_classes_by_index = {a.GetIdx(): a.GetSymmetryClass() for a in oe_mol.GetAtoms()}
+    symmetry_classes_by_index = {
+        a.GetIdx(): a.GetSymmetryClass() for a in oe_mol.GetAtoms()
+    }
     return [symmetry_classes_by_index[i] for i in range(molecule.n_atoms)]
 
 
@@ -308,7 +334,9 @@ def _oe_molecule_to_tagged_smiles(molecule: "Molecule", indices: list[int]) -> s
     from openeye import oechem
 
     oe_mol: oechem.OEMol = molecule.to_openeye()
-    oe_atoms: dict[int, oechem.OEAtomBase] = {oe_atom.GetIdx(): oe_atom for oe_atom in oe_mol.GetAtoms()}
+    oe_atoms: dict[int, oechem.OEAtomBase] = {
+        oe_atom.GetIdx(): oe_atom for oe_atom in oe_mol.GetAtoms()
+    }
 
     for i, index in enumerate(indices):
         oe_atoms[i].SetMapIdx(index)
@@ -321,7 +349,9 @@ def _rd_molecule_to_tagged_smiles(molecule: "Molecule", indices: list[int]) -> s
     from rdkit import Chem
 
     rd_mol: Chem.Mol = molecule.to_rdkit()
-    rd_atoms: dict[int, Chem.Atom] = {rd_atom.GetIdx(): rd_atom for rd_atom in rd_mol.GetAtoms()}
+    rd_atoms: dict[int, Chem.Atom] = {
+        rd_atom.GetIdx(): rd_atom for rd_atom in rd_mol.GetAtoms()
+    }
 
     for i, index in enumerate(indices):
         rd_atoms[i].SetAtomMapNum(index)
@@ -346,7 +376,9 @@ def molecule_to_tagged_smiles(molecule: "Molecule", indices: list[int]) -> str:
         to be topologically symmetrical.
     """
 
-    assert len(indices) == molecule.n_atoms, "number of atom indices does not match number of atoms"
+    assert len(indices) == molecule.n_atoms, (
+        "number of atom indices does not match number of atoms"
+    )
     assert all(index > 0 for index in indices), "all indices must be > 0"
 
     try:

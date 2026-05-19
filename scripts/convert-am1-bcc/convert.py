@@ -63,9 +63,7 @@ def build_bond_charge_corrections(
         bond_code = code[2:4]
         last_atom_code = code[4:6]
 
-        smirks = (
-            f"{atom_codes[first_atom_code]}{bond_codes[bond_code]}{atom_codes[last_atom_code].replace(':1', ':2')}"
-        )
+        smirks = f"{atom_codes[first_atom_code]}{bond_codes[bond_code]}{atom_codes[last_atom_code].replace(':1', ':2')}"
 
         if code in custom_bcc_smirks:
             smirks = custom_bcc_smirks.pop(code)
@@ -76,11 +74,17 @@ def build_bond_charge_corrections(
 
         value = bcc_overrides.get(code, bcc_row["BCC"])
 
-        bond_charge_corrections[code] = BCCParameter(smirks=smirks, value=value, provenance={"code": code})
+        bond_charge_corrections[code] = BCCParameter(
+            smirks=smirks, value=value, provenance={"code": code}
+        )
 
     assert len(custom_bcc_smirks) == 0
 
-    return [bond_charge_corrections[code] for code in all_codes if code in bond_charge_corrections]
+    return [
+        bond_charge_corrections[code]
+        for code in all_codes
+        if code in bond_charge_corrections
+    ]
 
 
 def main():
@@ -183,7 +187,9 @@ def main():
 
     bcc_overrides = {"110112": 0.0024, "120114": -0.0172}
 
-    bcc_parameters = build_bond_charge_corrections(atom_codes, bond_codes, bcc_overrides, custom_bcc_smirks)
+    bcc_parameters = build_bond_charge_corrections(
+        atom_codes, bond_codes, bcc_overrides, custom_bcc_smirks
+    )
 
     # Remove duplicate parameters caused by the duplication of the aromatic
     # bond type.
@@ -204,7 +210,9 @@ def main():
         bcc_parameters_per_smirks[bcc_parameter.smirks] = bcc_parameter
 
     with open("original-am1-bcc.json", "w") as file:
-        json.dump([bcc_parameter.dict() for bcc_parameter in unique_bcc_parameters], file)
+        json.dump(
+            [bcc_parameter.dict() for bcc_parameter in unique_bcc_parameters], file
+        )
 
 
 if __name__ == "__main__":

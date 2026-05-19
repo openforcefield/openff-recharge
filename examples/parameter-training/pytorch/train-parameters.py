@@ -27,14 +27,20 @@ def main():
     # against.
     molecule = Molecule.from_smiles("c1ccncc1")
 
-    conformer = ConformerGenerator.generate(molecule, ConformerSettings(max_conformers=1))[0]
+    conformer = ConformerGenerator.generate(
+        molecule, ConformerSettings(max_conformers=1)
+    )[0]
 
-    esp_settings = ESPSettings(method="hf", basis="6-31G*", grid_settings=LatticeGridSettings(spacing=0.7))
+    esp_settings = ESPSettings(
+        method="hf", basis="6-31G*", grid_settings=LatticeGridSettings(spacing=0.7)
+    )
 
     conformer, grid, esp, electric_field = Psi4ESPGenerator.generate(
         molecule=molecule, conformer=conformer, settings=esp_settings, minimize=True
     )
-    esp_record = MoleculeESPRecord.from_molecule(molecule, conformer, grid, esp, electric_field, esp_settings)
+    esp_record = MoleculeESPRecord.from_molecule(
+        molecule, conformer, grid, esp, electric_field, esp_settings
+    )
 
     # Define the parameters to train
     bcc_collection = BCCCollection(
@@ -65,7 +71,9 @@ def main():
         # into the `charge_increments` field.
         ("[#6r6:1]@[#7r6:2]@[#6r6:3]", "DivalentLonePair", "EP", 1)
     ]
-    vsite_coordinate_parameter_keys = [("[#6r6:1]@[#7r6:2]@[#6r6:3]", "DivalentLonePair", "EP", "distance")]
+    vsite_coordinate_parameter_keys = [
+        ("[#6r6:1]@[#7r6:2]@[#6r6:3]", "DivalentLonePair", "EP", "distance")
+    ]
 
     # Construct the terms in our objective function that we will aim to minimize. See
     # also the ``ElectricFieldObjective`` objective class.
@@ -94,13 +102,17 @@ def main():
     initial_charge_increments = to_torch(initial_charge_increments)
     initial_charge_increments.requires_grad = True
 
-    initial_vsite_coordinates = vsite_collection.vectorize_coordinates(vsite_coordinate_parameter_keys)
+    initial_vsite_coordinates = vsite_collection.vectorize_coordinates(
+        vsite_coordinate_parameter_keys
+    )
     initial_vsite_coordinates = to_torch(initial_vsite_coordinates)
     initial_vsite_coordinates.requires_grad = True
 
     print("INITIAL".center(80, "="))
 
-    print_parameters([*bcc_parameter_keys, *vsite_charge_parameter_keys], initial_charge_increments)
+    print_parameters(
+        [*bcc_parameter_keys, *vsite_charge_parameter_keys], initial_charge_increments
+    )
     print_parameters(vsite_coordinate_parameter_keys, initial_vsite_coordinates)
 
     # Optimize the parameters.
@@ -109,7 +121,9 @@ def main():
 
     print("TRAINING".center(80, "="))
 
-    optimizer = torch.optim.Adam([initial_charge_increments, initial_vsite_coordinates], lr=lr)
+    optimizer = torch.optim.Adam(
+        [initial_charge_increments, initial_vsite_coordinates], lr=lr
+    )
 
     for epoch in range(n_epochs + 1):
         loss = objective_term.loss(initial_charge_increments, initial_vsite_coordinates)
@@ -128,7 +142,9 @@ def main():
 
     print("FINAL".center(80, "="))
 
-    print_parameters([*bcc_parameter_keys, *vsite_charge_parameter_keys], initial_charge_increments)
+    print_parameters(
+        [*bcc_parameter_keys, *vsite_charge_parameter_keys], initial_charge_increments
+    )
     print_parameters(vsite_coordinate_parameter_keys, initial_vsite_coordinates)
 
 

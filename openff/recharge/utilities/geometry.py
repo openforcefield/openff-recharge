@@ -11,11 +11,15 @@ if TYPE_CHECKING:
 
 
 @overload
-def compute_inverse_distance_matrix(points_a: numpy.ndarray, points_b: numpy.ndarray) -> numpy.ndarray: ...
+def compute_inverse_distance_matrix(
+    points_a: numpy.ndarray, points_b: numpy.ndarray
+) -> numpy.ndarray: ...
 
 
 @overload
-def compute_inverse_distance_matrix(points_a: "torch.Tensor", points_b: "torch.Tensor") -> "torch.Tensor": ...
+def compute_inverse_distance_matrix(
+    points_a: "torch.Tensor", points_b: "torch.Tensor"
+) -> "torch.Tensor": ...
 
 
 def compute_inverse_distance_matrix(points_a, points_b):
@@ -44,11 +48,15 @@ def compute_inverse_distance_matrix(points_a, points_b):
 
 
 @overload
-def compute_vector_field(points_a: numpy.ndarray, points_b: numpy.ndarray) -> numpy.ndarray: ...
+def compute_vector_field(
+    points_a: numpy.ndarray, points_b: numpy.ndarray
+) -> numpy.ndarray: ...
 
 
 @overload
-def compute_vector_field(points_a: "torch.Tensor", points_b: "torch.Tensor") -> "torch.Tensor": ...
+def compute_vector_field(
+    points_a: "torch.Tensor", points_b: "torch.Tensor"
+) -> "torch.Tensor": ...
 
 
 def compute_vector_field(points_a, points_b):

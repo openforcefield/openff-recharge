@@ -69,12 +69,19 @@ def load_molecules() -> dict[str, list[str]]:
     print("Loading molecules...")
 
     with oechem.oemolistream("validation-set.smi") as input_stream:
-        smiles = [oechem.OECreateIsoSmiString(oe_molecule) for oe_molecule in input_stream.GetOEMols()]
+        smiles = [
+            oechem.OECreateIsoSmiString(oe_molecule)
+            for oe_molecule in input_stream.GetOEMols()
+        ]
 
     with Pool(processes=N_PROCESSES) as pool:
         molecule_generator = tqdm(pool.imap(load_molecule, smiles), desc="filtering")
 
-        smiles = {pattern: bcc_codes for pattern, (retain, bcc_codes) in zip(smiles, molecule_generator) if retain}
+        smiles = {
+            pattern: bcc_codes
+            for pattern, (retain, bcc_codes) in zip(smiles, molecule_generator)
+            if retain
+        }
 
     return smiles
 
@@ -157,7 +164,9 @@ def main():
     with open("failed-smiles.json") as file:
         failed_smiles = json.load(file)
 
-    failed_codes = {code for smiles in failed_smiles for code in coverage_smiles[smiles]}
+    failed_codes = {
+        code for smiles in failed_smiles for code in coverage_smiles[smiles]
+    }
 
     pprint(failed_codes)
 

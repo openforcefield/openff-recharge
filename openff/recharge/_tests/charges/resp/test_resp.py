@@ -44,7 +44,9 @@ def mock_esp_records() -> list[MoleculeESPRecord]:
 
     return [
         MoleculeESPRecord(
-            tagged_smiles=("[C:1]([H:7])([H:8])([O:3][H:5])[C:2]([H:9])([H:10])([O:4][H:6])"),
+            tagged_smiles=(
+                "[C:1]([H:7])([H:8])([O:3][H:5])[C:2]([H:9])([H:10])([O:4][H:6])"
+            ),
             conformer=conformer,
             grid_coordinates=grid,
             esp=esp,
@@ -52,7 +54,9 @@ def mock_esp_records() -> list[MoleculeESPRecord]:
             esp_settings=ESPSettings(grid_settings=GridSettings()),
         ),
         MoleculeESPRecord(
-            tagged_smiles=("[C:1]([H:7])([H:8])([O:3][H:5])[C:2]([H:9])([H:10])([O:4][H:6])"),
+            tagged_smiles=(
+                "[C:1]([H:7])([H:8])([O:3][H:5])[C:2]([H:9])([H:10])([O:4][H:6])"
+            ),
             conformer=conformer,
             grid_coordinates=grid * 2,
             esp=esp / 2.0,
@@ -64,7 +68,9 @@ def mock_esp_records() -> list[MoleculeESPRecord]:
 
 @pytest.fixture(scope="module")
 def meoh_esp_sto3g() -> MoleculeESPRecord:
-    qc_data_settings = ESPSettings(method="scf", basis="sto-3g", grid_settings=MSKGridSettings())
+    qc_data_settings = ESPSettings(
+        method="scf", basis="sto-3g", grid_settings=MSKGridSettings()
+    )
 
     mol = Molecule.from_mapped_smiles("[C:1]([O:2][H:6])([H:3])([H:4])[H:5]")
 
@@ -89,7 +95,9 @@ def meoh_esp_sto3g() -> MoleculeESPRecord:
         minimize=False,
         compute_field=False,
     )
-    qc_data_record = MoleculeESPRecord.from_molecule(mol, conformer, grid, esp, None, qc_data_settings)
+    qc_data_record = MoleculeESPRecord.from_molecule(
+        mol, conformer, grid, esp, None, qc_data_settings
+    )
     return qc_data_record
 
 
@@ -117,7 +125,9 @@ def test_generate_dummy_values(smiles, expected_values):
     molecule = Molecule.from_smiles(smiles, allow_undefined_stereo=True)
 
     total_charge = molecule.total_charge.m_as(unit.elementary_charge)
-    sum_charge = sum(actual_values[i - 1] for i in molecule.properties["atom_map"].values())
+    sum_charge = sum(
+        actual_values[i - 1] for i in molecule.properties["atom_map"].values()
+    )
 
     assert numpy.isclose(total_charge, sum_charge)
 
@@ -292,14 +302,18 @@ def test_molecule_to_resp_library_charge(
 
     output_molecule: Molecule = Molecule.from_smiles(parameter.smiles)
 
-    _, output_to_input_index = Molecule.are_isomorphic(output_molecule, input_molecule, return_atom_map=True)
+    _, output_to_input_index = Molecule.are_isomorphic(
+        output_molecule, input_molecule, return_atom_map=True
+    )
 
     actual_groupings_dict = defaultdict(list)
 
     for atom_index, map_index in output_molecule.properties["atom_map"].items():
         actual_groupings_dict[map_index].append(output_to_input_index[atom_index])
 
-    actual_groupings = [tuple(sorted(group)) for group in actual_groupings_dict.values()]
+    actual_groupings = [
+        tuple(sorted(group)) for group in actual_groupings_dict.values()
+    ]
 
     assert len(actual_groupings) == len(expected_groupings)
     assert {*actual_groupings} == {*expected_groupings}
@@ -341,7 +355,9 @@ def test_molecule_to_resp_library_charge(
         ),
     ],
 )
-def test_deduplicate_constraints(input_matrix, input_values, expected_matrix, expected_values):
+def test_deduplicate_constraints(
+    input_matrix, input_values, expected_matrix, expected_values
+):
     output_matrix, output_values = _deduplicate_constraints(input_matrix, input_values)
 
     assert output_matrix.shape == expected_matrix.shape

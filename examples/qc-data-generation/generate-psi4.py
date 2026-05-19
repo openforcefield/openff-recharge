@@ -15,7 +15,9 @@ def main():
 
     # Define the grid that the electrostatic properties will be trained on and the
     # level of theory to compute the properties at.
-    grid_settings = LatticeGridSettings(type="fcc", spacing=0.5, inner_vdw_scale=1.4, outer_vdw_scale=2.0)
+    grid_settings = LatticeGridSettings(
+        type="fcc", spacing=0.5, inner_vdw_scale=1.4, outer_vdw_scale=2.0
+    )
     # Generating an MSK style grid is also supported:
     # from openff.recharge.grids import MSKGridSettings
     # grid_settings = MSKGridSettings(density=1.0)
@@ -24,7 +26,9 @@ def main():
 
     # Generate a set of conformers for the molecule. We will compute the ESP and
     # electric field for the molecule in each conformer.
-    conformers = ConformerGenerator.generate(molecule, ConformerSettings(max_conformers=10))
+    conformers = ConformerGenerator.generate(
+        molecule, ConformerSettings(max_conformers=10)
+    )
 
     # Create a database to store the computed electrostatic properties in to make
     # training and testing against the data easier.
@@ -42,7 +46,9 @@ def main():
             minimize=True,
         )
 
-        record = MoleculeESPRecord.from_molecule(molecule, conformer, grid, esp, electric_field, esp_settings)
+        record = MoleculeESPRecord.from_molecule(
+            molecule, conformer, grid, esp, electric_field, esp_settings
+        )
         records.append(record)
 
     qc_data_store.store(*records)

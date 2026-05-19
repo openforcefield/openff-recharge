@@ -2,9 +2,9 @@ import json
 import logging
 import os
 import pwd
+from concurrent.futures import ProcessPoolExecutor, as_completed
 from datetime import datetime
 from multiprocessing import get_context
-from concurrent.futures import ProcessPoolExecutor, as_completed
 from typing import TYPE_CHECKING
 
 import click
@@ -66,8 +66,10 @@ def _process_result(
     "--grid-settings",
     "grid_settings_path",
     type=click.Path(exists=True, dir_okay=False),
-    help="The path to the JSON serialized settings which define the grid to reconstruct "
-    "the ESP / electric field on.",
+    help="""
+    The path to the JSON serialized settings which define the grid to
+    reconstruct the ESP / electric field on.
+    """,
 )
 @click.option(
     "--n-procs",
@@ -119,7 +121,6 @@ def reconstruct(
     with ProcessPoolExecutor(
         max_workers=n_processors, mp_context=get_context("spawn")
     ) as pool:
-
         futures = [
             pool.submit(_process_result, qc_result, grid_settings=grid_settings)
             for qc_result in qc_results

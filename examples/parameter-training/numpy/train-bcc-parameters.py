@@ -78,7 +78,7 @@ def main():
     for parameter_smirks, trained_value in zip(bcc_parameters_to_train, trained_values):
         print(
             parameter_smirks,
-            f" INITIAL={0.0:.4f} " f" FINAL={float(trained_value):.4f}",
+            f" INITIAL={0.0:.4f}  FINAL={float(trained_value):.4f}",
         )
 
 

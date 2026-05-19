@@ -1,5 +1,6 @@
 import numpy
 import pytest
+from openff.toolkit._tests.utils import requires_openeye
 
 from openff.recharge.charges.bcc import (
     BCCCollection,
@@ -12,7 +13,6 @@ from openff.recharge.charges.exceptions import ChargeAssignmentError
 from openff.recharge.charges.qc import QCChargeGenerator, QCChargeSettings
 from openff.recharge.conformers import ConformerGenerator, ConformerSettings
 from openff.recharge.utilities.molecule import smiles_to_molecule
-from openff.toolkit._tests.utils import requires_openeye
 
 
 def test_load_original_am1_bcc():
@@ -30,9 +30,9 @@ def test_to_smirnoff():
 
     pytest.importorskip("openff.toolkit")
 
+    from openff.interchange.smirnoff._nonbonded import SMIRNOFFElectrostaticsCollection
     from openff.toolkit import Molecule
     from openff.toolkit.typing.engines.smirnoff.parameters import ElectrostaticsHandler
-    from openff.interchange.smirnoff._nonbonded import SMIRNOFFElectrostaticsCollection
 
     bcc_handler = original_am1bcc_corrections().to_smirnoff()
     assert bcc_handler is not None

@@ -3,9 +3,9 @@ import os
 from enum import Enum
 from typing import TYPE_CHECKING, Literal
 
-from openff.units import unit, Quantity
-from openff.recharge._pydantic import BaseModel, Field
+from openff.units import Quantity, unit
 
+from openff.recharge._pydantic import BaseModel, Field
 from openff.recharge.grids import GridGenerator, GridSettingsType
 
 if TYPE_CHECKING:
@@ -49,8 +49,10 @@ class PCMSettings(BaseModel):
 
     solvent: Literal["Water"] = Field(
         "Water",
-        description="The solvent to simulate. This controls the dielectric constant "
-        "of the model.",
+        description=(
+            "The solvent to simulate. This controls the dielectric constant of the "
+            "model."
+        ),
     )
 
     radii_model: Literal["Bondi", "UFF", "Allinger"] = Field(
@@ -77,20 +79,25 @@ class ESPSettings(BaseModel):
 
     grid_settings: GridSettingsType = Field(
         ...,
-        description="The settings to use when generating the grid to generate the "
-        "electrostatic potential on.",
+        description=(
+            "The settings to use when generating the grid to generate the "
+            "electrostatic potential on.",
+        ),
     )
 
     pcm_settings: PCMSettings | None = Field(
         None,
-        description="The settings to use if including a polarizable continuum "
-        "model in the ESP calculation.",
+        description=(
+            "The settings to use if including a polarizable continuum model in the "
+            "ESP calculation."
+        ),
     )
 
     psi4_dft_grid_settings: DFTGridSettings = Field(
         DFTGridSettings.Default,
-        description="The DFT grid settings to use when performing computations with "
-        "Psi4.",
+        description=(
+            "The DFT grid settings to use when performing computations with Psi4."
+        ),
     )
 
 
@@ -155,7 +162,7 @@ class ESPGenerator(abc.ABC):
         molecule: "Molecule",
         conformer: Quantity,
         settings: ESPSettings,
-        directory: str = None,
+        directory: str | None = None,
         minimize: bool = False,
         compute_esp: bool = True,
         compute_field: bool = True,
@@ -193,9 +200,10 @@ class ESPGenerator(abc.ABC):
         -------
             The final conformer [A] which will be identical to ``conformer`` if
             ``minimize=False``, the grid [Angstrom] which the ESP  was generated on with
-            shape=(n_grid_points, 3), the ESP [Hartree / e] with shape=(n_grid_points, 1)
-            and the electric field [Hartree / (e . a0)] with shape=(n_grid_points, 3) at
-            each grid point with for each conformer present on the specified molecule.
+            shape=(n_grid_points, 3), the ESP [Hartree / e] with
+            shape=(n_grid_points, 1) and the electric field [Hartree / (e . a0)] with
+            shape=(n_grid_points, 3) at each grid point with for each conformer present
+            on the specified molecule.
         """
 
         if directory is not None and len(directory) > 0:

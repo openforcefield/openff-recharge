@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING
 
 import jinja2
 import numpy
-from openff.units import unit, Quantity
+from openff.units import Quantity, unit
 from openff.units.elements import SYMBOLS
 from openff.utilities import get_data_file_path, temporary_cd
 

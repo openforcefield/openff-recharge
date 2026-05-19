@@ -1,6 +1,10 @@
 import numpy
 import pytest
 from openff.toolkit import Molecule
+from openff.toolkit._tests.utils import (
+    requires_openeye,
+    requires_rdkit,
+)
 from openff.units import unit
 
 from openff.recharge.utilities.toolkits import (
@@ -17,10 +21,6 @@ from openff.recharge.utilities.toolkits import (
     get_atom_symmetries,
     match_smirks,
     molecule_to_tagged_smiles,
-)
-from openff.toolkit._tests.utils import (
-    requires_openeye,
-    requires_rdkit,
 )
 
 

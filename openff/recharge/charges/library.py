@@ -1,15 +1,15 @@
 """Generate partial charges for molecules from a collection of library parameters."""
 
+import warnings
 from collections import defaultdict
 from typing import TYPE_CHECKING, Any
-import warnings
 
 import numpy
+from openff.toolkit.utils.exceptions import AtomMappingWarning
 from openff.units import unit
 from openff.utilities import requires_package
-from openff.toolkit.utils.exceptions import AtomMappingWarning
-from openff.recharge._pydantic import BaseModel, Field, constr, validator
 
+from openff.recharge._pydantic import BaseModel, Field, constr, validator
 from openff.recharge.charges.exceptions import ChargeAssignmentError
 
 if TYPE_CHECKING:
@@ -75,7 +75,7 @@ class LibraryChargeParameter(BaseModel):
         n_expected = len({*molecule.properties["atom_map"].values()})
 
         assert n_expected == len(value), (
-            f"expected {n_expected} charges, " f"found {len(value)}"
+            f"expected {n_expected} charges, found {len(value)}"
         )
 
         total_charge = molecule.total_charge.m_as(unit.elementary_charge)
@@ -83,8 +83,7 @@ class LibraryChargeParameter(BaseModel):
         sum_charge = sum(value[i - 1] for i in molecule.properties["atom_map"].values())
 
         assert numpy.isclose(total_charge, sum_charge), (
-            f"sum of values {sum_charge} does not match "
-            f"expected charge {total_charge}"
+            f"sum of values {sum_charge} does not match expected charge {total_charge}"
         )
 
         return value
@@ -154,9 +153,9 @@ class LibraryChargeParameter(BaseModel):
         -------
             The constraint matrix with shape=(1, ``n_values``) as well as an array
             containing the expected total charge (or the total charge minus the sum of
-            any fixed charges if ``trainable_indices`` is specified``). ``n_values`` will
-            be equal to the length of ``trainable_indices`` if provided, or otherwise to
-            the length of ``self.value``.
+            any fixed charges if ``trainable_indices`` is specified``). ``n_values``
+            will be equal to the length of ``trainable_indices`` if provided, or
+            otherwise to the length of ``self.value``.
         """
         from openff.toolkit import Molecule
 
@@ -372,8 +371,8 @@ class LibraryChargeGenerator:
             return assignment_matrix
 
         raise ChargeAssignmentError(
-            f"Atoms {list(range(molecule.n_atoms))} could not be assigned a library "
-            f"charge."
+            f"Atoms {list(range(molecule.n_atoms))} could not be assigned a "
+            "library charge."
         )
 
     @classmethod

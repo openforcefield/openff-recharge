@@ -4,13 +4,13 @@ from importlib.resources import files
 
 import numpy
 import pytest
+from openff.toolkit._tests.utils import requires_openeye
 
 from openff.recharge.cli.reconstruct import reconstruct as reconstruct_cli
 from openff.recharge.esp import ESPSettings
 from openff.recharge.esp.storage import MoleculeESPRecord, MoleculeESPStore
-from openff.recharge.grids import LatticeGridSettings, GridSettingsType
+from openff.recharge.grids import GridSettingsType, LatticeGridSettings
 from openff.recharge.utilities.molecule import smiles_to_molecule
-from openff.toolkit._tests.utils import requires_openeye
 
 
 # mock a data retreival from qc_archive, keep as minimal as possible.

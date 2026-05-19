@@ -1,5 +1,5 @@
-from typing import Literal
 from collections.abc import Callable
+from typing import Literal
 
 import numpy
 import pytest
@@ -181,9 +181,7 @@ def test_term_loss_atom_charge_only(
             ElectricFieldObjectiveTerm,
             (
                 # Target value (1.0) - vector field @ charges (2.0)
-                (1.0 - 2.0 * -4.0 / 125.0) ** 2
-                + (1.0 - 2.0 * 3.0 / 125.0) ** 2
-                + 1.0
+                (1.0 - 2.0 * -4.0 / 125.0) ** 2 + (1.0 - 2.0 * 3.0 / 125.0) ** 2 + 1.0
             ),
         ),
     ],
@@ -342,7 +340,7 @@ def test_combine_terms(objective_class, backend, hcl_parameters):
     combined_term = objective_class._objective_term().combine(*objective_terms)
     combined_loss = combined_term.loss(charge_values, coordinate_values)
 
-    # Cast to scalar since some auto-conversion is deprecated, and different API with torch
+    # Cast to scalar since some auto-conversion is deprecated, different API with torch
     if backend == "numpy":
         summed_loss = summed_loss.item(0)
         combined_loss = combined_loss.item(0)

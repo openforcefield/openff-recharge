@@ -1,4 +1,4 @@
-"""Generate bond charge corrections for molecules from a collection of BCC parameters."""
+"""Generate bond charge corrections (BCCs) for molecules from a collection of BCCs."""
 
 import json
 import os
@@ -7,8 +7,8 @@ from typing import TYPE_CHECKING, Any
 import numpy
 from openff.units import unit
 from openff.utilities import get_data_file_path, requires_package
-from openff.recharge._pydantic import BaseModel, Field, constr
 
+from openff.recharge._pydantic import BaseModel, Field, constr
 from openff.recharge.aromaticity import AromaticityModel, AromaticityModels
 from openff.recharge.charges.exceptions import ChargeAssignmentError
 from openff.recharge.charges.qc import QCChargeGenerator, QCChargeSettings
@@ -216,8 +216,8 @@ class BCCGenerator:
             unassigned_atom_string = ", ".join(map(str, unassigned_atoms))
 
             raise ChargeAssignmentError(
-                f"Atoms {unassigned_atom_string} could not be assigned a bond "
-                f"charge correction atom type."
+                f"Atoms {unassigned_atom_string} could not be assigned a bond charge "
+                "correction atom type."
             )
 
         # Check for non-zero contributions from charge corrections

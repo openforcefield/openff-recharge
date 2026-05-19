@@ -1,16 +1,15 @@
 import numpy
+import pytest
 from openff.units import unit
 
-import pytest
 from openff.recharge._pydantic import ValidationError
-
+from openff.recharge._tests import does_not_raise
 from openff.recharge.charges.exceptions import ChargeAssignmentError
 from openff.recharge.charges.library import (
     LibraryChargeCollection,
     LibraryChargeGenerator,
     LibraryChargeParameter,
 )
-from openff.recharge._tests import does_not_raise
 
 
 @pytest.fixture()
@@ -84,7 +83,7 @@ class TestLibraryChargeParameter:
                 [0.0, -0.1],
                 pytest.raises(
                     ValidationError,
-                    match="sum of values -0.1 does not match expected charge -1.0",
+                    match=r"sum of values -0.1 does not match expected charge -1.0",
                 ),
             ),
         ],

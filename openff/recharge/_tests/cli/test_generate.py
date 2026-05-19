@@ -5,6 +5,8 @@ from multiprocessing.pool import Pool
 
 import numpy
 import pytest
+from openff.toolkit._tests.utils import requires_openeye
+from openff.utilities import temporary_cd
 
 from openff.recharge.cli.generate import _compute_esp
 from openff.recharge.cli.generate import generate as generate_cli
@@ -14,8 +16,6 @@ from openff.recharge.esp.exceptions import Psi4Error
 from openff.recharge.esp.psi4 import Psi4ESPGenerator
 from openff.recharge.esp.storage import MoleculeESPStore
 from openff.recharge.grids import LatticeGridSettings
-from openff.toolkit._tests.utils import requires_openeye
-from openff.utilities import temporary_cd
 
 
 @requires_openeye

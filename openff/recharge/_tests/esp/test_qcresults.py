@@ -1,8 +1,8 @@
 from json import JSONDecodeError
-import qcportal
 
 import numpy
 import pytest
+import qcportal
 
 from openff.recharge.esp.qcresults import (
     InvalidPCMKeywordError,
@@ -17,9 +17,9 @@ from openff.recharge.grids import LatticeGridSettings
 def test_from_qcportal_results(with_field, public_client):
     pytest.importorskip("psi4")
 
-    qc_result: qcportal.singlepoint.SinglepointRecord = [
-        *public_client.query_records(record_id="32651863")
-    ][0]
+    qc_result: qcportal.singlepoint.SinglepointRecord = next(
+        iter(public_client.query_records(record_id="32651863"))
+    )
 
     esp_record = from_qcportal_results(
         qc_result=qc_result,
@@ -42,9 +42,9 @@ def test_from_qcportal_results(with_field, public_client):
 def test_from_qcportal_results_with_pcm(with_field, public_client):
     pytest.importorskip("psi4")
 
-    qc_result: qcportal.singlepoint.SinglepointRecord = [
-        *public_client.query_records(record_id="32652103")
-    ][0]
+    qc_result: qcportal.singlepoint.SinglepointRecord = next(
+        iter(public_client.query_records(record_id="32652103"))
+    )
 
     esp_record = from_qcportal_results(
         qc_result=qc_result,
@@ -64,7 +64,7 @@ def test_from_qcportal_results_with_pcm(with_field, public_client):
 
 
 def test_missing_wavefunction(public_client):
-    qc_result = [*public_client.query_records(record_id="109520248")][0]
+    qc_result = next(iter(public_client.query_records(record_id="109520248")))
 
     with pytest.raises(MissingQCWaveFunctionError):
         from_qcportal_results(

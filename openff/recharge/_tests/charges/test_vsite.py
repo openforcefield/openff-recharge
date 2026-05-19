@@ -6,6 +6,7 @@ import pytest
 from openff.toolkit import Molecule
 from openff.units import unit
 
+from openff.recharge._tests import does_not_raise
 from openff.recharge.charges.exceptions import ChargeAssignmentError
 from openff.recharge.charges.vsite import (
     BondChargeSiteParameter,
@@ -15,7 +16,6 @@ from openff.recharge.charges.vsite import (
     VirtualSiteCollection,
     VirtualSiteGenerator,
 )
-from openff.recharge._tests import does_not_raise
 from openff.recharge.utilities.molecule import smiles_to_molecule
 
 pytest.importorskip("openff.toolkit")
@@ -53,7 +53,7 @@ def vsite_force_field() -> "ForceField":
 
     force_field = ForceField()
 
-    vsite_handler: "VirtualSiteHandler" = force_field.get_parameter_handler(
+    vsite_handler: VirtualSiteHandler = force_field.get_parameter_handler(
         "VirtualSites"
     )
 
@@ -303,11 +303,11 @@ class TestVirtualSiteCollection:
         openmm_system = full_vsite_force_field.create_openmm_system(
             molecule.to_topology(), charge_from_molecules=[molecule]
         )
-        openmm_force = [
+        openmm_force = next(
             force
             for force in openmm_system.getForces()
             if isinstance(force, openmm.NonbondedForce)
-        ][0]
+        )
 
         openff_charges = numpy.array(
             [
@@ -376,7 +376,7 @@ class TestVirtualSiteGenerator:
         sites = smirnoff_virtual_site_collection.key_map
         assert len(sites) == 1
 
-        vsite_key, potential_key = list(sites.items())[0]
+        vsite_key, potential_key = next(iter(sites.items()))
         assert vsite_key.orientation_atom_indices == (0, 1, 2, 3)
         assert potential_key.id == "[#1:2][#7:1]([#1:3])[#1:4] EP once"
         assert vsite_key.type == "TrivalentLonePair"
@@ -435,7 +435,8 @@ class TestVirtualSiteGenerator:
                 "O",
                 numpy.hstack(
                     [
-                        # Two v-sites added because DivalentLonePair set to all permutations
+                        # Two v-sites added because DivalentLonePair
+                        # set to `all_permutations`
                         numpy.zeros((5, 4)),
                         numpy.array(
                             [

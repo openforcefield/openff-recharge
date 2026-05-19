@@ -9,7 +9,8 @@ https://github.com/samuelcolvin/pydantic/issues/380
 from typing import Any, cast
 
 import numpy
-from openff.units import unit, Quantity
+from openff.units import Quantity, unit
+
 from openff.recharge._pydantic import validator
 
 

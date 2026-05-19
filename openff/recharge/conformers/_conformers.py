@@ -4,11 +4,11 @@ import logging
 from typing import TYPE_CHECKING, Literal
 
 import numpy
-from openff.units import unit, Quantity
-from openff.recharge._pydantic import BaseModel, Field
-
-from openff.recharge.conformers.exceptions import ConformerGenerationError
+from openff.units import Quantity, unit
 from openff.utilities.utilities import requires_oe_module
+
+from openff.recharge._pydantic import BaseModel, Field
+from openff.recharge.conformers.exceptions import ConformerGenerationError
 
 if TYPE_CHECKING:
     from openff.toolkit import Molecule

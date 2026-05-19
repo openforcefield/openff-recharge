@@ -4,13 +4,13 @@ import copy
 from typing import TYPE_CHECKING, Literal, cast
 
 import numpy
-from openff.units import unit, Quantity
+from openff.units import Quantity, unit
 from openff.units.elements import SYMBOLS
-from openff.recharge._pydantic import BaseModel, Field
+from openff.utilities.utilities import requires_oe_module
 
+from openff.recharge._pydantic import BaseModel, Field
 from openff.recharge.charges.exceptions import ChargeAssignmentError
 from openff.recharge.utilities.toolkits import get_atom_symmetries
-from openff.utilities.utilities import requires_oe_module
 
 if TYPE_CHECKING:
     from openff.toolkit import Molecule
@@ -29,13 +29,16 @@ class QCChargeSettings(BaseModel):
 
     symmetrize: bool = Field(
         True,
-        description="Whether the partial charges should be made equal for bond-"
-        "topology equivalent atoms.",
+        description=(
+            "Whether the partial charges should be made equal for bond-topology "
+            "equivalent atoms.",
+        ),
     )
     optimize: bool = Field(
         True,
-        description="Whether to optimize the input conformer during the charge"
-        "calculation.",
+        description=(
+            "Whether to optimize the input conformer during the charge calculation.",
+        ),
     )
 
 

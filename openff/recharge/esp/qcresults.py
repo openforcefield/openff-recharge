@@ -6,10 +6,10 @@ import re
 from typing import TYPE_CHECKING
 
 import numpy
-from openff.units import unit, Quantity
+from openff.units import Quantity, unit
 from openff.utilities import requires_package
-from openff.recharge._pydantic import ValidationError
 
+from openff.recharge._pydantic import ValidationError
 from openff.recharge.esp import ESPSettings, PCMSettings
 from openff.recharge.esp.storage import MoleculeESPRecord
 from openff.recharge.grids import GridGenerator, GridSettingsType
@@ -124,7 +124,7 @@ def reconstruct_density(
 
     spherical_maps = {
         L: numpy.array(
-            list(range(L * 2 - 1, 0, -2)) + [0] + list(range(2, L * 2 + 1, 2))
+            [*list(range(L * 2 - 1, 0, -2)), 0, *list(range(2, L * 2 + 1, 2))]
         )
         for L in angular_momenta
     }
@@ -224,8 +224,8 @@ def from_qcportal_results(
     compute_field: bool = True,
 ) -> MoleculeESPRecord:
     """A function which will re-construct the ESP and optionally the electric field from
-    a set of wavefunctions that have been computed by a QCFractal instance using the Psi4
-    package.
+    a set of wavefunctions that have been computed by a QCFractal instance using the
+    Psi4 package.
 
     Parameters
     ----------

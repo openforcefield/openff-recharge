@@ -1,6 +1,9 @@
 import numpy
 import pytest
 from openff.toolkit import Molecule
+from openff.toolkit._tests.utils import (
+    requires_openeye,
+)
 from openff.units import unit
 
 from openff.recharge.charges.exceptions import ChargeAssignmentError
@@ -8,9 +11,6 @@ from openff.recharge.charges.qc import (
     QCChargeGenerator,
     QCChargeSettings,
     QCChargeTheory,
-)
-from openff.toolkit._tests.utils import (
-    requires_openeye,
 )
 
 

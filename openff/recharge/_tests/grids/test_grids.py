@@ -1,16 +1,16 @@
 import numpy
 import pytest
+from openff.toolkit._tests.utils import requires_openeye
 from openff.units import unit
 
-from openff.recharge.conformers import ConformerGenerator, ConformerSettings
-from openff.recharge.grids import GridGenerator, LatticeGridSettings, MSKGridSettings
 from openff.recharge._tests.data import (
     ARGON_FCC_GRID,
     UNIT_CONNOLLY_SPHERE,
     WATER_MSK_GRID,
 )
+from openff.recharge.conformers import ConformerGenerator, ConformerSettings
+from openff.recharge.grids import GridGenerator, LatticeGridSettings, MSKGridSettings
 from openff.recharge.utilities.molecule import smiles_to_molecule
-from openff.toolkit._tests.utils import requires_openeye
 
 
 class TestLatticeGridSettings:

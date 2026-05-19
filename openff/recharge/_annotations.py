@@ -1,8 +1,9 @@
-from typing import Annotated
 from collections.abc import Callable
-from openff.toolkit import Quantity
-import numpy
 from functools import partial
+from typing import Annotated
+
+import numpy
+from openff.toolkit import Quantity
 from pydantic import BeforeValidator
 
 
@@ -22,7 +23,8 @@ def validator_factory(unit: str) -> Callable:
     """
     Return a function that converts the input array in given implicit units.
 
-    This is meant to be used as the argument to pydantic.BeforeValidator in an Annotated type.
+    This is meant to be used as the argument to pydantic.BeforeValidator in an
+    Annotated type.
 
     """
     return partial(_array_validator, unit=unit)

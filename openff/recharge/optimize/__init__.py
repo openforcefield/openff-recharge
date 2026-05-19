@@ -8,8 +8,8 @@ from openff.recharge.optimize._optimize import (
 )
 
 __all__ = [
-    "ElectricFieldObjective",
-    "ElectricFieldObjectiveTerm",
     "ESPObjective",
     "ESPObjectiveTerm",
+    "ElectricFieldObjective",
+    "ElectricFieldObjectiveTerm",
 ]

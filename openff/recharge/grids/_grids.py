@@ -1,11 +1,11 @@
 import functools
 import itertools
-from typing import TYPE_CHECKING, Literal, Union
+from typing import TYPE_CHECKING, Literal
 
 import numpy
-from openff.units import unit, Quantity
-from openff.recharge._pydantic import BaseModel, Field
+from openff.units import Quantity, unit
 
+from openff.recharge._pydantic import BaseModel, Field
 from openff.recharge.utilities.pydantic import wrapped_float_validator
 from openff.recharge.utilities.toolkits import VdWRadiiType, compute_vdw_radii
 
@@ -63,7 +63,7 @@ class MSKGridSettings(BaseModel):
 
 
 GridSettings = LatticeGridSettings  # For backwards compatability.
-GridSettingsType = Union[LatticeGridSettings, MSKGridSettings]
+GridSettingsType = LatticeGridSettings | MSKGridSettings
 
 
 class GridGenerator:

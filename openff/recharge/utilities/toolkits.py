@@ -376,9 +376,9 @@ def molecule_to_tagged_smiles(molecule: "Molecule", indices: list[int]) -> str:
         to be topologically symmetrical.
     """
 
-    assert (
-        len(indices) == molecule.n_atoms
-    ), "number of atom indices does not match number of atoms"
+    assert len(indices) == molecule.n_atoms, (
+        "number of atom indices does not match number of atoms"
+    )
     assert all(index > 0 for index in indices), "all indices must be > 0"
 
     try:

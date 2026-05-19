@@ -2,17 +2,22 @@
 calculated electrostatic potentials in unified data collections.
 """
 
-import warnings
 import functools
+import warnings
 from collections import defaultdict
-from contextlib import contextmanager
-from typing import ContextManager
+from contextlib import AbstractContextManager, contextmanager
 
-from openff.toolkit import Quantity, Molecule
-from openff.recharge._pydantic import BaseModel, Field, ConfigDict
+from openff.toolkit import Molecule, Quantity
+from openff.toolkit.utils.exceptions import AtomMappingWarning
 from sqlalchemy import create_engine, event
 from sqlalchemy.orm import Session, sessionmaker
-from openff.toolkit.utils.exceptions import AtomMappingWarning
+
+from openff.recharge._annotations import (
+    ESP,
+    Coordinates,
+    ElectricField,
+)
+from openff.recharge._pydantic import BaseModel, ConfigDict, Field
 from openff.recharge.esp import ESPSettings
 from openff.recharge.esp.storage.db import (
     DB_VERSION,
@@ -27,11 +32,6 @@ from openff.recharge.esp.storage.db import (
     DBSoftwareProvenance,
 )
 from openff.recharge.esp.storage.exceptions import IncompatibleDBVersion
-from openff.recharge._annotations import (
-    ESP,
-    ElectricField,
-    Coordinates,
-)
 
 
 class MoleculeESPRecord(BaseModel):
@@ -51,14 +51,17 @@ class MoleculeESPRecord(BaseModel):
 
     conformer: Coordinates = Field(
         ...,
-        description="The coordinates [Angstrom] of this conformer with "
-        "shape=(n_atoms, 3).",
+        description=(
+            "The coordinates [Angstrom] of this conformer with shape=(n_atoms, 3).",
+        ),
     )
 
     grid_coordinates: Coordinates = Field(
         ...,
-        description="The grid coordinates [Angstrom] which the ESP was calculated on "
-        "with shape=(n_grid_points, 3).",
+        description=(
+            "The grid coordinates [Angstrom] which the ESP was calculated on with "
+            "shape=(n_grid_points, 3)."
+        ),
     )
     esp: ESP = Field(
         ...,
@@ -256,7 +259,7 @@ class MoleculeESPStore:
             ]
 
     @contextmanager
-    def _get_session(self) -> ContextManager[Session]:
+    def _get_session(self) -> AbstractContextManager[Session]:
         session = self._session_maker()
 
         try:

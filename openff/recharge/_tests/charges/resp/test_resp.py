@@ -4,7 +4,7 @@ from collections import defaultdict
 import numpy
 import pytest
 from openff.toolkit import Molecule
-from openff.units import unit, Quantity
+from openff.units import Quantity, unit
 
 from openff.recharge.charges.library import LibraryChargeParameter
 from openff.recharge.charges.resp._resp import (
@@ -88,7 +88,7 @@ def meoh_esp_sto3g() -> MoleculeESPRecord:
         unit.angstrom,
     )
 
-    conformer, grid, esp, electric_field = Psi4ESPGenerator.generate(
+    conformer, grid, esp, _electric_field = Psi4ESPGenerator.generate(
         mol,
         input_conformer,
         qc_data_settings,

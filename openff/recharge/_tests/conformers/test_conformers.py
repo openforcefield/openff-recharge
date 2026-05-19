@@ -27,7 +27,7 @@ def test_max_conformers(max_conformers):
 
 @pytest.mark.skip(
     reason=(
-        "The toolkit (0.12+) sees this as a radical-containing molecule."
+        "The toolkit (0.12+) sees this as a radical-containing molecule. "
         "Need to use a different molecule."
     )
 )

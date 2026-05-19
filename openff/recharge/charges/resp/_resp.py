@@ -68,8 +68,8 @@ def molecule_to_resp_library_charge(
         '[#6X4H3,#6H4,#6X4H2:1]') in **the same** conformer should be assigned an
         equivalent charge.
     equivalize_within_methyl_hydrogens
-        Whether all topologically symmetric methyl(ene) hydrogens (i.e. those attached to
-        a methyl(ene) carbon) in **the same** conformer should be assigned an
+        Whether all topologically symmetric methyl(ene) hydrogens (i.e. those attached
+        to a methyl(ene) carbon) in **the same** conformer should be assigned an
         equivalent charge.
     equivalize_within_other_heavy_atoms
         Whether all topologically symmetric heavy atoms that are not methyl(ene) carbons
@@ -88,7 +88,7 @@ def molecule_to_resp_library_charge(
 
     methyl_carbons = [
         index
-        for index, in molecule.chemical_environment_matches("[#6X4H3,#6H4,#6X4H2:1]")
+        for (index,) in molecule.chemical_environment_matches("[#6X4H3,#6H4,#6X4H2:1]")
     ]
     methyl_hydrogens = [
         atom.molecule_atom_index
@@ -214,8 +214,8 @@ def generate_resp_systems_of_equations(
         '[#6X4H3,#6H4,#6X4H2:1]') in **different** conformers should be assigned an
         equivalent charge.
     equivalize_between_methyl_hydrogens
-        Whether all topologically symmetric methyl(ene) hydrogens (i.e. those attached to
-        a methyl(ene) carbon) in **different** conformers should be assigned an
+        Whether all topologically symmetric methyl(ene) hydrogens (i.e. those attached
+        to a methyl(ene) carbon) in **different** conformers should be assigned an
         equivalent charge.
     equivalize_between_other_heavy_atoms
         Whether all topologically symmetric heavy atoms that are not methyl(ene) carbons
@@ -370,16 +370,18 @@ def generate_resp_charge_parameter(
 
     Notes
     -----
-    * Methyl(ene) carbons are detected as any carbon matched by '[#6X4H3,#6H4,#6X4H2:1]',
-      methyl(ene) hydrogens are any hydrogen attached to a methyl(ene) carbon, otherwise
-      the atom is treated as any other heavy atom / hydrogen.
+    * Methyl(ene) carbons are detected as any carbon matched by
+      `'[#6X4H3,#6H4,#6X4H2:1]'`, methyl(ene) hydrogens are any hydrogen attached to
+      a methyl(ene) carbon, otherwise the atom is treated as any other heavy
+      atom / hydrogen.
     * All heavy atom charge and non-methyl(ene) hydrogen charge will be equivalized in
       stage 1 of the fit both within and between multiple conformers, while methyl(ene)
       hydrogen charge will not be either within or between multiple conformers.
     * All methyl(ene) charges (both carbon and hydrogen) will be equivalized both within
       and between multiple conformers in stage 2 of the fit.
     * All atom charge will be free to vary during stage 1 of the fit, while only
-      methyl(ene) charges (both carbon and hydrogen) will be free to vary during stage 2.
+      methyl(ene) charges (both carbon and hydrogen) will be free to vary during
+      stage 2.
     * A value of b=0.1 is used for the hyperbolic restraints applied to all heavy atom
       charges in both stages, while a value of a=0.0005 and 0.001 will be used for
       stages 1 and 2 respectively.
@@ -404,9 +406,9 @@ def generate_resp_charge_parameter(
     unique_smiles = {
         _canonicalize_smiles(record.tagged_smiles) for record in qc_data_records
     }
-    assert (
-        len(unique_smiles) == 1
-    ), "all QC records must be generated for the same molecule"
+    assert len(unique_smiles) == 1, (
+        "all QC records must be generated for the same molecule"
+    )
 
     molecule = Molecule.from_smiles(
         next(iter(unique_smiles)), allow_undefined_stereo=True

@@ -63,11 +63,7 @@ def build_bond_charge_corrections(
         bond_code = code[2:4]
         last_atom_code = code[4:6]
 
-        smirks = (
-            f"{atom_codes[first_atom_code]}"
-            f"{bond_codes[bond_code]}"
-            f"{atom_codes[last_atom_code].replace(':1', ':2')}"
-        )
+        smirks = f"{atom_codes[first_atom_code]}{bond_codes[bond_code]}{atom_codes[last_atom_code].replace(':1', ':2')}"
 
         if code in custom_bcc_smirks:
             smirks = custom_bcc_smirks.pop(code)

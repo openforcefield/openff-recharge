@@ -1,0 +1,69 @@
+[build-system]
+build-backend = "setuptools.build_meta"
+requires = [
+  "setuptools",
+  "setuptools-scm>=8",
+]
+
+[project]
+name = "openff-recharge"
+description = "An automated framework for generating optimized partial charges for molecules."
+readme = { file = "README.md", content-type = "text/markdown" }
+license = { text = "MIT" }
+authors = [ { name = "Simon Boothroyd", email = "simon.boothroyd@colorado.edu" } ]
+requires-python = ">=3.12"
+classifiers = [
+  "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.14",
+]
+dynamic = [ "version" ]
+dependencies = [
+  "click",
+  "jinja2",
+  "numpy",
+  "pydantic",
+  "sqlalchemy",
+]
+scripts.openff-recharge = "openff.recharge.cli:cli"
+
+[tool.setuptools]
+include-package-data = true
+packages.find.include = [ "openff.*" ]
+
+[tool.setuptools_scm]
+fallback_version = "0.0.0"
+
+[tool.ruff]
+line-length = 88
+namespace-packages = [ "openff/recharge/" ]
+lint.select = [ "E", "F", "I", "UP", "W" ]
+lint.per-file-ignores."plugins/*" = [ "INP001" ]
+lint.per-file-ignores."scripts/convert-am1-bcc/convert.py" = [ "E501" ]
+lint.isort.known-first-party = [ "openff.recharge" ]
+# can't find a clean way to get Rust's globset to handle this via regex ...
+lint.isort.known-third-party = [ "openff.toolkit", "openff.interchange", "openff.utilities" ]
+lint.pydocstyle.property-decorators = [ "validator" ]
+
+[tool.mypy]
+mypy_path = "stubs/"
+plugins = [ "numpy.typing.mypy_plugin" ]
+warn_unused_configs = true
+warn_unused_ignores = true
+warn_incomplete_stub = true
+show_error_codes = true
+disable_error_code = [ "call-arg" ]
+exclude = "openff/recharge/_tests/"
+
+[tool.coverage]
+run.omit = [
+  "*/*/_tests/*",
+]
+report.exclude_lines = [
+  "@overload",
+  "if __name__ == .__main__.:",
+  "if TYPE_CHECKING:",
+  "pragma: no cover",
+  "raise NotImplementedError"
+]

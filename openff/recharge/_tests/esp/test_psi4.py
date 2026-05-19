@@ -52,8 +52,7 @@ def test_generate_input_base(compute_esp, compute_field, expected_properties):
             "  basis 6-31g*",
             "}",
             "",
-            f"E,wfn = prop('hf', properties = {expected_properties}, "
-            "return_wfn=True)",
+            f"E,wfn = prop('hf', properties = {expected_properties}, return_wfn=True)",
             "mol.save_xyz_file('final-geometry.xyz',1)",
         ]
     )
@@ -85,8 +84,7 @@ def test_generate_input_base(compute_esp, compute_field, expected_properties):
             "",
             "optimize('scf')",
             "",
-            f"E,wfn = prop('uhf', properties = {expected_properties}, "
-            "return_wfn=True)",
+            f"E,wfn = prop('uhf', properties = {expected_properties}, return_wfn=True)",
             "mol.save_xyz_file('final-geometry.xyz',1)",
         ]
     )
@@ -154,8 +152,7 @@ def test_generate_input_dft_settings(
             *expected_grid_settings,
             "}",
             "",
-            "E,wfn = prop('hf', properties = ['GRID_ESP', 'GRID_FIELD'], "
-            "return_wfn=True)",
+            "E,wfn = prop('hf', properties = ['GRID_ESP', 'GRID_FIELD'], return_wfn=True)",  # noqa: E501
             "mol.save_xyz_file('final-geometry.xyz',1)",
         ]
     )
@@ -214,8 +211,7 @@ def test_generate_input_pcm():
             "  }",
             "}",
             "",
-            "E,wfn = prop('hf', properties = ['GRID_ESP', 'GRID_FIELD'], "
-            "return_wfn=True)",
+            "E,wfn = prop('hf', properties = ['GRID_ESP', 'GRID_FIELD'], return_wfn=True)",  # noqa: E501
             "mol.save_xyz_file('final-geometry.xyz',1)",
         ]
     )
@@ -274,8 +270,7 @@ def test_generate_input_pcm_memory():
             "  }",
             "}",
             "",
-            "E,wfn = prop('hf', properties = ['GRID_ESP', 'GRID_FIELD'], "
-            "return_wfn=True)",
+            "E,wfn = prop('hf', properties = ['GRID_ESP', 'GRID_FIELD'], return_wfn=True)",  # noqa: E501
             "mol.save_xyz_file('final-geometry.xyz',1)",
         ]
     )
@@ -357,7 +352,7 @@ def test_generate_no_properties():
         * unit.angstrom
     )
 
-    output_conformer, grid, esp, electric_field = Psi4ESPGenerator.generate(
+    _output_conformer, _grid, esp, electric_field = Psi4ESPGenerator.generate(
         molecule,
         input_conformer,
         settings,

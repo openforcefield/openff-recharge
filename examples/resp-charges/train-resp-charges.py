@@ -26,7 +26,7 @@ def main():
 
     [input_conformer] = extract_conformers(molecule)
 
-    conformer, grid, esp, electric_field = Psi4ESPGenerator.generate(
+    conformer, grid, esp, _electric_field = Psi4ESPGenerator.generate(
         molecule, input_conformer, qc_data_settings, minimize=True
     )
 
@@ -35,9 +35,9 @@ def main():
     )
 
     resp_solver = IterativeSolver()
-    # While by default the iterative approach to finding the set of charges that minimize
-    # the RESP loss function as described in the original papers is used, others such as
-    # an experimental one that calls out to SciPy are available, e.g.
+    # While by default the iterative approach to finding the set of charges that
+    # minimize the RESP loss function as described in the original papers is used,
+    # others such as an experimental one that calls out to SciPy are available, e.g.
     # resp_solver = SciPySolver(method="SLSQP")
 
     resp_charge_parameter = generate_resp_charge_parameter(

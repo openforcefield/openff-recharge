@@ -2,13 +2,13 @@
 
 import abc
 from collections import defaultdict
-from typing import TYPE_CHECKING, Literal, Union, overload
+from typing import TYPE_CHECKING, Literal, overload
 
 import numpy
-from openff.units import unit, Quantity
+from openff.units import Quantity, unit
 from openff.utilities import requires_package
-from openff.recharge._pydantic import BaseModel, Field, constr, validator
 
+from openff.recharge._pydantic import BaseModel, Field, constr, validator
 from openff.recharge.aromaticity import AromaticityModels
 from openff.recharge.charges.exceptions import ChargeAssignmentError
 
@@ -18,9 +18,9 @@ if TYPE_CHECKING:
     except ImportError:
         torch = None
 
+    from openff.interchange.smirnoff._virtual_sites import SMIRNOFFVirtualSiteCollection
     from openff.toolkit import Molecule
     from openff.toolkit.typing.engines.smirnoff import VirtualSiteHandler
-    from openff.interchange.smirnoff._virtual_sites import SMIRNOFFVirtualSiteCollection
 
 ExclusionPolicy = Literal["none", "parents"]
 
@@ -40,8 +40,10 @@ class _VirtualSiteParameter(BaseModel, abc.ABC):
 
     smirks: constr(min_length=1) = Field(
         ...,
-        description="A SMIRKS pattern that encodes the chemical environment that "
-        "this parameter should be applied to.",
+        description=(
+            "A SMIRKS pattern that encodes the chemical environment that this parameter"
+            " should be applied to.",
+        ),
     )
     name: str | None = Field(
         None, description="An optional name associated with this virtual site."
@@ -49,12 +51,16 @@ class _VirtualSiteParameter(BaseModel, abc.ABC):
 
     distance: float = Field(
         ...,
-        description="The distance to place the virtual site along its associated basis.",
+        description=(
+            "The distance to place the virtual site along its associated basis.",
+        ),
     )
     charge_increments: tuple[float, ...] = Field(
         ...,
-        description="The amount of charge [e] to be transferred from the virtual site "
-        "to each tagged atom that forms the basis for the virtual site.",
+        description=(
+            "The amount of charge [e] to be transferred from the virtual site "
+            "to each tagged atom that forms the basis for the virtual site."
+        ),
     )
 
     sigma: float = Field(
@@ -62,8 +68,9 @@ class _VirtualSiteParameter(BaseModel, abc.ABC):
     )
     epsilon: float = Field(
         ...,
-        description="The LJ espilon [kJ / mol] parameter associated with the virtual "
-        "site.",
+        description=(
+            "The LJ epsilon [kJ / mol] parameter associated with the virtual site."
+        ),
     )
 
     match: Literal["once", "all-permutations"] = Field(..., description="...")
@@ -103,13 +110,17 @@ class MonovalentLonePairParameter(_VirtualSiteParameter):
 
     in_plane_angle: float = Field(
         ...,
-        description="The angle [deg] to move the virtual site in the plane defined "
-        "by the tagged atoms by.",
+        description=(
+            "The angle [deg] to move the virtual site in the plane defined by the "
+            "tagged atoms by.",
+        ),
     )
     out_of_plane_angle: float = Field(
         ...,
-        description="The angle [deg] to move the virtual site out of the plane "
-        "defined by the tagged atoms by.",
+        description=(
+            "The angle [deg] to move the virtual site out of the plane defined by "
+            "the tagged atoms by.",
+        ),
     )
 
     @classmethod
@@ -129,8 +140,10 @@ class DivalentLonePairParameter(_VirtualSiteParameter):
 
     out_of_plane_angle: float = Field(
         ...,
-        description="The angle [deg] to move the virtual site out of the plane "
-        "defined by the tagged atoms by.",
+        description=(
+            "The angle [deg] to move the virtual site out of the plane defined by "
+            "the tagged atoms by."
+        ),
     )
 
     @classmethod
@@ -162,12 +175,12 @@ class TrivalentLonePairParameter(_VirtualSiteParameter):
         return numpy.array([[self.distance, 180.0, 0.0]])
 
 
-VirtualSiteParameterType = Union[
-    BondChargeSiteParameter,
-    MonovalentLonePairParameter,
-    DivalentLonePairParameter,
-    TrivalentLonePairParameter,
-]
+VirtualSiteParameterType = (
+    BondChargeSiteParameter
+    | MonovalentLonePairParameter
+    | DivalentLonePairParameter
+    | TrivalentLonePairParameter
+)
 
 
 class VirtualSiteCollection(BaseModel):
@@ -259,9 +272,9 @@ class VirtualSiteCollection(BaseModel):
             The converted virtual site collection.
         """
 
-        assert (
-            aromaticity_model == AromaticityModels.MDL
-        ), "only MDL aromaticity model is supported"
+        assert aromaticity_model == AromaticityModels.MDL, (
+            "only MDL aromaticity model is supported"
+        )
 
         parameters = []
 
@@ -418,9 +431,9 @@ class VirtualSiteGenerator:
     def _build_charge_increment_array(
         cls, vsite_collection: VirtualSiteCollection
     ) -> tuple[numpy.ndarray, list[VirtualSiteChargeKey]]:
-        """Returns a flat vector of the charge increments contained within a virtual site
-        collection as well as a list of keys that map each value back to its original
-        parameter.
+        """Returns a flat vector of the charge increments contained within a virtual
+        site collection as well as a list of keys that map each value back to its
+        original parameter.
 
         Parameters
         ----------
@@ -521,8 +534,8 @@ class VirtualSiteGenerator:
         assignment_matrix: numpy.ndarray,
         vsite_collection: VirtualSiteCollection,
     ) -> numpy.ndarray:
-        """Applies an assignment matrix to a list of virtual site parameters to yield the
-        final charges increments due to the virtual sites for a molecule.
+        """Applies an assignment matrix to a list of virtual site parameters to yield
+        the final charges increments due to the virtual sites for a molecule.
 
         Parameters
         ----------

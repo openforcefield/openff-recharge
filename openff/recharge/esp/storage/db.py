@@ -13,7 +13,7 @@ from sqlalchemy import (
     String,
     UniqueConstraint,
 )
-from sqlalchemy.orm import Query, Session, relationship, declarative_base
+from sqlalchemy.orm import Query, Session, declarative_base, relationship
 
 from openff.recharge.esp import ESPSettings, PCMSettings
 from openff.recharge.grids import GridSettingsType, LatticeGridSettings, MSKGridSettings
@@ -28,7 +28,7 @@ _DB_FLOAT_PRECISION = 100000.0
 
 
 def _float_to_db_int(value: float) -> int:
-    return int(math.floor(value * _DB_FLOAT_PRECISION))
+    return math.floor(value * _DB_FLOAT_PRECISION)
 
 
 def _db_int_to_float(value: int) -> float:
@@ -276,7 +276,7 @@ class DBESPSettings(_UniqueMixin, DBBase):
             **instance.dict(
                 exclude={"grid_settings", "pcm_settings", "psi4_dft_grid_settings"}
             ),
-            psi4_dft_grid_settings=instance.psi4_dft_grid_settings.value
+            psi4_dft_grid_settings=instance.psi4_dft_grid_settings.value,
         )
 
 

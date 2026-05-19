@@ -1,11 +1,11 @@
 import abc
 from collections import defaultdict
+from collections.abc import Generator
 from typing import (
     TYPE_CHECKING,
     Literal,
     TypeVar,
 )
-from collections.abc import Generator
 
 import numpy
 from openff.units import unit
@@ -91,7 +91,7 @@ class ObjectiveTerm(abc.ABC):
             partial charge on each virtual site as the sum of one or more charges from
             the a vector of virtual site charge parameters [e], i.e
 
-            ``vsite_charges = vsite_charge_assignment_matrix @ v_site_charge_parameters``
+            ``vsite_charges = vsite_charge_assignment_matrix @ vsite_charge_parameters``
         vsite_fixed_charges
             A vector with shape=(n_vsites, 1) of the partial charges assigned to each
             virtual site that will remain fixed during an optimization.
@@ -285,7 +285,7 @@ class ObjectiveTerm(abc.ABC):
             and vsite_coordinate_parameters is not None
         ):
             raise RuntimeError(
-                "Virtual site parameters were provided but this term was not set-up to"
+                "Virtual site parameters were provided but this term was not set-up to "
                 "handle such particles."
             )
 
@@ -655,8 +655,11 @@ class Objective(abc.ABC):
     ) -> Generator[ObjectiveTerm, None, None]:
         """Pre-calculates the terms that contribute to the total objective function.
 
-        This function assumes that the array (/tensor) of values to train will have shape
-        (n_charge_parameter_keys + n_bcc_parameter_keys + vsite_charge_parameter_keys, 1)
+        This function assumes that the array (/tensor) of values to train will have
+        shape (
+          n_charge_parameter_keys + n_bcc_parameter_keys + vsite_charge_parameter_keys,
+          1,
+        )
         with the values in the array corresponding to the values pointed to by the keys
         starting with library charge values (if any), followed by BCCs (if any) and
         finally any v-site charge increments (if any). See the ``vectorize`` method of
@@ -683,8 +686,8 @@ class Objective(abc.ABC):
             A list of tuples of the form ``(smiles, (idx_0, ...))`` that define those
             parameters in the ``charge_collection`` that should be trained.
 
-            Here ``idx_i`` is an index into the ``value`` field of the parameter uniquely
-            identified by the ``smiles`` key.
+            Here ``idx_i`` is an index into the ``value`` field of the parameter
+            uniquely identified by the ``smiles`` key.
 
             This argument can only be used when the ``charge_collection`` is a library
             charge collection.
@@ -763,9 +766,9 @@ class Objective(abc.ABC):
             if charge_collection is None:
                 pass
             elif isinstance(charge_collection, QCChargeSettings):
-                assert (
-                    charge_parameter_keys is None
-                ), "charges generated using `QCChargeSettings` cannot be trained"
+                assert charge_parameter_keys is None, (
+                    "charges generated using `QCChargeSettings` cannot be trained"
+                )
 
                 fixed_atom_charges += QCChargeGenerator.generate(
                     molecule, [ordered_conformer * unit.angstrom], charge_collection

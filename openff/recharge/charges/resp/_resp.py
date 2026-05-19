@@ -371,8 +371,8 @@ def generate_resp_charge_parameter(
     Notes
     -----
     * Methyl(ene) carbons are detected as any carbon matched by
-      '[#6X4H3,#6H4,#6X4H2:1]'`, methyl(ene) hydrogens are any hydrogen attached to a
-      methyl(ene) carbon, otherwise the atom is treated as any other heavy
+      `'[#6X4H3,#6H4,#6X4H2:1]'`, methyl(ene) hydrogens are any hydrogen attached to
+      a methyl(ene) carbon, otherwise the atom is treated as any other heavy
       atom / hydrogen.
     * All heavy atom charge and non-methyl(ene) hydrogen charge will be equivalized in
       stage 1 of the fit both within and between multiple conformers, while methyl(ene)

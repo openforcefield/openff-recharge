@@ -55,3 +55,15 @@ warn_incomplete_stub = true
 show_error_codes = true
 disable_error_code = [ "call-arg" ]
 exclude = "openff/recharge/_tests/"
+
+[tool.coverage]
+run.omit = [
+  "*/*/_tests/*",
+]
+report.exclude_lines = [
+  "@overload",
+  "if __name__ == .__main__.:",
+  "if TYPE_CHECKING:",
+  "pragma: no cover",
+  "raise NotImplementedError"
+]

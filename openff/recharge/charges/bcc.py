@@ -1,4 +1,4 @@
-"""Generate bond charge corrections (BCCs) for molecules from a collection of BCC."""
+"""Generate bond charge corrections (BCCs) for molecules from a collection of BCCs."""
 
 import json
 import os

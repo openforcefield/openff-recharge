@@ -29,8 +29,8 @@ dependencies = [
 scripts.openff-recharge = "openff.recharge.cli:cli"
 
 [tool.setuptools]
-include-package-data = true
 packages.find.include = [ "openff.*" ]
+include-package-data = true
 
 [tool.setuptools_scm]
 fallback_version = "0.0.0"
@@ -48,13 +48,13 @@ lint.pydocstyle.property-decorators = [ "validator" ]
 
 [tool.mypy]
 mypy_path = "stubs/"
-plugins = [ "numpy.typing.mypy_plugin" ]
-warn_unused_configs = true
-warn_unused_ignores = true
-warn_incomplete_stub = true
-show_error_codes = true
-disable_error_code = [ "call-arg" ]
 exclude = "openff/recharge/_tests/"
+warn_unused_ignores = true
+disable_error_code = [ "call-arg" ]
+plugins = [ "numpy.typing.mypy_plugin" ]
+warn_incomplete_stub = true
+warn_unused_configs = true
+show_error_codes = true
 
 [tool.coverage]
 run.omit = [

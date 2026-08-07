@@ -26,6 +26,8 @@ dependencies:
 
     # ESP calculations
   - psi4 =1.10
+    # See Lori comments in Psi4 slack Aug 5 2026
+  - libxc ==7.0.0
 
     # XTB charges
   - xtb-python

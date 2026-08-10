@@ -3,7 +3,7 @@ channels:
   - conda-forge
 dependencies:
     # Base depends
-  - python =3.11
+  - python =3.12
   - pip
 
     ### Core dependencies.
@@ -15,7 +15,7 @@ dependencies:
   - pydantic <2.0
   - openff-utilities >=0.1.5
   - openff-units
-  - openff-toolkit-base >=0.10.2
+  - openff-toolkit-base =0.17
   - openff-nagl-models
 
     # ESP storage

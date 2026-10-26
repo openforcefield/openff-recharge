@@ -24,15 +24,16 @@ dependencies:
   - sqlite
 
     ### Documentation dependencies
-  - sphinx >=9.1.1
+  - sphinx <7
   - numpydoc
   - sphinx-notfound-page
   - sphinxcontrib-bibtex
   - sphinx-click
   - myst-parser
-  - autodoc-pydantic =2
+  # autodoc-pydantic =2.2
 
   # Dependencies not available on Conda Forge
   - pip:
+    - autodoc-pydantic # maybe 2.2?
     # Documentation theme
     - git+https://github.com/openforcefield/openff-sphinx-theme.git@main

@@ -12,10 +12,12 @@ dependencies:
   - tqdm
   - numpy
   - jinja2
-  - pydantic
+  # autodoc_pydantic conflicts with 2.11+
+  - pydantic =2.10
   - openff-utilities >=0.1.5
   - openff-units =0.4
-  - openff-toolkit-base =0.19
+  # try not to install AmberTools, but 0.19+ takes Pydantic 2.13+ implicitly via Interchange
+  - openff-toolkit-base =0.18.1
 
     # ESP storage
   - sqlalchemy

@@ -15,16 +15,16 @@ dependencies:
   # autodoc_pydantic conflicts with 2.11+
   - pydantic
   - openff-utilities >=0.1.5
-  - openff-units >=0.3
+  - openff-units >=0.4
   # try not to install AmberTools, but 0.19+ takes Pydantic 2.13+ implicitly via Interchange
-  - openff-toolkit-base =0.18.1
+  - openff-toolkit-base =0.19
 
     # ESP storage
   - sqlalchemy
   - sqlite
 
     ### Documentation dependencies
-  - sphinx
+  - sphinx ==9.1.1
   - numpydoc
   - sphinx-notfound-page
   - sphinxcontrib-bibtex

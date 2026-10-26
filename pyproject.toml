@@ -18,7 +18,6 @@ classifiers = [
   "Programming Language :: Python :: 3.13",
   "Programming Language :: Python :: 3.14",
 ]
-scripts.openff-recharge = "openff.recharge.cli:cli"
 dynamic = [ "version" ]
 dependencies = [
   "click",
@@ -27,6 +26,7 @@ dependencies = [
   "pydantic",
   "sqlalchemy",
 ]
+scripts.openff-recharge = "openff.recharge.cli:cli"
 
 [tool.setuptools]
 packages.find.include = [ "openff.*" ]

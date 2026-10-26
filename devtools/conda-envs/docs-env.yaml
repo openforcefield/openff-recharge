@@ -1,6 +1,5 @@
 name: openff-recharge-docs
 channels:
-  - jaimergp/label/unsupported-cudatoolkit-shim
   - conda-forge
 dependencies:
     # Base depends
@@ -13,18 +12,14 @@ dependencies:
   - tqdm
   - numpy
   - jinja2
-  - pydantic <2.0
+  - pydantic
   - openff-utilities >=0.1.5
-  - openff-units
-  - openff-toolkit-base =0.17
-  - openff-nagl-models
+  - openff-units =0.4
+  - openff-toolkit-base =0.19
 
     # ESP storage
   - sqlalchemy
   - sqlite
-
-    # Python < 3.8
-  - typing-extensions
 
     ### Documentation dependencies
 

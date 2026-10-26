@@ -13,7 +13,7 @@ dependencies:
   - numpy
   - jinja2
   # autodoc_pydantic conflicts with 2.11+
-  - pydantic =2.10
+  - pydantic
   - openff-utilities >=0.1.5
   - openff-units >=0.3
   # try not to install AmberTools, but 0.19+ takes Pydantic 2.13+ implicitly via Interchange
@@ -24,13 +24,13 @@ dependencies:
   - sqlite
 
     ### Documentation dependencies
-
-  - sphinx >=4.4,<5
+  - sphinx
+  - numpydoc
   - sphinx-notfound-page
   - sphinxcontrib-bibtex
   - sphinx-click
   - myst-parser
-  - autodoc-pydantic
+  - autodoc-pydantic =2
 
   # Dependencies not available on Conda Forge
   - pip:

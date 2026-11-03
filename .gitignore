@@ -117,3 +117,6 @@ docs/ref/api/
 
 # macOS
 .DS_Store
+# pixi environments
+.pixi/*
+!.pixi/config.toml

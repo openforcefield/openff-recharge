@@ -1,12 +1,16 @@
 version: 2
 
 build:
-  os: ubuntu-26.04
-  tools:
-    python: "miniforge3-latest"
-
-sphinx:
-   configuration: docs/conf.py
-
-conda:
-   environment: devtools/conda-envs/docs-env.yaml
+    os: ubuntu-26.04
+    tools:
+         python: "latest"
+    jobs:
+        create_environment:
+            - asdf plugin add pixi
+            - asdf install pixi latest
+            - asdf global pixi latest
+        install:
+            - pixi install --frozen -e docs
+        build:
+            html:
+                - pixi run --frozen -e docs sphinx-build -T -b html docs $READTHEDOCS_OUTPUT/html

@@ -81,7 +81,7 @@ class ESPSettings(BaseModel):
         ...,
         description=(
             "The settings to use when generating the grid to generate the "
-            "electrostatic potential on.",
+            "electrostatic potential on."
         ),
     )
 

@@ -7,20 +7,21 @@ platforms = ["linux-64", "osx-arm64"]
 [tasks]
 
 [dependencies]
-python = "3.12.*"
+python = "*"
 pip = "*"
 click = "*"
 tqdm = "*"
 numpy = "*"
 jinja2 = "*"
-pydantic = "*"
+pydantic = "2.*"
 openff-utilities = ">=0.1.5"
 openff-units = "*"
 openff-toolkit-base = ">=0.10.2"
 openff-nagl-models = "*"
 sqlalchemy = "*"
 sqlite = "*"
-sphinx = ">=4.4,<5"
+sphinx = ">4.0,<7.0"  # inherited from openff-sphinx-theme
+libsass = "*"  # Pre-built libsass to avoid compilation issues
 sphinx-notfound-page = "*"
 sphinxcontrib-bibtex = "*"
 sphinx-click = "*"

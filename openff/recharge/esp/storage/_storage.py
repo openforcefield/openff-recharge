@@ -52,7 +52,7 @@ class MoleculeESPRecord(BaseModel):
     conformer: Coordinates = Field(
         ...,
         description=(
-            "The coordinates [Angstrom] of this conformer with shape=(n_atoms, 3).",
+            "The coordinates [Angstrom] of this conformer with shape=(n_atoms, 3)."
         ),
     )
 

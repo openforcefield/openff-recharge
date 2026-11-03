@@ -31,13 +31,13 @@ class QCChargeSettings(BaseModel):
         True,
         description=(
             "Whether the partial charges should be made equal for bond-topology "
-            "equivalent atoms.",
+            "equivalent atoms."
         ),
     )
     optimize: bool = Field(
         True,
         description=(
-            "Whether to optimize the input conformer during the charge calculation.",
+            "Whether to optimize the input conformer during the charge calculation."
         ),
     )
 

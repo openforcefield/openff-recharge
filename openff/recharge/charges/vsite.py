@@ -42,7 +42,7 @@ class _VirtualSiteParameter(BaseModel, abc.ABC):
         ...,
         description=(
             "A SMIRKS pattern that encodes the chemical environment that this parameter"
-            " should be applied to.",
+            " should be applied to."
         ),
     )
     name: str | None = Field(
@@ -52,7 +52,7 @@ class _VirtualSiteParameter(BaseModel, abc.ABC):
     distance: float = Field(
         ...,
         description=(
-            "The distance to place the virtual site along its associated basis.",
+            "The distance to place the virtual site along its associated basis."
         ),
     )
     charge_increments: tuple[float, ...] = Field(
@@ -112,14 +112,14 @@ class MonovalentLonePairParameter(_VirtualSiteParameter):
         ...,
         description=(
             "The angle [deg] to move the virtual site in the plane defined by the "
-            "tagged atoms by.",
+            "tagged atoms by."
         ),
     )
     out_of_plane_angle: float = Field(
         ...,
         description=(
             "The angle [deg] to move the virtual site out of the plane defined by "
-            "the tagged atoms by.",
+            "the tagged atoms by."
         ),
     )
 

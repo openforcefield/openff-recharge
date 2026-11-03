@@ -25,3 +25,12 @@ repos:
   rev: v2.25.1
   hooks:
     - id: pyproject-fmt
+- repo: https://github.com/tombi-toml/tombi-pre-commit
+  rev: v1.9.7
+  hooks:
+    - id: tombi-format
+      args: ["--offline"]
+      files: 'pixi.toml'
+    - id: tombi-lint
+      args: ["--offline"]
+      files: 'pixi.toml'
